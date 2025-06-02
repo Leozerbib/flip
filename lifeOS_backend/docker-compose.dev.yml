@@ -1,0 +1,56 @@
+services:
+  user_auth_service:
+    build:
+      context: ./apps/auth-service
+      dockerfile: Dockerfile
+    container_name: lifeos_user_auth_dev
+    restart: unless-stopped
+    ports:
+      - "4002:3000"
+    environment:
+      DATABASE_URL: "postgresql://${POSTGRES_USER:-lifeos_user}:${POSTGRES_PASSWORD:-lifeos_password}@postgres_db:5432/${POSTGRES_DB:-lifeos_db}?schema=public"
+      JWT_SECRET: ${JWT_SECRET:-super_secret_jwt_key_change_in_production}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET}
+      GOOGLE_CALLBACK_URL: ${GOOGLE_CALLBACK_URL}
+      NODE_ENV: development
+      PORT: 3000
+    depends_on:
+      postgres_db:
+        condition: service_healthy
+    networks:
+      - lifeos_network
+    volumes:
+      # Volume pour hot reload en développement
+      - ./apps/user-auth-service/src:/usr/src/app/src
+    command: npm run start:dev
+
+  api_gateway:
+    build:
+      context: ./apps/api-gateway
+      dockerfile: Dockerfile
+    container_name: lifeos_api_gateway_dev
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      USER_AUTH_SERVICE_URL: http://user_auth_service:3000
+      FRONTEND_URL: ${FRONTEND_URL:-http://localhost:3000}
+      NODE_ENV: development
+      PORT: 3000
+    depends_on:
+      - user_auth_service
+    networks:
+      - lifeos_network
+    volumes:
+      # Volume pour hot reload en développement
+      - ./apps/api-gateway/src:/usr/src/app/src
+    command: npm run start:dev
+
+volumes:
+  postgres_data_dev:
+    driver: local
+
+networks:
+  lifeos_network:
+    driver: bridge 

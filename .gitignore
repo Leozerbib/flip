@@ -1,0 +1,15 @@
+node_modules
+
+.env
+.env.local
+.env.development
+.env.production
+
+.vscode
+.cursorrules
+
+/node_modules
+
+/lifeOS_backend/dist
+
+

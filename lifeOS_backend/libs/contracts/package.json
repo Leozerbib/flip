@@ -1,0 +1,20 @@
+{
+  "name": "@app/contracts",
+  "version": "0.0.1",
+  "description": "Types, interfaces et DTOs partagés pour LifeOS",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc"
+  },
+  "dependencies": {
+    "@nestjs/common": "^10.0.0",
+    "@nestjs/swagger": "^7.0.0",
+    "class-validator": "^0.14.0"
+  },
+  "peerDependencies": {
+    "@nestjs/common": "^10.0.0",
+    "@nestjs/swagger": "^7.0.0",
+    "class-validator": "^0.14.0"
+  }
+}

@@ -1,0 +1,28 @@
+services:
+  postgres_db:
+    image: postgres:17-alpine
+    container_name: lifeos_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-lifeos_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-lifeos_password}
+      POSTGRES_DB: ${POSTGRES_DB:-lifeos_db}
+    ports:
+      - "${POSTGRES_PORT:-4444}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - lifeos_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-lifeos_user} -d ${POSTGRES_DB:-lifeos_db}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  postgres_data:
+    driver: local
+
+networks:
+  lifeos_network:
+    driver: bridge 

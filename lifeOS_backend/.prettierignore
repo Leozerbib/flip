@@ -1,0 +1,48 @@
+# Dependencies
+node_modules/
+package-lock.json
+yarn.lock
+
+# Build outputs
+dist/
+build/
+coverage/
+
+# Environment files
+.env*
+
+# Logs
+*.log
+logs/
+
+# Runtime data
+pids/
+*.pid
+*.seed
+*.pid.lock
+
+# Generated files
+*.d.ts
+
+# Database
+*.sqlite
+*.db
+
+# Cache directories
+.cache/
+.parcel-cache/
+.nyc_output/
+
+# IDE files
+.vscode/
+.idea/
+
+# Git
+.git/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Prisma
+prisma/migrations/ 

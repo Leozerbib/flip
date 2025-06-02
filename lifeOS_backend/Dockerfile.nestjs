@@ -1,0 +1,66 @@
+# Stage 1: Dependencies
+FROM node:18-alpine AS dependencies
+WORKDIR /usr/src/app
+
+# Copier les fichiers de dépendances
+COPY package*.json ./
+COPY tsconfig*.json ./
+
+# Installer les dépendances
+RUN npm ci --only=production && npm cache clean --force
+
+# Stage 2: Build
+FROM node:18-alpine AS builder
+WORKDIR /usr/src/app
+
+# Copier les dépendances depuis le stage précédent
+COPY --from=dependencies /usr/src/app/node_modules ./node_modules
+COPY package*.json ./
+COPY tsconfig*.json ./
+
+# Installer toutes les dépendances (dev incluses)
+RUN npm ci
+
+# Copier le code source
+COPY src/ ./src/
+COPY prisma/ ./prisma/ 2>/dev/null/
+
+# Générer Prisma client si le dossier prisma existe
+RUN if [ -d "prisma" ]; then npx prisma generate; fi
+
+# Build l'application
+RUN npm run build
+
+# Stage 3: Production
+FROM node:18-alpine AS production
+WORKDIR /usr/src/app
+
+# Installer curl pour les health checks
+RUN apk add --no-cache curl
+
+# Créer un utilisateur non-root
+RUN addgroup -g 1001 -S nodejs && adduser -S nestjs -u 1001
+
+# Copier les dépendances de production
+COPY --from=dependencies /usr/src/app/node_modules ./node_modules
+
+# Copier l'application buildée
+COPY --from=builder /usr/src/app/dist ./dist
+COPY --from=builder /usr/src/app/package*.json ./
+
+# Copier le client Prisma généré s'il existe
+COPY --from=builder /usr/src/app/node_modules/.prisma ./node_modules/.prisma 2>/dev/null/
+
+# Changer le propriétaire des fichiers
+RUN chown -R nestjs:nodejs /usr/src/app
+USER nestjs
+
+# Exposer le port
+EXPOSE 3000
+
+# Variables d'environnement par défaut
+ENV NODE_ENV=production
+ENV PORT=3000
+
+# Commande de démarrage
+CMD ["node", "dist/main"] 
