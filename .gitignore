@@ -8,8 +8,4 @@ node_modules
 .vscode
 .cursorrules
 
-/node_modules
-
-/lifeOS_backend/dist
-
-
+/flip_backend/prisma/schema.prisma
