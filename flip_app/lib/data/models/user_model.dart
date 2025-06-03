@@ -2,32 +2,29 @@ import 'package:equatable/equatable.dart';
 
 class UserModel extends Equatable {
   final String id;
-  final String email;
-  final String? firstName;
-  final String? lastName;
+  final String? email;
+  final String username;
   final String? profilePicture;
-  final DateTime createdAt;
-  final DateTime updatedAt;
+  final DateTime? createdAt;
+  final DateTime? updatedAt;
 
   const UserModel({
     required this.id,
-    required this.email,
-    this.firstName,
-    this.lastName,
+    this.email,
+    required this.username,
     this.profilePicture,
-    required this.createdAt,
-    required this.updatedAt,
+    this.createdAt,
+    this.updatedAt,
   });
 
   factory UserModel.fromJson(Map<String, dynamic> json) {
     return UserModel(
-      id: json['id'] as String,
-      email: json['email'] as String,
-      firstName: json['firstName'] as String?,
-      lastName: json['lastName'] as String?,
+      id: json['id'].toString(),
+      email: json['email'] as String?,
+      username: json['username'] as String,
       profilePicture: json['profilePicture'] as String?,
-      createdAt: DateTime.parse(json['createdAt'] as String),
-      updatedAt: DateTime.parse(json['updatedAt'] as String),
+      createdAt: json['createdAt'] != null ? DateTime.parse(json['createdAt'] as String) : null,
+      updatedAt: json['updatedAt'] != null ? DateTime.parse(json['updatedAt'] as String) : null,
     );
   }
 
@@ -35,27 +32,25 @@ class UserModel extends Equatable {
     return {
       'id': id,
       'email': email,
-      'firstName': firstName,
-      'lastName': lastName,
+      'username': username,
       'profilePicture': profilePicture,
-      'createdAt': createdAt.toIso8601String(),
-      'updatedAt': updatedAt.toIso8601String(),
+      'createdAt': createdAt?.toIso8601String(),
+      'updatedAt': updatedAt?.toIso8601String(),
     };
   }
 
   String get displayName {
-    if (firstName?.isNotEmpty == true || lastName?.isNotEmpty == true) {
-      return '${firstName ?? ''} ${lastName ?? ''}'.trim();
+    if (username.isNotEmpty) {
+      return username;
     }
-    return email;
+    return email ?? '';
   }
 
   @override
   List<Object?> get props => [
         id,
         email,
-        firstName,
-        lastName,
+        username,
         profilePicture,
         createdAt,
         updatedAt,
@@ -64,8 +59,7 @@ class UserModel extends Equatable {
   UserModel copyWith({
     String? id,
     String? email,
-    String? firstName,
-    String? lastName,
+    String? username,
     String? profilePicture,
     DateTime? createdAt,
     DateTime? updatedAt,
@@ -73,8 +67,7 @@ class UserModel extends Equatable {
     return UserModel(
       id: id ?? this.id,
       email: email ?? this.email,
-      firstName: firstName ?? this.firstName,
-      lastName: lastName ?? this.lastName,
+      username: username ?? this.username,
       profilePicture: profilePicture ?? this.profilePicture,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,

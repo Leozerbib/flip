@@ -8,6 +8,9 @@ async function bootstrap() {
   const app = await NestFactory.create(ApiGatewayModule);
   const globalConfig = app.get(GlobalConfigService);
 
+  // Enable CORS
+  app.enableCors();
+
   // Configuration des pipes de validation globaux
   app.useGlobalPipes(
     new ValidationPipe({
@@ -16,12 +19,6 @@ async function bootstrap() {
       transform: true,
     })
   );
-
-  // Configuration CORS
-  app.enableCors({
-    origin: globalConfig.app.frontendUrl,
-    credentials: true,
-  });
 
   // Préfixe global pour les API
   app.setGlobalPrefix('api');

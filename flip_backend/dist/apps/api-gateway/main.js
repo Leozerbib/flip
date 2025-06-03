@@ -125,6 +125,7 @@ __decorate([
     }),
     (0, swagger_1.ApiResponse)({ status: 400, description: 'Données invalides' }),
     (0, swagger_1.ApiResponse)({ status: 409, description: 'Email déjà utilisé' }),
+    (0, auth_decorator_1.OptionalAuth)(),
     (0, src_1.Log)("Création d'un nouveau compte utilisateur", 'info'),
     __param(0, (0, common_1.Body)()),
     __metadata("design:type", Function),
@@ -142,6 +143,7 @@ __decorate([
         type: auth_dto_1.AuthResponseDto,
     }),
     (0, swagger_1.ApiResponse)({ status: 401, description: 'Identifiants incorrects' }),
+    (0, auth_decorator_1.OptionalAuth)(),
     (0, src_1.Log)('Authentification utilisateur', 'info'),
     __param(0, (0, common_1.Body)()),
     __metadata("design:type", Function),
@@ -159,6 +161,7 @@ __decorate([
         description: 'Redirection vers Google OAuth',
     }),
     (0, common_1.UseGuards)((0, passport_1.AuthGuard)('google')),
+    (0, auth_decorator_1.OptionalAuth)(),
     (0, src_1.Log)('Authentification Google OAuth', 'info'),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", []),
@@ -175,6 +178,7 @@ __decorate([
         description: 'Redirection vers le frontend avec tokens',
     }),
     (0, common_1.UseGuards)((0, passport_1.AuthGuard)('google')),
+    (0, auth_decorator_1.OptionalAuth)(),
     (0, src_1.Log)('Callback Google OAuth', 'info'),
     __param(0, (0, common_1.Req)()),
     __param(1, (0, common_1.Res)()),
@@ -2892,15 +2896,12 @@ const config_1 = __webpack_require__(/*! @app/config */ "./libs/config/src/index
 async function bootstrap() {
     const app = await core_1.NestFactory.create(api_gateway_module_1.ApiGatewayModule);
     const globalConfig = app.get(config_1.GlobalConfigService);
+    app.enableCors();
     app.useGlobalPipes(new common_1.ValidationPipe({
         whitelist: true,
         forbidNonWhitelisted: true,
         transform: true,
     }));
-    app.enableCors({
-        origin: globalConfig.app.frontendUrl,
-        credentials: true,
-    });
     app.setGlobalPrefix('api');
     const config = new swagger_1.DocumentBuilder()
         .setTitle('LifeOS API Gateway')

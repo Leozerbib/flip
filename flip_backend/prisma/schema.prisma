@@ -1,15 +1,235 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
   provider = "prisma-client-js"
-  output   = "../generated/prisma"
 }
 
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model executed_pranks {
+  executed_prank_id                                              Int                        @id @default(autoincrement())
+  service_being_repaid_id                                        Int
+  chosen_prank_id                                                Int
+  executor_id                                                    Int
+  target_id                                                      Int
+  jeton_value_paid                                               Int
+  status                                                         executed_prank_status_enum
+  proof_url                                                      String?                    @db.VarChar(255)
+  execution_details_json                                         Json?
+  executed_at                                                    DateTime?                  @default(now()) @db.Timestamptz(6)
+  validated_at                                                   DateTime?                  @db.Timestamptz(6)
+  updated_at                                                     DateTime?                  @default(now()) @db.Timestamptz(6)
+  pranks                                                         pranks                     @relation(fields: [chosen_prank_id], references: [prank_id], onUpdate: NoAction)
+  users_executed_pranks_executor_idTousers                       users                      @relation("executed_pranks_executor_idTousers", fields: [executor_id], references: [user_id], onDelete: Cascade, onUpdate: NoAction)
+  services_executed_pranks_service_being_repaid_idToservices     services                   @relation("executed_pranks_service_being_repaid_idToservices", fields: [service_being_repaid_id], references: [service_id], onDelete: Cascade, onUpdate: NoAction)
+  users_executed_pranks_target_idTousers                         users                      @relation("executed_pranks_target_idTousers", fields: [target_id], references: [user_id], onDelete: Cascade, onUpdate: NoAction)
+  services_services_executed_prank_id_repaymentToexecuted_pranks services[]                 @relation("services_executed_prank_id_repaymentToexecuted_pranks")
+
+  @@index([chosen_prank_id], map: "idx_executed_pranks_chosen_prank")
+  @@index([executor_id], map: "idx_executed_pranks_executor")
+  @@index([service_being_repaid_id], map: "idx_executed_pranks_service")
+  @@index([status], map: "idx_executed_pranks_status")
+  @@index([target_id], map: "idx_executed_pranks_target")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model friendships {
+  friendship_id                           Int                    @id @default(autoincrement())
+  user_one_id                             Int
+  user_two_id                             Int
+  status                                  friendship_status_enum @default(pending)
+  action_user_id                          Int
+  requested_at                            DateTime?              @default(now()) @db.Timestamptz(6)
+  accepted_at                             DateTime?              @db.Timestamptz(6)
+  updated_at                              DateTime?              @default(now()) @db.Timestamptz(6)
+  users_friendships_action_user_idTousers users                  @relation("friendships_action_user_idTousers", fields: [action_user_id], references: [user_id], onDelete: Cascade, onUpdate: NoAction)
+  users_friendships_user_one_idTousers    users                  @relation("friendships_user_one_idTousers", fields: [user_one_id], references: [user_id], onDelete: Cascade, onUpdate: NoAction)
+  users_friendships_user_two_idTousers    users                  @relation("friendships_user_two_idTousers", fields: [user_two_id], references: [user_id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([user_one_id, user_two_id], map: "unique_friendship")
+  @@index([status], map: "idx_friendships_status")
+  @@index([user_one_id], map: "idx_friendships_user_one")
+  @@index([user_two_id], map: "idx_friendships_user_two")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model missions {
+  mission_id            Int               @id @default(autoincrement())
+  title                 String            @db.VarChar(150)
+  description           String?
+  type                  mission_type_enum
+  target_value          Int?              @default(1)
+  xp_reward             Int               @default(0)
+  coins_reward          Int               @default(0)
+  jeton_reward          Int               @default(0)
+  prank_reward_id       Int?
+  is_active             Boolean           @default(true)
+  is_repeatable         Boolean           @default(false)
+  repeat_cooldown_hours Int?
+  unlock_level_required Int?              @default(1)
+  created_at            DateTime?         @default(now()) @db.Timestamptz(6)
+  pranks                pranks?           @relation(fields: [prank_reward_id], references: [prank_id], onUpdate: NoAction)
+  user_missions         user_missions[]
+
+  @@index([is_active], map: "idx_missions_is_active")
+  @@index([type], map: "idx_missions_type")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model pranks {
+  prank_id                      Int               @id @default(autoincrement())
+  name                          String            @unique @db.VarChar(100)
+  description                   String
+  default_jeton_cost_equivalent Int
+  xp_reward_executor            Int?              @default(0)
+  xp_reward_target              Int?              @default(0)
+  coins_reward_executor         Int?              @default(0)
+  coins_reward_target           Int?              @default(0)
+  type                          prank_type_enum
+  config_details_json           Json?
+  requires_proof                Boolean           @default(false)
+  is_active                     Boolean           @default(true)
+  created_at                    DateTime?         @default(now()) @db.Timestamptz(6)
+  executed_pranks               executed_pranks[]
+  missions                      missions[]
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model service_categories {
+  category_id Int        @id @default(autoincrement())
+  name        String     @unique @db.VarChar(100)
+  icon_url    String?    @db.VarChar(255)
+  description String?
+  services    services[]
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model services {
+  service_id                                                            Int                 @id @default(autoincrement())
+  provider_id                                                           Int
+  beneficiary_id                                                        Int
+  category_id                                                           Int?
+  description                                                           String
+  jeton_value                                                           Int
+  status                                                                service_status_enum @default(pending_confirmation)
+  created_at                                                            DateTime?           @default(now()) @db.Timestamptz(6)
+  confirmed_at                                                          DateTime?           @db.Timestamptz(6)
+  repaid_at                                                             DateTime?           @db.Timestamptz(6)
+  repayment_service_id                                                  Int?
+  executed_prank_id_repayment                                           Int?
+  updated_at                                                            DateTime?           @default(now()) @db.Timestamptz(6)
+  executed_pranks_executed_pranks_service_being_repaid_idToservices     executed_pranks[]   @relation("executed_pranks_service_being_repaid_idToservices")
+  executed_pranks_services_executed_prank_id_repaymentToexecuted_pranks executed_pranks?    @relation("services_executed_prank_id_repaymentToexecuted_pranks", fields: [executed_prank_id_repayment], references: [executed_prank_id], onUpdate: NoAction, map: "fk_services_executed_prank")
+  users_services_beneficiary_idTousers                                  users               @relation("services_beneficiary_idTousers", fields: [beneficiary_id], references: [user_id], onDelete: Cascade, onUpdate: NoAction)
+  service_categories                                                    service_categories? @relation(fields: [category_id], references: [category_id], onUpdate: NoAction)
+  users_services_provider_idTousers                                     users               @relation("services_provider_idTousers", fields: [provider_id], references: [user_id], onDelete: Cascade, onUpdate: NoAction)
+  services                                                              services?           @relation("servicesToservices", fields: [repayment_service_id], references: [service_id], onUpdate: NoAction)
+  other_services                                                        services[]          @relation("servicesToservices")
+
+  @@index([beneficiary_id], map: "idx_services_beneficiary")
+  @@index([created_at], map: "idx_services_created_at")
+  @@index([provider_id], map: "idx_services_provider")
+  @@index([status], map: "idx_services_status")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model user_missions {
+  user_mission_id  Int                      @id @default(autoincrement())
+  user_id          Int
+  mission_id       Int
+  progress         Int                      @default(0)
+  status           user_mission_status_enum @default(not_started)
+  started_at       DateTime?                @db.Timestamptz(6)
+  completed_at     DateTime?                @db.Timestamptz(6)
+  claimed_at       DateTime?                @db.Timestamptz(6)
+  last_progress_at DateTime?                @default(now()) @db.Timestamptz(6)
+  missions         missions                 @relation(fields: [mission_id], references: [mission_id], onDelete: Cascade, onUpdate: NoAction)
+  users            users                    @relation(fields: [user_id], references: [user_id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([user_id, mission_id])
+  @@index([mission_id], map: "idx_user_missions_mission")
+  @@index([status], map: "idx_user_missions_status")
+  @@index([user_id], map: "idx_user_missions_user")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model users {
+  user_id                                            Int               @id @default(autoincrement())
+  username                                           String            @unique @db.VarChar(50)
+  email                                              String            @unique @db.VarChar(100)
+  password_hash                                      String            @db.VarChar(255)
+  profile_picture_url                                String?           @db.VarChar(255)
+  level                                              Int               @default(1)
+  xp_points                                          Int               @default(0)
+  game_coins                                         Int               @default(0)
+  created_at                                         DateTime?         @default(now()) @db.Timestamptz(6)
+  updated_at                                         DateTime?         @default(now()) @db.Timestamptz(6)
+  executed_pranks_executed_pranks_executor_idTousers executed_pranks[] @relation("executed_pranks_executor_idTousers")
+  executed_pranks_executed_pranks_target_idTousers   executed_pranks[] @relation("executed_pranks_target_idTousers")
+  friendships_friendships_action_user_idTousers      friendships[]     @relation("friendships_action_user_idTousers")
+  friendships_friendships_user_one_idTousers         friendships[]     @relation("friendships_user_one_idTousers")
+  friendships_friendships_user_two_idTousers         friendships[]     @relation("friendships_user_two_idTousers")
+  services_services_beneficiary_idTousers            services[]        @relation("services_beneficiary_idTousers")
+  services_services_provider_idTousers               services[]        @relation("services_provider_idTousers")
+  user_missions                                      user_missions[]
+}
+
+enum executed_prank_status_enum {
+  proposed_by_debtor
+  proposed_by_creditor
+  accepted_by_target
+  executed_pending_validation
+  validated_by_target_completed
+  rejected
+  failed_execution
+}
+
+enum friendship_status_enum {
+  pending
+  accepted
+  declined
+  blocked
+}
+
+enum mission_type_enum {
+  render_services
+  repay_debts_prank
+  repay_debts_service
+  invite_friends
+  reach_level
+  use_x_prank_type
+  perform_x_services_category
+}
+
+enum prank_type_enum {
+  declarative
+  in_app_cosmetic
+  in_app_lock
+  notification_spam
+  external_action
+}
+
+enum service_status_enum {
+  pending_confirmation
+  confirmed_unpaid
+  repaid_by_service
+  repaid_by_prank
+  cancelled
+  disputed
+}
+
+enum user_mission_status_enum {
+  not_started
+  in_progress
+  completed_pending_claim
+  claimed
+  expired
 }

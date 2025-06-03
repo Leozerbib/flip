@@ -142,10 +142,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     const SizedBox(height: 16),
 
                     // Bouton Google
-                    OutlinedButton.icon(
-                      onPressed: authState.status == AuthStatus.loading ? null : _handleGoogleLogin,
-                      icon: const Icon(FIcons.chrome),
-                      label: const Text('Continuer avec Google'),
+                    FButton(
+                      prefix: const Icon(FIcons.chrome),
+                      style: FButtonStyle.outline,
+                      onPress: authState.status == AuthStatus.loading ? null : _handleGoogleLogin,
+                      child: const Text('Continuer avec Google'),
                     ),
                     const SizedBox(height: 24),
 
@@ -158,7 +159,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                             TextSpan(text: 'Pas encore de compte ? '),
                             TextSpan(
                               text: 'S\'inscrire',
-                              style: TextStyle(fontWeight: FontWeight.w500),
+                              style: TextStyle(fontWeight: FontWeight.w500, decoration: TextDecoration.underline),
                             ),
                           ],
                         ),

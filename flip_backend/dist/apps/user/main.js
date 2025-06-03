@@ -138,7 +138,7 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 var __param = (this && this.__param) || function (paramIndex, decorator) {
     return function (target, key) { decorator(target, key, paramIndex); }
 };
-var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l, _m, _o, _p, _q;
+var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l, _m, _o, _p;
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.UserController = void 0;
 const common_1 = __webpack_require__(/*! @nestjs/common */ "@nestjs/common");
@@ -206,13 +206,6 @@ let UserController = class UserController {
             coinAmount: payload.coinAmount,
         });
         return this.userService.addCoins(payload.userId, payload.coinAmount);
-    }
-    async health() {
-        this.logger.info('Health check (microservice)');
-        return {
-            status: 'healthy',
-            timestamp: new Date().toISOString(),
-        };
     }
 };
 exports.UserController = UserController;
@@ -293,12 +286,6 @@ __decorate([
     __metadata("design:paramtypes", [Object]),
     __metadata("design:returntype", typeof (_p = typeof Promise !== "undefined" && Promise) === "function" ? _p : Object)
 ], UserController.prototype, "addUserCoins", null);
-__decorate([
-    (0, microservices_1.MessagePattern)({ cmd: 'user_service_health' }),
-    __metadata("design:type", Function),
-    __metadata("design:paramtypes", []),
-    __metadata("design:returntype", typeof (_q = typeof Promise !== "undefined" && Promise) === "function" ? _q : Object)
-], UserController.prototype, "health", null);
 exports.UserController = UserController = __decorate([
     (0, common_1.Controller)(),
     __metadata("design:paramtypes", [typeof (_a = typeof user_service_1.UserService !== "undefined" && user_service_1.UserService) === "function" ? _a : Object, typeof (_b = typeof src_1.LoggerService !== "undefined" && src_1.LoggerService) === "function" ? _b : Object])
@@ -390,11 +377,11 @@ let UserService = class UserService {
         }
         const hashedPassword = await bcrypt.hash(createUserDto.password, 12);
         try {
-            const user = await this.prisma.user.create({
+            const user = await this.prisma.users.create({
                 data: {
                     username: createUserDto.username,
                     email: createUserDto.email,
-                    passwordHash: hashedPassword,
+                    password_hash: hashedPassword,
                     profile_picture_url: createUserDto.profile_picture_url,
                     level: 1,
                     xp_points: 0,
@@ -428,7 +415,7 @@ let UserService = class UserService {
             }
         }
         try {
-            const updatedUser = await this.prisma.user.update({
+            const updatedUser = await this.prisma.users.update({
                 where: { user_id: parseInt(userId) },
                 data: {
                     ...updateUserDto,
@@ -449,7 +436,7 @@ let UserService = class UserService {
             throw new common_1.NotFoundException('Utilisateur non trouvé');
         }
         try {
-            await this.prisma.user.delete({
+            await this.prisma.users.delete({
                 where: { user_id: parseInt(userId) },
             });
             this.logger.info('Utilisateur supprimé avec succès', { userId });
@@ -462,7 +449,7 @@ let UserService = class UserService {
     }
     async findUserById(userId) {
         try {
-            const user = await this.prisma.user.findUnique({
+            const user = await this.prisma.users.findUnique({
                 where: { user_id: parseInt(userId) },
             });
             return user;
@@ -474,7 +461,7 @@ let UserService = class UserService {
     }
     async findUserByEmail(email) {
         try {
-            const user = await this.prisma.user.findUnique({
+            const user = await this.prisma.users.findUnique({
                 where: { email },
             });
             return user;
@@ -486,7 +473,7 @@ let UserService = class UserService {
     }
     async findUserByUsername(username) {
         try {
-            const user = await this.prisma.user.findUnique({
+            const user = await this.prisma.users.findUnique({
                 where: { username },
             });
             return user;
@@ -541,7 +528,7 @@ let UserService = class UserService {
                 error: 'Utilisateur non trouvé',
             };
         }
-        const isPasswordValid = await bcrypt.compare(password, user.passwordHash);
+        const isPasswordValid = await bcrypt.compare(password, user.password_hash);
         if (!isPasswordValid) {
             return {
                 valid: false,
@@ -561,7 +548,7 @@ let UserService = class UserService {
         }
         const newXP = user.xp_points + xpAmount;
         const newLevel = this.calculateLevel(newXP);
-        const updatedUser = await this.prisma.user.update({
+        const updatedUser = await this.prisma.users.update({
             where: { user_id: parseInt(userId) },
             data: {
                 xp_points: newXP,
@@ -577,7 +564,7 @@ let UserService = class UserService {
         if (!user) {
             throw new common_1.NotFoundException('Utilisateur non trouvé');
         }
-        const updatedUser = await this.prisma.user.update({
+        const updatedUser = await this.prisma.users.update({
             where: { user_id: parseInt(userId) },
             data: {
                 game_coins: user.game_coins + coinAmount,

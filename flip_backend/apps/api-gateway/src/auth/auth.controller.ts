@@ -27,7 +27,7 @@ import {
   AuthResponseDto,
   RefreshTokenResponseDto,
 } from '@app/contracts/Auth/dto/auth.dto';
-import { Auth } from './decorators/auth.decorator';
+import { Auth, OptionalAuth } from './decorators/auth.decorator';
 import { GetUserId } from './decorators/current-user.decorator';
 import { AuthGuard } from '@nestjs/passport';
 import { Log } from 'libs/logger/src';
@@ -47,6 +47,7 @@ export class AuthController {
   })
   @ApiResponse({ status: 400, description: 'Données invalides' })
   @ApiResponse({ status: 409, description: 'Email déjà utilisé' })
+  @OptionalAuth()
   @Log("Création d'un nouveau compte utilisateur", 'info')
   public async register(@Body() createUserDto: CreateUserDto): Promise<IAuthResponse> {
     return firstValueFrom(
@@ -64,6 +65,7 @@ export class AuthController {
     type: AuthResponseDto,
   })
   @ApiResponse({ status: 401, description: 'Identifiants incorrects' })
+  @OptionalAuth()
   @Log('Authentification utilisateur', 'info')
   public async login(@Body() loginDto: LoginDto): Promise<IAuthResponse> {
     return firstValueFrom(this.authClient.send<IAuthResponse>({ cmd: 'login_user' }, loginDto));
@@ -79,6 +81,7 @@ export class AuthController {
     description: 'Redirection vers Google OAuth',
   })
   @UseGuards(AuthGuard('google'))
+  @OptionalAuth()
   @Log('Authentification Google OAuth', 'info')
   public async googleAuth(): Promise<void> {
     // Ce endpoint est géré par le guard Google
@@ -95,6 +98,7 @@ export class AuthController {
     description: 'Redirection vers le frontend avec tokens',
   })
   @UseGuards(AuthGuard('google'))
+  @OptionalAuth()
   @Log('Callback Google OAuth', 'info')
   public async googleCallback(@Req() req: any, @Res() res: Response): Promise<void> {
     try {

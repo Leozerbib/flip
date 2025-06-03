@@ -52,11 +52,11 @@ export class UserService {
     const hashedPassword = await bcrypt.hash(createUserDto.password, 12);
 
     try {
-      const user = await this.prisma.user.create({
+      const user = await this.prisma.users.create({
         data: {
           username: createUserDto.username,
           email: createUserDto.email,
-          passwordHash: hashedPassword,
+          password_hash: hashedPassword,
           profile_picture_url: createUserDto.profile_picture_url,
           level: 1,
           xp_points: 0,
@@ -100,7 +100,7 @@ export class UserService {
     }
 
     try {
-      const updatedUser = await this.prisma.user.update({
+      const updatedUser = await this.prisma.users.update({
         where: { user_id: parseInt(userId) },
         data: {
           ...updateUserDto,
@@ -127,7 +127,7 @@ export class UserService {
     }
 
     try {
-      await this.prisma.user.delete({
+      await this.prisma.users.delete({
         where: { user_id: parseInt(userId) },
       });
 
@@ -146,7 +146,7 @@ export class UserService {
    */
   public async findUserById(userId: string): Promise<IUser | null> {
     try {
-      const user = await this.prisma.user.findUnique({
+      const user = await this.prisma.users.findUnique({
         where: { user_id: parseInt(userId) },
       });
       return user as IUser | null;
@@ -161,7 +161,7 @@ export class UserService {
    */
   public async findUserByEmail(email: string): Promise<IUser | null> {
     try {
-      const user = await this.prisma.user.findUnique({
+      const user = await this.prisma.users.findUnique({
         where: { email },
       });
       return user as IUser | null;
@@ -176,7 +176,7 @@ export class UserService {
    */
   public async findUserByUsername(username: string): Promise<IUser | null> {
     try {
-      const user = await this.prisma.user.findUnique({
+      const user = await this.prisma.users.findUnique({
         where: { username },
       });
       return user as IUser | null;
@@ -252,7 +252,7 @@ export class UserService {
       };
     }
 
-    const isPasswordValid = await bcrypt.compare(password, user.passwordHash);
+    const isPasswordValid = await bcrypt.compare(password, user.password_hash);
     if (!isPasswordValid) {
       return {
         valid: false,
@@ -282,7 +282,7 @@ export class UserService {
     const newXP = user.xp_points + xpAmount;
     const newLevel = this.calculateLevel(newXP);
 
-    const updatedUser = await this.prisma.user.update({
+    const updatedUser = await this.prisma.users.update({
       where: { user_id: parseInt(userId) },
       data: {
         xp_points: newXP,
@@ -305,7 +305,7 @@ export class UserService {
       throw new NotFoundException('Utilisateur non trouvé');
     }
 
-    const updatedUser = await this.prisma.user.update({
+    const updatedUser = await this.prisma.users.update({
       where: { user_id: parseInt(userId) },
       data: {
         game_coins: user.game_coins + coinAmount,

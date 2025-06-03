@@ -84,7 +84,7 @@ class HomeScreen extends ConsumerWidget {
                         ),
                         const SizedBox(height: 8),
                         Text(
-                          'Salut ${authState.user?.firstName ?? authState.user?.email ?? 'utilisateur'} 👋',
+                          'Salut ${authState.user?.username ?? authState.user?.email ?? 'utilisateur'} 👋',
                           style: const TextStyle(
                             fontSize: 16,
                             color: Colors.white70,
@@ -106,14 +106,12 @@ class HomeScreen extends ConsumerWidget {
                   const SizedBox(height: 16),
 
                   if (authState.user != null) ...[
-                    _buildProfileInfo('Email', authState.user!.email),
-                    if (authState.user!.firstName != null)
-                      _buildProfileInfo('Prénom', authState.user!.firstName!),
-                    if (authState.user!.lastName != null)
-                      _buildProfileInfo('Nom', authState.user!.lastName!),
+                    _buildProfileInfo('Email', authState.user!.email ?? ''),
+                    if (authState.user!.username != null)
+                      _buildProfileInfo('Nom d\'utilisateur', authState.user!.username!),
                     _buildProfileInfo(
                       'Membre depuis',
-                      _formatDate(authState.user!.createdAt),
+                      _formatDate(authState.user!.createdAt ?? DateTime.now()),
                     ),
                   ],
 
@@ -195,11 +193,9 @@ class HomeScreen extends ConsumerWidget {
           children: [
             if (authState.user != null) ...[
               Text('Email: ${authState.user!.email}'),
-              if (authState.user!.firstName != null)
-                Text('Prénom: ${authState.user!.firstName}'),
-              if (authState.user!.lastName != null)
-                Text('Nom: ${authState.user!.lastName}'),
-              Text('Membre depuis: ${_formatDate(authState.user!.createdAt)}'),
+              if (authState.user!.username != null)
+                Text('Nom d\'utilisateur: ${authState.user!.username}'),
+              Text('Membre depuis: ${_formatDate(authState.user!.createdAt ?? DateTime.now())}'),
             ],
           ],
         ),

@@ -4,7 +4,7 @@ export interface IUser {
   user_id: number;
   username: string;
   email: string;
-  passwordHash: string;
+  password_hash: string;
   profile_picture_url?: string;
   level: number;
   xp_points: number;
@@ -26,7 +26,7 @@ export interface IUserResponse {
 }
 
 export interface IUserWithPassword extends IUser {
-  passwordHash: string;
+  password_hash: string;
 }
 
 export interface ICreateUserResponse {

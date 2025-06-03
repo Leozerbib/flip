@@ -1,3 +1,5 @@
+import 'dart:developer';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/auth/auth_repository.dart';
 import '../../../../core/auth/auth_service.dart';
@@ -56,7 +58,11 @@ class AuthNotifier extends StateNotifier<AuthState> {
     try {
       final request = LoginRequest(email: email, password: password);
       final response = await _authRepository.login(request);
-      
+      log('Response: $response');
+      log('Access Token: ${response.accessToken}');
+      log('Refresh Token: ${response.refreshToken}');
+      log('User: ${response.user}');
+      log('Expires In: ${response.expiresIn}');
       // Sauvegarder la session
       await AuthService.saveSession(
         accessToken: response.accessToken,
@@ -77,15 +83,14 @@ class AuthNotifier extends StateNotifier<AuthState> {
   }
 
   // Inscription avec email/password
-  Future<void> register(String email, String password, {String? firstName, String? lastName}) async {
+  Future<void> register(String email, String password, String username) async {
     state = state.copyWith(status: AuthStatus.loading, error: null);
     
     try {
       final request = RegisterRequest(
         email: email,
         password: password,
-        firstName: firstName,
-        lastName: lastName,
+        username: username,
       );
       final response = await _authRepository.register(request);
       

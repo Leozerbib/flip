@@ -107,15 +107,4 @@ export class UserController {
     });
     return this.userService.addCoins(payload.userId, payload.coinAmount);
   }
-
-  // ==================== HEALTH CHECK ====================
-
-  @MessagePattern({ cmd: 'user_service_health' })
-  public async health(): Promise<{ status: string; timestamp: string }> {
-    this.logger.info('Health check (microservice)');
-    return {
-      status: 'healthy',
-      timestamp: new Date().toISOString(),
-    };
-  }
 }

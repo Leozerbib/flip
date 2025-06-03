@@ -17,16 +17,14 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
-  final _firstNameController = TextEditingController();
-  final _lastNameController = TextEditingController();
+  final _usernameController = TextEditingController();
 
   @override
   void dispose() {
     _emailController.dispose();
     _passwordController.dispose();
     _confirmPasswordController.dispose();
-    _firstNameController.dispose();
-    _lastNameController.dispose();
+    _usernameController.dispose();
     super.dispose();
   }
 
@@ -79,23 +77,17 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                       ),
                       const SizedBox(height: 32),
 
-                      // Champs nom et prénom
-                      Row(
-                        children: [
-                          Expanded(
-                            child: FTextFormField(
-                              controller: _firstNameController,
-                              label: const Text('Prénom'),
-                            ),
-                          ),
-                          const SizedBox(width: 16),
-                          Expanded(
-                            child: FTextFormField(
-                              controller: _lastNameController,
-                              label: const Text('Nom'),
-                            ),
-                          ),
-                        ],
+                      FTextFormField(
+                        controller: _usernameController,
+                        label: const Text('Nom d\'utilisateur'),
+                        hint: 'Nom d\'utilisateur',
+                        autovalidateMode: AutovalidateMode.onUserInteraction,
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return 'Veuillez saisir votre nom d\'utilisateur';
+                          }
+                          return null;
+                        },
                       ),
                       const SizedBox(height: 16),
 
@@ -187,10 +179,11 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                       const SizedBox(height: 16),
 
                       // Bouton Google
-                      OutlinedButton.icon(
-                        onPressed: authState.status == AuthStatus.loading ? null : _handleGoogleRegister,
-                        icon: const Icon(FIcons.chrome),
-                        label: const Text('S\'inscrire avec Google'),
+                      FButton(
+                        onPress: authState.status == AuthStatus.loading ? null : _handleGoogleRegister,
+                        prefix: const Icon(FIcons.chrome),
+                        style: FButtonStyle.outline,
+                        child: const Text('S\'inscrire avec Google'),
                       ),
                       const SizedBox(height: 24),
 
@@ -203,7 +196,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                               TextSpan(text: 'Déjà un compte ? '),
                               TextSpan(
                                 text: 'Se connecter',
-                                style: TextStyle(fontWeight: FontWeight.w500),
+                                style: TextStyle(fontWeight: FontWeight.w500, decoration: TextDecoration.underline),
                               ),
                             ],
                           ),
@@ -226,12 +219,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
       ref.read(authProvider.notifier).register(
             _emailController.text.trim(),
             _passwordController.text,
-            firstName: _firstNameController.text.trim().isEmpty 
-                ? null 
-                : _firstNameController.text.trim(),
-            lastName: _lastNameController.text.trim().isEmpty 
-                ? null 
-                : _lastNameController.text.trim(),
+            _usernameController.text.trim(),
           );
     }
   }

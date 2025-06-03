@@ -1,3 +1,5 @@
+import 'dart:developer';
+
 import 'package:equatable/equatable.dart';
 import '../../../../data/models/user_model.dart';
 
@@ -16,6 +18,7 @@ class AuthResponse extends Equatable {
   });
 
   factory AuthResponse.fromJson(Map<String, dynamic> json) {
+    log('AuthResponse: $json');
     return AuthResponse(
       accessToken: json['access_token'] as String,
       refreshToken: json['refresh_token'] as String,
@@ -74,27 +77,24 @@ class LoginRequest extends Equatable {
 class RegisterRequest extends Equatable {
   final String email;
   final String password;
-  final String? firstName;
-  final String? lastName;
+  final String username;
 
   const RegisterRequest({
     required this.email,
     required this.password,
-    this.firstName,
-    this.lastName,
+    required this.username,
   });
 
   Map<String, dynamic> toJson() {
     return {
       'email': email,
       'password': password,
-      if (firstName != null) 'firstName': firstName,
-      if (lastName != null) 'lastName': lastName,
+      'username': username,
     };
   }
 
   @override
-  List<Object?> get props => [email, password, firstName, lastName];
+  List<Object?> get props => [email, password, username];
 }
 
 // État d'authentification

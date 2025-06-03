@@ -1,3 +1,5 @@
+import 'dart:developer';
+
 import 'package:dio/dio.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import '../api/api_client.dart';
@@ -16,14 +18,12 @@ class AuthRepository {
   Future<AuthResponse> login(LoginRequest request) async {
     try {
       final response = await ApiClient.post<Map<String, dynamic>>(
-        '/auth/login',
+        '/api/auth/login',
         data: request.toJson(),
       );
-
       if (response.data == null) {
         throw Exception(AppConstants.errorGeneral);
       }
-
       return AuthResponse.fromJson(response.data!);
     } on DioException catch (e) {
       throw _handleDioError(e);
@@ -34,7 +34,7 @@ class AuthRepository {
   Future<AuthResponse> register(RegisterRequest request) async {
     try {
       final response = await ApiClient.post<Map<String, dynamic>>(
-        '/auth/register',
+        '/api/auth/register',
         data: request.toJson(),
       );
 
@@ -64,7 +64,7 @@ class AuthRepository {
 
       // Étape 2: Envoyer le token Google au backend
       final response = await ApiClient.post<Map<String, dynamic>>(
-        '/auth/google',
+        '/api/auth/google',
         data: {
           'accessToken': googleAuth.accessToken,
           'idToken': googleAuth.idToken,
@@ -92,7 +92,7 @@ class AuthRepository {
       }
 
       final response = await ApiClient.post<Map<String, dynamic>>(
-        '/auth/refresh',
+        '/api/auth/refresh',
         data: {'refreshToken': refreshToken},
       );
 
@@ -110,7 +110,7 @@ class AuthRepository {
   Future<void> logout() async {
     try {
       // Déconnexion côté serveur
-      await ApiClient.post('/auth/logout');
+      await ApiClient.post('/api/auth/logout');
     } catch (e) {
       // Même si la déconnexion côté serveur échoue, on supprime la session locale
     } finally {
@@ -131,7 +131,7 @@ class AuthRepository {
       if (!isLoggedIn) return false;
 
       // Vérifier si le token est encore valide côté serveur
-      final response = await ApiClient.get('/auth/check');
+      final response = await ApiClient.get('/api/auth/check');
       return response.statusCode == 200;
     } catch (e) {
       // En cas d'erreur, considérer comme non authentifié
