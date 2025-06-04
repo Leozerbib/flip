@@ -11,7 +11,9 @@ import 'auth_service.dart';
 
 class AuthRepository {
   final GoogleSignIn _googleSignIn = GoogleSignIn(
-    clientId: AppConfig.googleClientId,
+    // Use your Web application OAuth 2.0 client ID for serverClientId
+    // This should be the same client ID that your backend uses to verify tokens
+    serverClientId: AppConfig.googleClientId,
   );
 
   // Connexion avec email/password
@@ -48,37 +50,51 @@ class AuthRepository {
     }
   }
 
-  // Connexion avec Google
+  // Connexion avec Google - Nouvelle implémentation avec ID Token
   Future<AuthResponse> loginWithGoogle() async {
     try {
-      // Étape 1: Authentification Google côté client
-      final googleUser = await _googleSignIn.signIn();
+      log('Début de la connexion Google avec ID Token');
+      log('Google Client ID configuré: ${AppConfig.googleClientId}');
+      
+      // Initier la connexion Google native
+      final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
+      
       if (googleUser == null) {
-        throw Exception('Connexion Google annulée');
+        throw Exception('Connexion Google annulée par l\'utilisateur');
       }
 
-      final googleAuth = await googleUser.authentication;
-      if (googleAuth.accessToken == null) {
-        throw Exception('Impossible de récupérer le token Google');
+      log('Utilisateur Google connecté: ${googleUser.email}');
+
+      // Obtenir l'authentification et le token ID
+      final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
+      
+      log('Tokens obtenus - Access Token: ${googleAuth.accessToken?.substring(0, 20)}..., ID Token: ${googleAuth.idToken?.substring(0, 20)}...');
+      
+      if (googleAuth.idToken == null) {
+        throw Exception('Impossible d\'obtenir le token ID Google');
       }
 
-      // Étape 2: Envoyer le token Google au backend
+      log('Token ID Google obtenu, envoi au backend pour vérification');
+
+      // Envoyer le token ID au backend pour vérification
       final response = await ApiClient.post<Map<String, dynamic>>(
-        '/api/auth/google',
-        data: {
-          'accessToken': googleAuth.accessToken,
-          'idToken': googleAuth.idToken,
-        },
+        AppConfig.googleVerifyIdTokenUrl,
+        data: {'idToken': googleAuth.idToken},
       );
 
       if (response.data == null) {
         throw Exception(AppConstants.errorGeneral);
       }
 
-      return AuthResponse.fromJson(response.data!);
+      final authResponse = AuthResponse.fromJson(response.data!);
+      log('Connexion Google réussie');
+      
+      return authResponse;
+
     } on DioException catch (e) {
       throw _handleDioError(e);
     } catch (e) {
+      log('Erreur lors de la connexion Google: $e');
       throw Exception('Erreur lors de la connexion Google: $e');
     }
   }

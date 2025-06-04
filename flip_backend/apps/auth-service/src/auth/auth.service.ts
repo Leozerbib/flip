@@ -1,6 +1,7 @@
 import { Injectable, UnauthorizedException, BadRequestException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
+import { OAuth2Client } from 'google-auth-library';
 import { UserService } from '../user/user.service';
 import { LoginDto } from './dto/login.dto';
 import { CreateUserDto } from 'libs/contracts/src/User/dtos/user.dto';
@@ -18,6 +19,15 @@ export interface GoogleUser {
   picture: string;
   accessToken: string;
   refreshToken?: string;
+}
+
+export interface GoogleIdTokenPayload {
+  email: string;
+  name: string;
+  given_name: string;
+  family_name: string;
+  picture: string;
+  sub: string; // Google user ID
 }
 
 export interface ITokenPayload {
@@ -39,6 +49,7 @@ export class AuthService {
   private readonly refreshTokenExpiresIn: number;
   private readonly jwtSecret: string;
   private readonly refreshSecret: string;
+  private readonly googleOAuth2Client: OAuth2Client;
 
   constructor(
     private readonly userService: UserService,
@@ -53,6 +64,10 @@ export class AuthService {
       'JWT_REFRESH_SECRET',
       'default-refresh-secret'
     );
+
+    // Initialize Google OAuth2 Client for ID token verification
+    const googleClientId = this.configService.get<string>('GOOGLE_CLIENT_ID');
+    this.googleOAuth2Client = new OAuth2Client(googleClientId);
 
     this.logger.info('Configuration JWT initialisée', {
       accessTokenExpiresIn: this.accessTokenExpiresIn,
@@ -303,6 +318,47 @@ export class AuthService {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { passwordHash, ...userWithoutPassword } = user;
     return userWithoutPassword;
+  }
+
+  /**
+   * Vérification et connexion avec Google ID Token
+   */
+  public async verifyGoogleIdTokenAndLogin(idToken: string): Promise<IAuthResponse> {
+    try {
+      this.logger.info('Vérification du Google ID Token');
+
+      // Vérifier le token ID avec Google
+      const ticket = await this.googleOAuth2Client.verifyIdToken({
+        idToken,
+        audience: this.configService.get<string>('GOOGLE_CLIENT_ID'),
+      });
+
+      const payload = ticket.getPayload();
+      if (!payload) {
+        throw new UnauthorizedException('Token ID Google invalide');
+      }
+
+      this.logger.info('Token ID Google vérifié avec succès', { email: payload.email });
+
+      // Créer ou récupérer l'utilisateur basé sur les données Google
+      const googleUserData: GoogleUser = {
+        email: payload.email ?? '',
+        firstName: payload.given_name ?? '',
+        lastName: payload.family_name ?? '',
+        picture: payload.picture ?? '',
+        accessToken: '', // Non nécessaire pour cette méthode
+        refreshToken: '', // Non nécessaire pour cette méthode
+      };
+
+      // Valider/créer l'utilisateur
+      const user = await this.validateGoogleUser(googleUserData);
+
+      // Générer nos tokens JWT et retourner la réponse d'authentification
+      return this.login(user);
+    } catch (error) {
+      this.logger.error('Erreur lors de la vérification du Google ID Token', error);
+      throw new UnauthorizedException('Échec de la vérification du token Google');
+    }
   }
 
   /**

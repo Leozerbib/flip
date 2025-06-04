@@ -56,7 +56,7 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 var __param = (this && this.__param) || function (paramIndex, decorator) {
     return function (target, key) { decorator(target, key, paramIndex); }
 };
-var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l, _m, _o;
+var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l, _m, _o, _p;
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.AuthController = void 0;
 const common_1 = __webpack_require__(/*! @nestjs/common */ "@nestjs/common");
@@ -94,6 +94,10 @@ let AuthController = class AuthController {
     async googleLogin(googleUser) {
         this.logger.info('Connexion Google (microservice)', { email: googleUser?.email });
         return this.authService.googleLogin(googleUser);
+    }
+    async googleVerifyIdToken(idToken) {
+        this.logger.info('Vérification Google ID Token (microservice)');
+        return this.authService.verifyGoogleIdTokenAndLogin(idToken);
     }
     async validateGoogleUser(googleUserData) {
         this.logger.info('Validation utilisateur Google (microservice)', {
@@ -152,18 +156,25 @@ __decorate([
     __metadata("design:returntype", typeof (_k = typeof Promise !== "undefined" && Promise) === "function" ? _k : Object)
 ], AuthController.prototype, "googleLogin", null);
 __decorate([
+    (0, microservices_1.MessagePattern)({ cmd: 'google_verify_id_token' }),
+    __param(0, (0, microservices_1.Payload)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", typeof (_l = typeof Promise !== "undefined" && Promise) === "function" ? _l : Object)
+], AuthController.prototype, "googleVerifyIdToken", null);
+__decorate([
     (0, microservices_1.MessagePattern)({ cmd: 'validate_google_user' }),
     __param(0, (0, microservices_1.Payload)()),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [Object]),
-    __metadata("design:returntype", typeof (_l = typeof Promise !== "undefined" && Promise) === "function" ? _l : Object)
+    __metadata("design:returntype", typeof (_m = typeof Promise !== "undefined" && Promise) === "function" ? _m : Object)
 ], AuthController.prototype, "validateGoogleUser", null);
 __decorate([
     (0, microservices_1.MessagePattern)({ cmd: 'refresh_token' }),
     __param(0, (0, microservices_1.Payload)()),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [String]),
-    __metadata("design:returntype", typeof (_m = typeof Promise !== "undefined" && Promise) === "function" ? _m : Object)
+    __metadata("design:returntype", typeof (_o = typeof Promise !== "undefined" && Promise) === "function" ? _o : Object)
 ], AuthController.prototype, "refreshToken", null);
 __decorate([
     (0, microservices_1.MessagePattern)({ cmd: 'get_user_from_token' }),
@@ -177,7 +188,7 @@ __decorate([
     __param(0, (0, microservices_1.Payload)()),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [String]),
-    __metadata("design:returntype", typeof (_o = typeof Promise !== "undefined" && Promise) === "function" ? _o : Object)
+    __metadata("design:returntype", typeof (_p = typeof Promise !== "undefined" && Promise) === "function" ? _p : Object)
 ], AuthController.prototype, "revokeToken", null);
 exports.AuthController = AuthController = __decorate([
     (0, common_1.Controller)(),
@@ -260,6 +271,7 @@ exports.AuthService = void 0;
 const common_1 = __webpack_require__(/*! @nestjs/common */ "@nestjs/common");
 const jwt_1 = __webpack_require__(/*! @nestjs/jwt */ "@nestjs/jwt");
 const config_1 = __webpack_require__(/*! @nestjs/config */ "@nestjs/config");
+const google_auth_library_1 = __webpack_require__(/*! google-auth-library */ "google-auth-library");
 const user_service_1 = __webpack_require__(/*! ../user/user.service */ "./apps/auth-service/src/user/user.service.ts");
 const src_1 = __webpack_require__(/*! libs/logger/src */ "./libs/logger/src/index.ts");
 let AuthService = class AuthService {
@@ -271,6 +283,7 @@ let AuthService = class AuthService {
     refreshTokenExpiresIn;
     jwtSecret;
     refreshSecret;
+    googleOAuth2Client;
     constructor(userService, jwtService, configService, logger) {
         this.userService = userService;
         this.jwtService = jwtService;
@@ -280,6 +293,8 @@ let AuthService = class AuthService {
         this.refreshTokenExpiresIn = this.configService.get('JWT_REFRESH_EXPIRES_IN', 604800);
         this.jwtSecret = this.configService.get('JWT_SECRET', 'default-secret');
         this.refreshSecret = this.configService.get('JWT_REFRESH_SECRET', 'default-refresh-secret');
+        const googleClientId = this.configService.get('GOOGLE_CLIENT_ID');
+        this.googleOAuth2Client = new google_auth_library_1.OAuth2Client(googleClientId);
         this.logger.info('Configuration JWT initialisée', {
             accessTokenExpiresIn: this.accessTokenExpiresIn,
             refreshTokenExpiresIn: this.refreshTokenExpiresIn,
@@ -447,6 +462,34 @@ let AuthService = class AuthService {
         }
         const { passwordHash, ...userWithoutPassword } = user;
         return userWithoutPassword;
+    }
+    async verifyGoogleIdTokenAndLogin(idToken) {
+        try {
+            this.logger.info('Vérification du Google ID Token');
+            const ticket = await this.googleOAuth2Client.verifyIdToken({
+                idToken,
+                audience: this.configService.get('GOOGLE_CLIENT_ID'),
+            });
+            const payload = ticket.getPayload();
+            if (!payload) {
+                throw new common_1.UnauthorizedException('Token ID Google invalide');
+            }
+            this.logger.info('Token ID Google vérifié avec succès', { email: payload.email });
+            const googleUserData = {
+                email: payload.email ?? '',
+                firstName: payload.given_name ?? '',
+                lastName: payload.family_name ?? '',
+                picture: payload.picture ?? '',
+                accessToken: '',
+                refreshToken: '',
+            };
+            const user = await this.validateGoogleUser(googleUserData);
+            return this.login(user);
+        }
+        catch (error) {
+            this.logger.error('Erreur lors de la vérification du Google ID Token', error);
+            throw new common_1.UnauthorizedException('Échec de la vérification du token Google');
+        }
     }
     googleLogin(user) {
         if (!user) {
@@ -1636,6 +1679,16 @@ module.exports = require("@prisma/client");
 /***/ ((module) => {
 
 module.exports = require("class-validator");
+
+/***/ }),
+
+/***/ "google-auth-library":
+/*!**************************************!*\
+  !*** external "google-auth-library" ***!
+  \**************************************/
+/***/ ((module) => {
+
+module.exports = require("google-auth-library");
 
 /***/ }),
 

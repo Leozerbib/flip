@@ -1,3 +1,4 @@
+import 'package:flip_app/core/theme/theme_manager.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:forui/forui.dart';
@@ -10,6 +11,7 @@ class SplashScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final authState = ref.watch(authProvider);
+    final themeManager = ref.watch(themeManagerProvider);
 
     return FScaffold(
       child: Center(
@@ -17,43 +19,41 @@ class SplashScreen extends ConsumerWidget {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             // Logo de l'application
-            const Icon(
-              FIcons.zap,
-              size: 80,
-            ),
-            const SizedBox(height: 24),
-            
-            // Nom de l'application
-            const Text(
-              'Flip App',
-              style: TextStyle(
-                fontSize: 32,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
+            Image.asset('asset/logo/logo.png', width: 180),
+
             const SizedBox(height: 32),
-            
+
             // Indicateur de chargement
-            if (authState.status == AuthStatus.loading || authState.status == AuthStatus.initial) ...[
-              const CircularProgressIndicator(),
-              const SizedBox(height: 16),
-              const Text('Chargement...'),
+            if (authState.status == AuthStatus.loading ||
+                authState.status == AuthStatus.initial) ...[
+              CircularProgressIndicator(
+                color: themeManager.currentTheme.colors.primary,
+                strokeWidth: 2,
+                
+              ),
             ] else if (authState.status == AuthStatus.error) ...[
-              const Icon(
+              Icon(
                 Icons.error,
                 size: 48,
-                color: Colors.red,
+                color: themeManager.currentTheme.colors.destructive,
               ),
               const SizedBox(height: 16),
               Text(
                 authState.error ?? 'Une erreur est survenue',
                 textAlign: TextAlign.center,
-                style: const TextStyle(color: Colors.red),
+                style: themeManager.currentTheme.typography.base.copyWith(
+                  color: themeManager.currentTheme.colors.destructive,
+                ),
               ),
               const SizedBox(height: 16),
               FButton(
                 onPress: () => ref.read(authProvider.notifier).refresh(),
-                child: const Text('Réessayer'),
+                child: Text(
+                  'Réessayer',
+                  style: themeManager.currentTheme.typography.base.copyWith(
+                    color: themeManager.currentTheme.colors.destructive,
+                  ),
+                ),
               ),
             ],
           ],
@@ -61,4 +61,4 @@ class SplashScreen extends ConsumerWidget {
       ),
     );
   }
-} 
+}

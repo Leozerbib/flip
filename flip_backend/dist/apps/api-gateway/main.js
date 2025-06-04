@@ -55,7 +55,8 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 var __param = (this && this.__param) || function (paramIndex, decorator) {
     return function (target, key) { decorator(target, key, paramIndex); }
 };
-var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l, _m;
+var AuthController_1;
+var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l, _m, _o, _p, _q;
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.AuthController = void 0;
 const common_1 = __webpack_require__(/*! @nestjs/common */ "@nestjs/common");
@@ -69,10 +70,14 @@ const auth_decorator_1 = __webpack_require__(/*! ./decorators/auth.decorator */ 
 const current_user_decorator_1 = __webpack_require__(/*! ./decorators/current-user.decorator */ "./apps/api-gateway/src/auth/decorators/current-user.decorator.ts");
 const passport_1 = __webpack_require__(/*! @nestjs/passport */ "@nestjs/passport");
 const src_1 = __webpack_require__(/*! libs/logger/src */ "./libs/logger/src/index.ts");
-let AuthController = class AuthController {
+const config_1 = __webpack_require__(/*! @app/config */ "./libs/config/src/index.ts");
+let AuthController = AuthController_1 = class AuthController {
     authClient;
-    constructor(authClient) {
+    globalConfig;
+    logger = new common_1.Logger(AuthController_1.name);
+    constructor(authClient, globalConfig) {
         this.authClient = authClient;
+        this.globalConfig = globalConfig;
     }
     async register(createUserDto) {
         return (0, rxjs_1.firstValueFrom)(this.authClient.send({ cmd: 'register_user' }, createUserDto));
@@ -86,16 +91,32 @@ let AuthController = class AuthController {
         try {
             const googleUser = req.user;
             const authResult = await (0, rxjs_1.firstValueFrom)(this.authClient.send({ cmd: 'google_login' }, googleUser));
-            const redirectUrl = `${process.env.FRONTEND_URL}/auth/success?` +
-                `access_token=${authResult.access_token}&` +
-                `refresh_token=${authResult.refresh_token}&` +
-                `expires_in=${authResult.expires_in}`;
+            if (!authResult?.access_token ||
+                !authResult.access_token ||
+                !authResult.refresh_token ||
+                !authResult.user) {
+                this.logger.error('Google OAuth - Incomplete auth result from auth service', authResult);
+                return res.redirect(`${this.globalConfig.app.frontendUrl}/auth/error?error=internal_auth_error`);
+            }
+            const userJson = encodeURIComponent(JSON.stringify(authResult.user));
+            const queryParams = [
+                `access_token=${authResult.access_token}`,
+                `refresh_token=${authResult.refresh_token}`,
+            ];
+            if (authResult.expires_in) {
+                queryParams.push(`expires_in=${authResult.expires_in}`);
+            }
+            queryParams.push(`user=${userJson}`);
+            const redirectUrl = `${this.globalConfig.app.frontendUrl}/auth/success?${queryParams.join('&')}`;
             res.redirect(redirectUrl);
         }
         catch (error) {
-            console.error('Erreur Google OAuth:', error);
-            res.redirect(`${process.env.FRONTEND_URL}/auth/error?error=internal_error`);
+            this.logger.error('Erreur Google OAuth:', error);
+            res.redirect(`${this.globalConfig.app.frontendUrl}/auth/error?error=internal_error`);
         }
+    }
+    async verifyGoogleIdToken(payload) {
+        return (0, rxjs_1.firstValueFrom)(this.authClient.send({ cmd: 'google_verify_id_token' }, payload.idToken));
     }
     async validateToken(payload) {
         return (0, rxjs_1.firstValueFrom)(this.authClient.send({ cmd: 'validate_token' }, payload.token));
@@ -129,8 +150,8 @@ __decorate([
     (0, src_1.Log)("Création d'un nouveau compte utilisateur", 'info'),
     __param(0, (0, common_1.Body)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [typeof (_b = typeof user_dto_1.CreateUserDto !== "undefined" && user_dto_1.CreateUserDto) === "function" ? _b : Object]),
-    __metadata("design:returntype", typeof (_c = typeof Promise !== "undefined" && Promise) === "function" ? _c : Object)
+    __metadata("design:paramtypes", [typeof (_c = typeof user_dto_1.CreateUserDto !== "undefined" && user_dto_1.CreateUserDto) === "function" ? _c : Object]),
+    __metadata("design:returntype", typeof (_d = typeof Promise !== "undefined" && Promise) === "function" ? _d : Object)
 ], AuthController.prototype, "register", null);
 __decorate([
     (0, common_1.Post)('login'),
@@ -147,8 +168,8 @@ __decorate([
     (0, src_1.Log)('Authentification utilisateur', 'info'),
     __param(0, (0, common_1.Body)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [typeof (_d = typeof auth_dto_1.LoginDto !== "undefined" && auth_dto_1.LoginDto) === "function" ? _d : Object]),
-    __metadata("design:returntype", typeof (_e = typeof Promise !== "undefined" && Promise) === "function" ? _e : Object)
+    __metadata("design:paramtypes", [typeof (_e = typeof auth_dto_1.LoginDto !== "undefined" && auth_dto_1.LoginDto) === "function" ? _e : Object]),
+    __metadata("design:returntype", typeof (_f = typeof Promise !== "undefined" && Promise) === "function" ? _f : Object)
 ], AuthController.prototype, "login", null);
 __decorate([
     (0, common_1.Get)('google'),
@@ -165,7 +186,7 @@ __decorate([
     (0, src_1.Log)('Authentification Google OAuth', 'info'),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", []),
-    __metadata("design:returntype", typeof (_f = typeof Promise !== "undefined" && Promise) === "function" ? _f : Object)
+    __metadata("design:returntype", typeof (_g = typeof Promise !== "undefined" && Promise) === "function" ? _g : Object)
 ], AuthController.prototype, "googleAuth", null);
 __decorate([
     (0, common_1.Get)('google/callback'),
@@ -183,9 +204,29 @@ __decorate([
     __param(0, (0, common_1.Req)()),
     __param(1, (0, common_1.Res)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Object, typeof (_g = typeof express_1.Response !== "undefined" && express_1.Response) === "function" ? _g : Object]),
-    __metadata("design:returntype", typeof (_h = typeof Promise !== "undefined" && Promise) === "function" ? _h : Object)
+    __metadata("design:paramtypes", [Object, typeof (_h = typeof express_1.Response !== "undefined" && express_1.Response) === "function" ? _h : Object]),
+    __metadata("design:returntype", typeof (_j = typeof Promise !== "undefined" && Promise) === "function" ? _j : Object)
 ], AuthController.prototype, "googleCallback", null);
+__decorate([
+    (0, common_1.Post)('google/verify-id-token'),
+    (0, swagger_1.ApiOperation)({
+        summary: 'Vérifier un Google ID Token',
+        description: "Vérifie un Google ID Token et retourne les tokens d'authentification de l'application",
+    }),
+    (0, swagger_1.ApiBody)({ type: auth_dto_1.VerifyGoogleIdTokenDto }),
+    (0, swagger_1.ApiResponse)({
+        status: 200,
+        description: 'Token vérifié avec succès',
+        type: auth_dto_1.AuthResponseDto,
+    }),
+    (0, swagger_1.ApiResponse)({ status: 401, description: 'Token Google invalide' }),
+    (0, auth_decorator_1.OptionalAuth)(),
+    (0, src_1.Log)('Vérification Google ID Token', 'info'),
+    __param(0, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [typeof (_k = typeof auth_dto_1.VerifyGoogleIdTokenDto !== "undefined" && auth_dto_1.VerifyGoogleIdTokenDto) === "function" ? _k : Object]),
+    __metadata("design:returntype", typeof (_l = typeof Promise !== "undefined" && Promise) === "function" ? _l : Object)
+], AuthController.prototype, "verifyGoogleIdToken", null);
 __decorate([
     (0, common_1.Post)('validate-token'),
     (0, swagger_1.ApiOperation)({ summary: 'Valider un token JWT' }),
@@ -204,8 +245,8 @@ __decorate([
     (0, src_1.Log)('Validation du token', 'info'),
     __param(0, (0, common_1.Body)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [typeof (_j = typeof auth_dto_1.TokenValidationDto !== "undefined" && auth_dto_1.TokenValidationDto) === "function" ? _j : Object]),
-    __metadata("design:returntype", typeof (_k = typeof Promise !== "undefined" && Promise) === "function" ? _k : Object)
+    __metadata("design:paramtypes", [typeof (_m = typeof auth_dto_1.TokenValidationDto !== "undefined" && auth_dto_1.TokenValidationDto) === "function" ? _m : Object]),
+    __metadata("design:returntype", typeof (_o = typeof Promise !== "undefined" && Promise) === "function" ? _o : Object)
 ], AuthController.prototype, "validateToken", null);
 __decorate([
     (0, common_1.Post)('refresh'),
@@ -220,8 +261,8 @@ __decorate([
     (0, src_1.Log)('Renouvellement du token', 'info'),
     __param(0, (0, common_1.Body)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [typeof (_l = typeof auth_dto_1.RefreshTokenDto !== "undefined" && auth_dto_1.RefreshTokenDto) === "function" ? _l : Object]),
-    __metadata("design:returntype", typeof (_m = typeof Promise !== "undefined" && Promise) === "function" ? _m : Object)
+    __metadata("design:paramtypes", [typeof (_p = typeof auth_dto_1.RefreshTokenDto !== "undefined" && auth_dto_1.RefreshTokenDto) === "function" ? _p : Object]),
+    __metadata("design:returntype", typeof (_q = typeof Promise !== "undefined" && Promise) === "function" ? _q : Object)
 ], AuthController.prototype, "refresh", null);
 __decorate([
     (0, common_1.Post)('logout'),
@@ -262,11 +303,11 @@ __decorate([
     __metadata("design:paramtypes", []),
     __metadata("design:returntype", Object)
 ], AuthController.prototype, "checkAuth", null);
-exports.AuthController = AuthController = __decorate([
+exports.AuthController = AuthController = AuthController_1 = __decorate([
     (0, swagger_1.ApiTags)('auth'),
     (0, common_1.Controller)('auth'),
     __param(0, (0, common_1.Inject)('AUTH_SERVICE')),
-    __metadata("design:paramtypes", [typeof (_a = typeof microservices_1.ClientProxy !== "undefined" && microservices_1.ClientProxy) === "function" ? _a : Object])
+    __metadata("design:paramtypes", [typeof (_a = typeof microservices_1.ClientProxy !== "undefined" && microservices_1.ClientProxy) === "function" ? _a : Object, typeof (_b = typeof config_1.GlobalConfigService !== "undefined" && config_1.GlobalConfigService) === "function" ? _b : Object])
 ], AuthController);
 
 
@@ -1613,7 +1654,7 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 };
 var _a;
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.RefreshTokenResponseDto = exports.RefreshTokenDto = exports.TokenValidationDto = exports.AuthResponseDto = exports.LoginDto = void 0;
+exports.VerifyGoogleIdTokenDto = exports.RefreshTokenResponseDto = exports.RefreshTokenDto = exports.TokenValidationDto = exports.AuthResponseDto = exports.LoginDto = void 0;
 const class_validator_1 = __webpack_require__(/*! class-validator */ "class-validator");
 const swagger_1 = __webpack_require__(/*! @nestjs/swagger */ "@nestjs/swagger");
 const user_dto_1 = __webpack_require__(/*! ../../User/dtos/user.dto */ "./libs/contracts/src/User/dtos/user.dto.ts");
@@ -1672,8 +1713,12 @@ class RefreshTokenDto {
 }
 exports.RefreshTokenDto = RefreshTokenDto;
 __decorate([
-    (0, swagger_1.ApiProperty)({ example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...' }),
+    (0, swagger_1.ApiProperty)({
+        description: 'Refresh token pour renouveler le token d\'accès',
+        example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
+    }),
     (0, class_validator_1.IsString)(),
+    (0, class_validator_1.IsNotEmpty)(),
     __metadata("design:type", String)
 ], RefreshTokenDto.prototype, "refreshToken", void 0);
 class RefreshTokenResponseDto {
@@ -1694,6 +1739,19 @@ __decorate([
     (0, swagger_1.ApiProperty)({ example: 3600, description: 'Durée de validité en secondes' }),
     __metadata("design:type", Number)
 ], RefreshTokenResponseDto.prototype, "expires_in", void 0);
+class VerifyGoogleIdTokenDto {
+    idToken;
+}
+exports.VerifyGoogleIdTokenDto = VerifyGoogleIdTokenDto;
+__decorate([
+    (0, swagger_1.ApiProperty)({
+        description: 'Google ID Token à vérifier',
+        example: 'eyJhbGciOiJSUzI1NiIsImtpZCI6IjRmNzJkN...',
+    }),
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.IsNotEmpty)(),
+    __metadata("design:type", String)
+], VerifyGoogleIdTokenDto.prototype, "idToken", void 0);
 
 
 /***/ }),

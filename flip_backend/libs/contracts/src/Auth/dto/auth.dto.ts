@@ -1,4 +1,4 @@
-import { IsEmail, IsString } from 'class-validator';
+import { IsEmail, IsString, IsNotEmpty } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 import { UserResponseDto } from '../../User/dtos/user.dto';
 
@@ -36,8 +36,12 @@ export class TokenValidationDto {
 }
 
 export class RefreshTokenDto {
-  @ApiProperty({ example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...' })
+  @ApiProperty({
+    description: 'Refresh token pour renouveler le token d\'accès',
+    example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
+  })
   @IsString()
+  @IsNotEmpty()
   refreshToken: string;
 }
 
@@ -50,4 +54,14 @@ export class RefreshTokenResponseDto {
 
   @ApiProperty({ example: 3600, description: 'Durée de validité en secondes' })
   expires_in: number;
+}
+
+export class VerifyGoogleIdTokenDto {
+  @ApiProperty({
+    description: 'Google ID Token à vérifier',
+    example: 'eyJhbGciOiJSUzI1NiIsImtpZCI6IjRmNzJkN...',
+  })
+  @IsString()
+  @IsNotEmpty()
+  idToken: string;
 }

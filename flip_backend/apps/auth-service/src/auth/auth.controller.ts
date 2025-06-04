@@ -56,6 +56,12 @@ export class AuthController {
     return this.authService.googleLogin(googleUser);
   }
 
+  @MessagePattern({ cmd: 'google_verify_id_token' })
+  public async googleVerifyIdToken(@Payload() idToken: string): Promise<IAuthResponse> {
+    this.logger.info('Vérification Google ID Token (microservice)');
+    return this.authService.verifyGoogleIdTokenAndLogin(idToken);
+  }
+
   @MessagePattern({ cmd: 'validate_google_user' })
   public async validateGoogleUser(@Payload() googleUserData: any): Promise<any> {
     this.logger.info('Validation utilisateur Google (microservice)', {

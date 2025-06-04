@@ -1,19 +1,25 @@
-import 'dart:developer' as developer;
+import 'package:talker/talker.dart';
 
 class AppLogger {
+  static final talker = Talker();
+
   static void info(String message) {
-    developer.log(message, name: 'INFO');
+    talker.info(message);
   }
 
   static void debug(String message) {
-    developer.log(message, name: 'DEBUG');
+    talker.debug(message);
+  }
+
+  static void verbose(String message) {
+    talker.verbose(message);
   }
 
   static void error(String message) {
-    developer.log(message, name: 'ERROR');
+    talker.error(message);
   }
 
   static void warning(String message) {
-    developer.log(message, name: 'WARNING');
+    talker.warning(message);
   }
 } 

@@ -1,9 +1,10 @@
+import 'package:flip_app/core/theme/theme_manager.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:forui/forui.dart';
 import 'package:go_router/go_router.dart';
 import '../view_models/auth_provider.dart';
-import '../../data/models/auth_models.dart';
+import '../../data/models/auth_models.dart' as auth_models;
 
 class RegisterScreen extends ConsumerStatefulWidget {
   const RegisterScreen({super.key});
@@ -31,12 +32,14 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   @override
   Widget build(BuildContext context) {
     final authState = ref.watch(authProvider);
+    final themeManager = ref.watch(themeManagerProvider);
 
     // Écouter les changements d'état pour la navigation
     ref.listen<AuthState>(authProvider, (previous, next) {
-      if (next.status == AuthStatus.authenticated) {
+      if (next.status == auth_models.AuthStatus.authenticated) {
         // Navigation vers l'écran principal sera gérée par le router
-      } else if (next.status == AuthStatus.error && next.error != null) {
+      } else if (next.status == auth_models.AuthStatus.error &&
+          next.error != null) {
         _showErrorDialog(next.error!);
       }
     });
@@ -56,23 +59,18 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       // Logo et titre
-                      const Icon(
-                        FIcons.userPlus,
-                        size: 64,
-                      ),
-                      const SizedBox(height: 24),
-                      const Text(
-                        'Inscription',
-                        style: TextStyle(
-                          fontSize: 32,
-                          fontWeight: FontWeight.bold,
+                      Center(
+                        child: Image.asset(
+                          'asset/logo/logo.png',
+                          width: 180,
+                          height: 180,
+                          fit: BoxFit.contain,
                         ),
-                        textAlign: TextAlign.center,
                       ),
-                      const SizedBox(height: 8),
-                      const Text(
-                        'Créez votre compte',
-                        style: TextStyle(fontSize: 16),
+                      const SizedBox(height: 12),
+                      Text(
+                        'Inscription',
+                        style: themeManager.currentTheme.typography.xl3,
                         textAlign: TextAlign.center,
                       ),
                       const SizedBox(height: 32),
@@ -101,7 +99,9 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                           if (value == null || value.isEmpty) {
                             return 'Veuillez saisir votre email';
                           }
-                          if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(value)) {
+                          if (!RegExp(
+                            r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$',
+                          ).hasMatch(value)) {
                             return 'Format d\'email invalide';
                           }
                           return null;
@@ -147,15 +147,21 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
 
                       // Bouton d'inscription
                       FButton(
-                        onPress: authState.status == AuthStatus.loading ? null : _handleRegister,
-                        child: authState.status == AuthStatus.loading
+                        onPress:
+                            authState.status == auth_models.AuthStatus.loading
+                            ? null
+                            : _handleRegister,
+                        child:
+                            authState.status == auth_models.AuthStatus.loading
                             ? const Row(
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
                                   SizedBox(
                                     width: 16,
                                     height: 16,
-                                    child: CircularProgressIndicator(strokeWidth: 2),
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                    ),
                                   ),
                                   SizedBox(width: 8),
                                   Text('Création du compte...'),
@@ -166,12 +172,21 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                       const SizedBox(height: 16),
 
                       // Diviseur "OU"
-                      const Row(
+                      Row(
                         children: [
                           Expanded(child: Divider()),
                           Padding(
                             padding: EdgeInsets.symmetric(horizontal: 16),
-                            child: Text('OU'),
+                            child: Text(
+                              'OU',
+                              style: themeManager.currentTheme.typography.base
+                                  .copyWith(
+                                    color: themeManager
+                                        .currentTheme
+                                        .colors
+                                        .mutedForeground,
+                                  ),
+                            ),
                           ),
                           Expanded(child: Divider()),
                         ],
@@ -180,7 +195,10 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
 
                       // Bouton Google
                       FButton(
-                        onPress: authState.status == AuthStatus.loading ? null : _handleGoogleRegister,
+                        onPress:
+                            authState.status == auth_models.AuthStatus.loading
+                            ? null
+                            : _handleGoogleRegister,
                         prefix: const Icon(FIcons.chrome),
                         style: FButtonStyle.outline,
                         child: const Text('S\'inscrire avec Google'),
@@ -190,13 +208,26 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                       // Lien vers la connexion
                       TextButton(
                         onPressed: () => context.go('/login'),
-                        child: const Text.rich(
+                        child: Text.rich(
                           TextSpan(
                             children: [
-                              TextSpan(text: 'Déjà un compte ? '),
+                              TextSpan(
+                                text: 'Déjà un compte ? ',
+                                style: themeManager.currentTheme.typography.base
+                                    .copyWith(
+                                      color: themeManager
+                                          .currentTheme
+                                          .colors
+                                          .mutedForeground,
+                                    ),
+                              ),
                               TextSpan(
                                 text: 'Se connecter',
-                                style: TextStyle(fontWeight: FontWeight.w500, decoration: TextDecoration.underline),
+                                style: themeManager.currentTheme.typography.base
+                                    .copyWith(
+                                      fontWeight: FontWeight.w500,
+                                      decoration: TextDecoration.underline,
+                                    ),
                               ),
                             ],
                           ),
@@ -216,7 +247,9 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
 
   void _handleRegister() {
     if (_formKey.currentState?.validate() ?? false) {
-      ref.read(authProvider.notifier).register(
+      ref
+          .read(authProvider.notifier)
+          .register(
             _emailController.text.trim(),
             _passwordController.text,
             _usernameController.text.trim(),
@@ -246,4 +279,4 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
       ),
     );
   }
-} 
+}

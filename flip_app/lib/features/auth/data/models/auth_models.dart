@@ -1,6 +1,6 @@
-import 'dart:developer';
 
 import 'package:equatable/equatable.dart';
+import 'package:flip_app/core/utils/logger.dart';
 import '../../../../data/models/user_model.dart';
 
 // Réponse d'authentification
@@ -18,13 +18,25 @@ class AuthResponse extends Equatable {
   });
 
   factory AuthResponse.fromJson(Map<String, dynamic> json) {
-    log('AuthResponse: $json');
-    return AuthResponse(
-      accessToken: json['access_token'] as String,
-      refreshToken: json['refresh_token'] as String,
-      user: UserModel.fromJson(json['user'] as Map<String, dynamic>),
-      expiresIn: json['expires_in'] as int,
-    );
+    try {
+      UserModel user = UserModel.fromJson(json['user'] as Map<String, dynamic>);
+      AuthResponse response = AuthResponse(
+        accessToken: json['access_token'] as String,
+        refreshToken: json['refresh_token'] as String,
+        user: user,
+        expiresIn: int.parse(json['expires_in']),
+      );
+      AppLogger.debug('User ${response.user.toJson()}:${response.user.username} is logged in');
+      return response;
+    } catch (e) {
+      AppLogger.error('Error: $e');
+      throw Exception(e);
+    }
+  }
+
+  @override
+  String toString() {
+    return 'AuthResponse(accessToken: $accessToken, refreshToken: $refreshToken, user: $user)';
   }
 
   @override

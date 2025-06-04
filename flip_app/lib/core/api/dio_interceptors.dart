@@ -1,5 +1,3 @@
-import 'dart:developer';
-
 import 'package:dio/dio.dart';
 import '../auth/auth_service.dart';
 import '../config/app_config.dart';

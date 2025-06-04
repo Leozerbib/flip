@@ -9,6 +9,7 @@ import {
   Res,
   Req,
   UseGuards,
+  Logger,
 } from '@nestjs/common';
 import { ClientProxy } from '@nestjs/microservices';
 import { firstValueFrom } from 'rxjs';
@@ -26,16 +27,23 @@ import {
   TokenValidationDto,
   AuthResponseDto,
   RefreshTokenResponseDto,
+  VerifyGoogleIdTokenDto,
 } from '@app/contracts/Auth/dto/auth.dto';
 import { Auth, OptionalAuth } from './decorators/auth.decorator';
 import { GetUserId } from './decorators/current-user.decorator';
 import { AuthGuard } from '@nestjs/passport';
 import { Log } from 'libs/logger/src';
+import { GlobalConfigService } from '@app/config';
 
 @ApiTags('auth')
 @Controller('auth')
 export class AuthController {
-  constructor(@Inject('AUTH_SERVICE') private readonly authClient: ClientProxy) {}
+  private readonly logger = new Logger(AuthController.name);
+
+  constructor(
+    @Inject('AUTH_SERVICE') private readonly authClient: ClientProxy,
+    private readonly globalConfig: GlobalConfigService
+  ) {}
 
   @Post('register')
   @ApiOperation({ summary: 'Créer un nouveau compte utilisateur' })
@@ -110,18 +118,62 @@ export class AuthController {
         this.authClient.send<IAuthResponse>({ cmd: 'google_login' }, googleUser)
       );
 
-      // Rediriger vers le frontend avec les tokens
-      const redirectUrl =
-        `${process.env.FRONTEND_URL}/auth/success?` +
-        `access_token=${authResult.access_token}&` +
-        `refresh_token=${authResult.refresh_token}&` +
-        `expires_in=${authResult.expires_in}`;
+      if (
+        !authResult?.access_token ||
+        !authResult.access_token ||
+        !authResult.refresh_token ||
+        !authResult.user
+      ) {
+        // Use a logger if available, e.g., this.logger.error(...)
+        this.logger.error('Google OAuth - Incomplete auth result from auth service', authResult);
+        return res.redirect(
+          `${this.globalConfig.app.frontendUrl}/auth/error?error=internal_auth_error`
+        );
+      }
+
+      // Rediriger vers le frontend avec les tokens et l'utilisateur
+      const userJson = encodeURIComponent(JSON.stringify(authResult.user));
+
+      const queryParams: string[] = [
+        `access_token=${authResult.access_token}`,
+        `refresh_token=${authResult.refresh_token}`,
+      ];
+
+      if (authResult.expires_in) {
+        queryParams.push(`expires_in=${authResult.expires_in}`);
+      }
+      queryParams.push(`user=${userJson}`);
+
+      const redirectUrl = `${this.globalConfig.app.frontendUrl}/auth/success?${queryParams.join('&')}`;
 
       res.redirect(redirectUrl);
     } catch (error) {
-      console.error('Erreur Google OAuth:', error);
-      res.redirect(`${process.env.FRONTEND_URL}/auth/error?error=internal_error`);
+      this.logger.error('Erreur Google OAuth:', error);
+      res.redirect(`${this.globalConfig.app.frontendUrl}/auth/error?error=internal_error`);
     }
+  }
+
+  @Post('google/verify-id-token')
+  @ApiOperation({
+    summary: 'Vérifier un Google ID Token',
+    description:
+      "Vérifie un Google ID Token et retourne les tokens d'authentification de l'application",
+  })
+  @ApiBody({ type: VerifyGoogleIdTokenDto })
+  @ApiResponse({
+    status: 200,
+    description: 'Token vérifié avec succès',
+    type: AuthResponseDto,
+  })
+  @ApiResponse({ status: 401, description: 'Token Google invalide' })
+  @OptionalAuth()
+  @Log('Vérification Google ID Token', 'info')
+  public async verifyGoogleIdToken(
+    @Body() payload: VerifyGoogleIdTokenDto
+  ): Promise<IAuthResponse> {
+    return firstValueFrom(
+      this.authClient.send<IAuthResponse>({ cmd: 'google_verify_id_token' }, payload.idToken)
+    );
   }
 
   @Post('validate-token')

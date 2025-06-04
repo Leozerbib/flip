@@ -6,7 +6,7 @@ import '../../features/auth/presentation/screens/register_screen.dart';
 import '../../features/auth/presentation/screens/splash_screen.dart';
 import '../../features/auth/presentation/view_models/auth_provider.dart';
 import '../../features/auth/data/models/auth_models.dart';
-import '../../features/home/presentation/screens/home_screen.dart';
+import '../../features/navigation/presentation/screens/main_navigation_screen.dart';
 
 // Provider pour le router
 final routerProvider = Provider<GoRouter>((ref) {
@@ -26,7 +26,7 @@ final routerProvider = Provider<GoRouter>((ref) {
       
       // Si le chargement est terminé et on est sur le splash
       if (state.matchedLocation == '/splash' && !isLoading) {
-        return isAuthenticated ? '/home' : '/login';
+        return isAuthenticated ? '/main' : '/login';
       }
       
       // Routes publiques
@@ -34,7 +34,7 @@ final routerProvider = Provider<GoRouter>((ref) {
       
       // Si authentifié et sur une route publique, rediriger vers l'accueil
       if (isAuthenticated && ['/login', '/register'].contains(state.matchedLocation)) {
-        return '/home';
+        return '/main';
       }
       
       // Si non authentifié et sur une route privée, rediriger vers la connexion
@@ -64,11 +64,42 @@ final routerProvider = Provider<GoRouter>((ref) {
         builder: (context, state) => const RegisterScreen(),
       ),
       
-      // Routes principales
+      // Routes principales avec navigation
+      GoRoute(
+        path: '/main',
+        name: 'main',
+        builder: (context, state) {
+          final indexParam = state.uri.queryParameters['index'];
+          final index = indexParam != null ? int.tryParse(indexParam) ?? 2 : 2;
+          return MainNavigationScreen(initialIndex: index);
+        },
+      ),
+      
+      // Routes individuelles pour navigation directe
+      GoRoute(
+        path: '/history',
+        name: 'history',
+        builder: (context, state) => const MainNavigationScreen(initialIndex: 0),
+      ),
+      GoRoute(
+        path: '/friends',
+        name: 'friends',
+        builder: (context, state) => const MainNavigationScreen(initialIndex: 1),
+      ),
       GoRoute(
         path: '/home',
         name: 'home',
-        builder: (context, state) => const HomeScreen(),
+        builder: (context, state) => const MainNavigationScreen(initialIndex: 2),
+      ),
+      GoRoute(
+        path: '/services',
+        name: 'services',
+        builder: (context, state) => const MainNavigationScreen(initialIndex: 3),
+      ),
+      GoRoute(
+        path: '/profile',
+        name: 'profile',
+        builder: (context, state) => const MainNavigationScreen(initialIndex: 4),
       ),
       
       // Route par défaut - redirection

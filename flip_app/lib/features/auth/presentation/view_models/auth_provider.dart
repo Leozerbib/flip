@@ -3,6 +3,7 @@ import 'dart:developer';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/auth/auth_repository.dart';
 import '../../../../core/auth/auth_service.dart';
+import '../../../../data/models/user_model.dart';
 import '../../data/models/auth_models.dart';
 
 // Provider pour le repository d'authentification
@@ -11,20 +12,53 @@ final authRepositoryProvider = Provider<AuthRepository>((ref) {
 });
 
 // Provider pour l'état d'authentification
-final authProvider = StateNotifierProvider<AuthNotifier, AuthState>((ref) {
+final authProvider = StateNotifierProvider<AuthStateNotifier, AuthState>((ref) {
   final authRepository = ref.watch(authRepositoryProvider);
-  return AuthNotifier(authRepository);
+  return AuthStateNotifier(authRepository);
 });
 
-class AuthNotifier extends StateNotifier<AuthState> {
+class AuthState {
+  final AuthStatus status;
+  final UserModel? user;
+  final String? accessToken;
+  final String? refreshToken;
+  final String? error;
+
+  AuthState({
+    this.status = AuthStatus.initial,
+    this.user,
+    this.accessToken,
+    this.refreshToken,
+    this.error,
+  });
+
+  AuthState copyWith({
+    AuthStatus? status,
+    UserModel? user,
+    String? accessToken,
+    String? refreshToken,
+    String? error,
+    bool clearError = false,
+  }) {
+    return AuthState(
+      status: status ?? this.status,
+      user: user ?? this.user,
+      accessToken: accessToken ?? this.accessToken,
+      refreshToken: refreshToken ?? this.refreshToken,
+      error: clearError ? null : error ?? this.error,
+    );
+  }
+}
+
+class AuthStateNotifier extends StateNotifier<AuthState> {
   final AuthRepository _authRepository;
 
-  AuthNotifier(this._authRepository) : super(const AuthState()) {
-    _checkInitialAuthState();
+  AuthStateNotifier(this._authRepository) : super(AuthState()) {
+    _checkInitialAuthStatus();
   }
 
   // Vérifier l'état d'authentification initial
-  Future<void> _checkInitialAuthState() async {
+  Future<void> _checkInitialAuthStatus() async {
     state = state.copyWith(status: AuthStatus.loading);
     
     try {
@@ -118,6 +152,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
     state = state.copyWith(status: AuthStatus.loading, error: null);
     
     try {
+      // La nouvelle implémentation retourne directement une AuthResponse
       final response = await _authRepository.loginWithGoogle();
       
       // Sauvegarder la session
@@ -167,6 +202,6 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
   // Rafraîchir l'état d'authentification
   Future<void> refresh() async {
-    await _checkInitialAuthState();
+    await _checkInitialAuthStatus();
   }
 } 

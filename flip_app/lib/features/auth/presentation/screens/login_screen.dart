@@ -1,9 +1,10 @@
+import 'package:flip_app/core/theme/theme_manager.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:forui/forui.dart';
 import 'package:go_router/go_router.dart';
 import '../view_models/auth_provider.dart';
-import '../../data/models/auth_models.dart';
+import '../../data/models/auth_models.dart' hide AuthState;
 
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
@@ -27,7 +28,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     final authState = ref.watch(authProvider);
-
+    final themeManager = ref.watch(themeManagerProvider);
     // Écouter les changements d'état pour la navigation
     ref.listen<AuthState>(authProvider, (previous, next) {
       if (next.status == AuthStatus.authenticated) {
@@ -51,23 +52,18 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     // Logo et titre
-                    const Icon(
-                      FIcons.user,
-                      size: 64,
-                    ),
-                    const SizedBox(height: 24),
-                    const Text(
-                      'Connexion',
-                      style: TextStyle(
-                        fontSize: 32,
-                        fontWeight: FontWeight.bold,
+                    Center(
+                      child: Image.asset(
+                        'asset/logo/logo.png',
+                        width: 180,
+                        height: 180,
+                        fit: BoxFit.contain,
                       ),
-                      textAlign: TextAlign.center,
                     ),
-                    const SizedBox(height: 8),
-                    const Text(
-                      'Connectez-vous à votre compte',
-                      style: TextStyle(fontSize: 16),
+                    const SizedBox(height: 12),
+                    Text(
+                      'Connexion',
+                      style: themeManager.currentTheme.typography.xl3,
                       textAlign: TextAlign.center,
                     ),
                     const SizedBox(height: 32),
@@ -82,7 +78,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         if (value == null || value.isEmpty) {
                           return 'Veuillez saisir votre email';
                         }
-                        if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(value)) {
+                        if (!RegExp(
+                          r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$',
+                        ).hasMatch(value)) {
                           return 'Format d\'email invalide';
                         }
                         return null;
@@ -110,7 +108,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
                     // Bouton de connexion
                     FButton(
-                      onPress: authState.status == AuthStatus.loading ? null : _handleLogin,
+                      onPress: authState.status == AuthStatus.loading
+                          ? null
+                          : _handleLogin,
                       child: authState.status == AuthStatus.loading
                           ? const Row(
                               mainAxisAlignment: MainAxisAlignment.center,
@@ -118,7 +118,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                 SizedBox(
                                   width: 16,
                                   height: 16,
-                                  child: CircularProgressIndicator(strokeWidth: 2),
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                  ),
                                 ),
                                 SizedBox(width: 8),
                                 Text('Connexion...'),
@@ -129,12 +131,21 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     const SizedBox(height: 16),
 
                     // Diviseur "OU"
-                    const Row(
+                    Row(
                       children: [
                         Expanded(child: Divider()),
                         Padding(
                           padding: EdgeInsets.symmetric(horizontal: 16),
-                          child: Text('OU'),
+                          child: Text(
+                            'OU',
+                            style: themeManager.currentTheme.typography.base
+                                .copyWith(
+                                  color: themeManager
+                                      .currentTheme
+                                      .colors
+                                      .mutedForeground,
+                                ),
+                          ),
                         ),
                         Expanded(child: Divider()),
                       ],
@@ -145,7 +156,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     FButton(
                       prefix: const Icon(FIcons.chrome),
                       style: FButtonStyle.outline,
-                      onPress: authState.status == AuthStatus.loading ? null : _handleGoogleLogin,
+                      onPress: authState.status == AuthStatus.loading
+                          ? null
+                          : _handleGoogleLogin,
                       child: const Text('Continuer avec Google'),
                     ),
                     const SizedBox(height: 24),
@@ -153,13 +166,26 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     // Lien vers l'inscription
                     TextButton(
                       onPressed: () => context.go('/register'),
-                      child: const Text.rich(
+                      child: Text.rich(
                         TextSpan(
                           children: [
-                            TextSpan(text: 'Pas encore de compte ? '),
+                            TextSpan(
+                              text: 'Pas encore de compte ? ',
+                              style: themeManager.currentTheme.typography.base
+                                  .copyWith(
+                                    color: themeManager
+                                        .currentTheme
+                                        .colors
+                                        .mutedForeground,
+                                  ),
+                            ),
                             TextSpan(
                               text: 'S\'inscrire',
-                              style: TextStyle(fontWeight: FontWeight.w500, decoration: TextDecoration.underline),
+                              style: themeManager.currentTheme.typography.base
+                                  .copyWith(
+                                    fontWeight: FontWeight.w500,
+                                    decoration: TextDecoration.underline,
+                                  ),
                             ),
                           ],
                         ),
@@ -178,10 +204,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
   void _handleLogin() {
     if (_formKey.currentState?.validate() ?? false) {
-      ref.read(authProvider.notifier).login(
-            _emailController.text.trim(),
-            _passwordController.text,
-          );
+      ref
+          .read(authProvider.notifier)
+          .login(_emailController.text.trim(), _passwordController.text);
     }
   }
 
@@ -207,4 +232,4 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       ),
     );
   }
-} 
+}

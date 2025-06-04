@@ -14,6 +14,7 @@ class AppConfig {
   static String get logoutUrl => '$authBaseUrl/logout';
   static String get validateTokenUrl => '$authBaseUrl/validate-token';
   static String get googleAuthUrl => '$authBaseUrl/google';
+  static String get googleVerifyIdTokenUrl => '$authBaseUrl/google/verify-id-token';
   static String get checkAuthUrl => '$authBaseUrl/check';
 
   // Initialisation
