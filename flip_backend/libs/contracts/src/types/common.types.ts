@@ -57,6 +57,11 @@ export enum ServiceStatusEnum {
   DISPUTED = 'disputed',
 }
 
+export enum ServiceTypeEnum {
+  SERVICE = 'service',
+  PRANK = 'prank',
+}
+
 export enum UserMissionStatusEnum {
   NOT_STARTED = 'not_started',
   IN_PROGRESS = 'in_progress',

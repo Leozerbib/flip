@@ -20,14 +20,23 @@ exports.ApiGatewayModule = void 0;
 const common_1 = __webpack_require__(/*! @nestjs/common */ "@nestjs/common");
 const config_1 = __webpack_require__(/*! @app/config */ "./libs/config/src/index.ts");
 const auth_module_1 = __webpack_require__(/*! ./auth/auth.module */ "./apps/api-gateway/src/auth/auth.module.ts");
+const friendships_module_1 = __webpack_require__(/*! ./friendships/friendships.module */ "./apps/api-gateway/src/friendships/friendships.module.ts");
 const microservices_module_1 = __webpack_require__(/*! ./microservices/microservices.module */ "./apps/api-gateway/src/microservices/microservices.module.ts");
 const src_1 = __webpack_require__(/*! libs/logger/src */ "./libs/logger/src/index.ts");
+const exceptions_1 = __webpack_require__(/*! @app/exceptions */ "./libs/exceptions/src/index.ts");
 let ApiGatewayModule = class ApiGatewayModule {
 };
 exports.ApiGatewayModule = ApiGatewayModule;
 exports.ApiGatewayModule = ApiGatewayModule = __decorate([
     (0, common_1.Module)({
-        imports: [config_1.GlobalConfigModule, src_1.LoggerModule, microservices_module_1.MicroservicesModule, auth_module_1.AuthModule],
+        imports: [
+            config_1.GlobalConfigModule,
+            src_1.LoggerModule,
+            microservices_module_1.MicroservicesModule,
+            auth_module_1.AuthModule,
+            friendships_module_1.FriendshipsModule,
+            exceptions_1.ExceptionsModule,
+        ],
         controllers: [],
         providers: [],
     })
@@ -56,7 +65,7 @@ var __param = (this && this.__param) || function (paramIndex, decorator) {
     return function (target, key) { decorator(target, key, paramIndex); }
 };
 var AuthController_1;
-var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l, _m, _o, _p, _q;
+var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l, _m, _o, _p, _q, _r;
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.AuthController = void 0;
 const common_1 = __webpack_require__(/*! @nestjs/common */ "@nestjs/common");
@@ -71,26 +80,48 @@ const current_user_decorator_1 = __webpack_require__(/*! ./decorators/current-us
 const passport_1 = __webpack_require__(/*! @nestjs/passport */ "@nestjs/passport");
 const src_1 = __webpack_require__(/*! libs/logger/src */ "./libs/logger/src/index.ts");
 const config_1 = __webpack_require__(/*! @app/config */ "./libs/config/src/index.ts");
+const exceptions_1 = __webpack_require__(/*! @app/exceptions */ "./libs/exceptions/src/index.ts");
 let AuthController = AuthController_1 = class AuthController {
     authClient;
     globalConfig;
+    thrower;
     logger = new common_1.Logger(AuthController_1.name);
-    constructor(authClient, globalConfig) {
+    constructor(authClient, globalConfig, thrower) {
         this.authClient = authClient;
         this.globalConfig = globalConfig;
+        this.thrower = thrower;
     }
     async register(createUserDto) {
-        return (0, rxjs_1.firstValueFrom)(this.authClient.send({ cmd: 'register_user' }, createUserDto));
+        try {
+            return await (0, rxjs_1.firstValueFrom)(this.authClient.send({ cmd: 'register_user' }, createUserDto).pipe((0, rxjs_1.catchError)(error => {
+                this.handleMicroserviceError(error, 'auth-service');
+                return (0, rxjs_1.throwError)(() => error);
+            })));
+        }
+        catch (error) {
+            this.handleMicroserviceError(error, 'auth-service');
+        }
     }
     async login(loginDto) {
-        return (0, rxjs_1.firstValueFrom)(this.authClient.send({ cmd: 'login_user' }, loginDto));
+        try {
+            return await (0, rxjs_1.firstValueFrom)(this.authClient.send({ cmd: 'login_user' }, loginDto).pipe((0, rxjs_1.catchError)(error => {
+                this.handleMicroserviceError(error, 'auth-service');
+                return (0, rxjs_1.throwError)(() => error);
+            })));
+        }
+        catch (error) {
+            this.handleMicroserviceError(error, 'auth-service');
+        }
     }
     async googleAuth() {
     }
     async googleCallback(req, res) {
         try {
             const googleUser = req.user;
-            const authResult = await (0, rxjs_1.firstValueFrom)(this.authClient.send({ cmd: 'google_login' }, googleUser));
+            const authResult = await (0, rxjs_1.firstValueFrom)(this.authClient.send({ cmd: 'google_login' }, googleUser).pipe((0, rxjs_1.catchError)(error => {
+                this.handleMicroserviceError(error, 'auth-service');
+                return (0, rxjs_1.throwError)(() => error);
+            })));
             if (!authResult?.access_token ||
                 !authResult.access_token ||
                 !authResult.refresh_token ||
@@ -116,13 +147,43 @@ let AuthController = AuthController_1 = class AuthController {
         }
     }
     async verifyGoogleIdToken(payload) {
-        return (0, rxjs_1.firstValueFrom)(this.authClient.send({ cmd: 'google_verify_id_token' }, payload.idToken));
+        try {
+            return await (0, rxjs_1.firstValueFrom)(this.authClient
+                .send({ cmd: 'google_verify_id_token' }, payload.idToken)
+                .pipe((0, rxjs_1.catchError)(error => {
+                this.handleMicroserviceError(error, 'auth-service');
+                return (0, rxjs_1.throwError)(() => error);
+            })));
+        }
+        catch (error) {
+            this.handleMicroserviceError(error, 'auth-service');
+        }
     }
     async validateToken(payload) {
-        return (0, rxjs_1.firstValueFrom)(this.authClient.send({ cmd: 'validate_token' }, payload.token));
+        try {
+            return await (0, rxjs_1.firstValueFrom)(this.authClient
+                .send({ cmd: 'validate_token' }, payload.token)
+                .pipe((0, rxjs_1.catchError)(error => {
+                this.handleMicroserviceError(error, 'auth-service');
+                return (0, rxjs_1.throwError)(() => error);
+            })));
+        }
+        catch (error) {
+            this.handleMicroserviceError(error, 'auth-service');
+        }
     }
     async refresh(payload) {
-        return (0, rxjs_1.firstValueFrom)(this.authClient.send({ cmd: 'refresh_token' }, payload.refreshToken));
+        try {
+            return await (0, rxjs_1.firstValueFrom)(this.authClient
+                .send({ cmd: 'refresh_token' }, payload.refreshToken)
+                .pipe((0, rxjs_1.catchError)(error => {
+                this.handleMicroserviceError(error, 'auth-service');
+                return (0, rxjs_1.throwError)(() => error);
+            })));
+        }
+        catch (error) {
+            this.handleMicroserviceError(error, 'auth-service');
+        }
     }
     logout(_userId) {
         return {
@@ -132,6 +193,43 @@ let AuthController = AuthController_1 = class AuthController {
     }
     checkAuth() {
         return { authenticated: true };
+    }
+    handleMicroserviceError(error, serviceName) {
+        this.logger.error(`Erreur communication avec ${serviceName}:`, error);
+        if (error?.code === 'ECONNREFUSED' || error?.message?.includes('ECONNREFUSED')) {
+            this.thrower.throwMicroserviceConnection(serviceName, { originalError: error.message });
+        }
+        if (error?.status === 'error') {
+            switch (error.code) {
+                case 'AUTH_INVALID_CREDENTIALS':
+                    this.thrower.throwInvalidCredentials({ microservice: serviceName });
+                    break;
+                case 'AUTH_USER_NOT_FOUND':
+                    this.thrower.throwUserNotFound({ microservice: serviceName });
+                    break;
+                case 'AUTH_EMAIL_ALREADY_EXISTS':
+                    this.thrower.throwEmailAlreadyExists({ microservice: serviceName });
+                    break;
+                case 'AUTH_GOOGLE_TOKEN_INVALID':
+                    this.thrower.throwGoogleTokenInvalid({ microservice: serviceName });
+                    break;
+                case 'AUTH_TOKEN_INVALID':
+                    this.thrower.throwInvalidToken({ microservice: serviceName });
+                    break;
+                case 'AUTH_TOKEN_EXPIRED':
+                    this.thrower.throwTokenExpired({ microservice: serviceName });
+                    break;
+                default:
+                    this.thrower.throwInternalError(error.message ?? "Erreur du service d'authentification", {
+                        microservice: serviceName,
+                        originalError: error,
+                    });
+            }
+        }
+        this.thrower.throwInternalError('Erreur interne du service', {
+            microservice: serviceName,
+            originalError: error,
+        });
     }
 };
 exports.AuthController = AuthController;
@@ -150,8 +248,8 @@ __decorate([
     (0, src_1.Log)("Création d'un nouveau compte utilisateur", 'info'),
     __param(0, (0, common_1.Body)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [typeof (_c = typeof user_dto_1.CreateUserDto !== "undefined" && user_dto_1.CreateUserDto) === "function" ? _c : Object]),
-    __metadata("design:returntype", typeof (_d = typeof Promise !== "undefined" && Promise) === "function" ? _d : Object)
+    __metadata("design:paramtypes", [typeof (_d = typeof user_dto_1.CreateUserDto !== "undefined" && user_dto_1.CreateUserDto) === "function" ? _d : Object]),
+    __metadata("design:returntype", typeof (_e = typeof Promise !== "undefined" && Promise) === "function" ? _e : Object)
 ], AuthController.prototype, "register", null);
 __decorate([
     (0, common_1.Post)('login'),
@@ -168,8 +266,8 @@ __decorate([
     (0, src_1.Log)('Authentification utilisateur', 'info'),
     __param(0, (0, common_1.Body)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [typeof (_e = typeof auth_dto_1.LoginDto !== "undefined" && auth_dto_1.LoginDto) === "function" ? _e : Object]),
-    __metadata("design:returntype", typeof (_f = typeof Promise !== "undefined" && Promise) === "function" ? _f : Object)
+    __metadata("design:paramtypes", [typeof (_f = typeof auth_dto_1.LoginDto !== "undefined" && auth_dto_1.LoginDto) === "function" ? _f : Object]),
+    __metadata("design:returntype", typeof (_g = typeof Promise !== "undefined" && Promise) === "function" ? _g : Object)
 ], AuthController.prototype, "login", null);
 __decorate([
     (0, common_1.Get)('google'),
@@ -186,7 +284,7 @@ __decorate([
     (0, src_1.Log)('Authentification Google OAuth', 'info'),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", []),
-    __metadata("design:returntype", typeof (_g = typeof Promise !== "undefined" && Promise) === "function" ? _g : Object)
+    __metadata("design:returntype", typeof (_h = typeof Promise !== "undefined" && Promise) === "function" ? _h : Object)
 ], AuthController.prototype, "googleAuth", null);
 __decorate([
     (0, common_1.Get)('google/callback'),
@@ -204,8 +302,8 @@ __decorate([
     __param(0, (0, common_1.Req)()),
     __param(1, (0, common_1.Res)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Object, typeof (_h = typeof express_1.Response !== "undefined" && express_1.Response) === "function" ? _h : Object]),
-    __metadata("design:returntype", typeof (_j = typeof Promise !== "undefined" && Promise) === "function" ? _j : Object)
+    __metadata("design:paramtypes", [Object, typeof (_j = typeof express_1.Response !== "undefined" && express_1.Response) === "function" ? _j : Object]),
+    __metadata("design:returntype", typeof (_k = typeof Promise !== "undefined" && Promise) === "function" ? _k : Object)
 ], AuthController.prototype, "googleCallback", null);
 __decorate([
     (0, common_1.Post)('google/verify-id-token'),
@@ -224,8 +322,8 @@ __decorate([
     (0, src_1.Log)('Vérification Google ID Token', 'info'),
     __param(0, (0, common_1.Body)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [typeof (_k = typeof auth_dto_1.VerifyGoogleIdTokenDto !== "undefined" && auth_dto_1.VerifyGoogleIdTokenDto) === "function" ? _k : Object]),
-    __metadata("design:returntype", typeof (_l = typeof Promise !== "undefined" && Promise) === "function" ? _l : Object)
+    __metadata("design:paramtypes", [typeof (_l = typeof auth_dto_1.VerifyGoogleIdTokenDto !== "undefined" && auth_dto_1.VerifyGoogleIdTokenDto) === "function" ? _l : Object]),
+    __metadata("design:returntype", typeof (_m = typeof Promise !== "undefined" && Promise) === "function" ? _m : Object)
 ], AuthController.prototype, "verifyGoogleIdToken", null);
 __decorate([
     (0, common_1.Post)('validate-token'),
@@ -245,8 +343,8 @@ __decorate([
     (0, src_1.Log)('Validation du token', 'info'),
     __param(0, (0, common_1.Body)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [typeof (_m = typeof auth_dto_1.TokenValidationDto !== "undefined" && auth_dto_1.TokenValidationDto) === "function" ? _m : Object]),
-    __metadata("design:returntype", typeof (_o = typeof Promise !== "undefined" && Promise) === "function" ? _o : Object)
+    __metadata("design:paramtypes", [typeof (_o = typeof auth_dto_1.TokenValidationDto !== "undefined" && auth_dto_1.TokenValidationDto) === "function" ? _o : Object]),
+    __metadata("design:returntype", typeof (_p = typeof Promise !== "undefined" && Promise) === "function" ? _p : Object)
 ], AuthController.prototype, "validateToken", null);
 __decorate([
     (0, common_1.Post)('refresh'),
@@ -261,8 +359,8 @@ __decorate([
     (0, src_1.Log)('Renouvellement du token', 'info'),
     __param(0, (0, common_1.Body)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [typeof (_p = typeof auth_dto_1.RefreshTokenDto !== "undefined" && auth_dto_1.RefreshTokenDto) === "function" ? _p : Object]),
-    __metadata("design:returntype", typeof (_q = typeof Promise !== "undefined" && Promise) === "function" ? _q : Object)
+    __metadata("design:paramtypes", [typeof (_q = typeof auth_dto_1.RefreshTokenDto !== "undefined" && auth_dto_1.RefreshTokenDto) === "function" ? _q : Object]),
+    __metadata("design:returntype", typeof (_r = typeof Promise !== "undefined" && Promise) === "function" ? _r : Object)
 ], AuthController.prototype, "refresh", null);
 __decorate([
     (0, common_1.Post)('logout'),
@@ -307,7 +405,7 @@ exports.AuthController = AuthController = AuthController_1 = __decorate([
     (0, swagger_1.ApiTags)('auth'),
     (0, common_1.Controller)('auth'),
     __param(0, (0, common_1.Inject)('AUTH_SERVICE')),
-    __metadata("design:paramtypes", [typeof (_a = typeof microservices_1.ClientProxy !== "undefined" && microservices_1.ClientProxy) === "function" ? _a : Object, typeof (_b = typeof config_1.GlobalConfigService !== "undefined" && config_1.GlobalConfigService) === "function" ? _b : Object])
+    __metadata("design:paramtypes", [typeof (_a = typeof microservices_1.ClientProxy !== "undefined" && microservices_1.ClientProxy) === "function" ? _a : Object, typeof (_b = typeof config_1.GlobalConfigService !== "undefined" && config_1.GlobalConfigService) === "function" ? _b : Object, typeof (_c = typeof exceptions_1.ExceptionThrower !== "undefined" && exceptions_1.ExceptionThrower) === "function" ? _c : Object])
 ], AuthController);
 
 
@@ -334,12 +432,13 @@ const auth_controller_1 = __webpack_require__(/*! ./auth.controller */ "./apps/a
 const jwt_auth_guard_1 = __webpack_require__(/*! ./guards/jwt-auth.guard */ "./apps/api-gateway/src/auth/guards/jwt-auth.guard.ts");
 const google_strategy_1 = __webpack_require__(/*! ./strategies/google.strategy */ "./apps/api-gateway/src/auth/strategies/google.strategy.ts");
 const microservices_module_1 = __webpack_require__(/*! ../microservices/microservices.module */ "./apps/api-gateway/src/microservices/microservices.module.ts");
+const exceptions_1 = __webpack_require__(/*! @app/exceptions */ "./libs/exceptions/src/index.ts");
 let AuthModule = class AuthModule {
 };
 exports.AuthModule = AuthModule;
 exports.AuthModule = AuthModule = __decorate([
     (0, common_1.Module)({
-        imports: [passport_1.PassportModule, microservices_module_1.MicroservicesModule],
+        imports: [passport_1.PassportModule, microservices_module_1.MicroservicesModule, exceptions_1.ExceptionsModule],
         controllers: [auth_controller_1.AuthController],
         providers: [jwt_auth_guard_1.JwtAuthGuard, google_strategy_1.GoogleStrategy],
         exports: [jwt_auth_guard_1.JwtAuthGuard],
@@ -614,6 +713,647 @@ exports.GoogleStrategy = GoogleStrategy = __decorate([
 
 /***/ }),
 
+/***/ "./apps/api-gateway/src/friendships/friendships.controller.ts":
+/*!********************************************************************!*\
+  !*** ./apps/api-gateway/src/friendships/friendships.controller.ts ***!
+  \********************************************************************/
+/***/ (function(__unused_webpack_module, exports, __webpack_require__) {
+
+
+var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
+    var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
+    if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
+    else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+    return c > 3 && r && Object.defineProperty(target, key, r), r;
+};
+var __metadata = (this && this.__metadata) || function (k, v) {
+    if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
+};
+var __param = (this && this.__param) || function (paramIndex, decorator) {
+    return function (target, key) { decorator(target, key, paramIndex); }
+};
+var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l, _m, _o, _p, _q, _r, _s, _t, _u, _v, _w;
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.FriendshipsController = void 0;
+const common_1 = __webpack_require__(/*! @nestjs/common */ "@nestjs/common");
+const microservices_1 = __webpack_require__(/*! @nestjs/microservices */ "@nestjs/microservices");
+const swagger_1 = __webpack_require__(/*! @nestjs/swagger */ "@nestjs/swagger");
+const jwt_auth_guard_1 = __webpack_require__(/*! ../auth/guards/jwt-auth.guard */ "./apps/api-gateway/src/auth/guards/jwt-auth.guard.ts");
+const src_1 = __webpack_require__(/*! libs/logger/src */ "./libs/logger/src/index.ts");
+const exceptions_1 = __webpack_require__(/*! @app/exceptions */ "./libs/exceptions/src/index.ts");
+const operators_1 = __webpack_require__(/*! rxjs/operators */ "rxjs/operators");
+const rxjs_1 = __webpack_require__(/*! rxjs */ "rxjs");
+const friendship_dto_1 = __webpack_require__(/*! @app/contracts/Friendship/dtos/friendship.dto */ "./libs/contracts/src/Friendship/dtos/friendship.dto.ts");
+const current_user_decorator_1 = __webpack_require__(/*! ../auth/decorators/current-user.decorator */ "./apps/api-gateway/src/auth/decorators/current-user.decorator.ts");
+const auth_interface_1 = __webpack_require__(/*! @app/contracts/Auth/interfaces/auth.interface */ "./libs/contracts/src/Auth/interfaces/auth.interface.ts");
+let FriendshipsController = class FriendshipsController {
+    userService;
+    logger;
+    exceptionThrower;
+    constructor(userService, logger, exceptionThrower) {
+        this.userService = userService;
+        this.logger = logger;
+        this.exceptionThrower = exceptionThrower;
+        this.logger.setContext('FRIENDSHIPS.controller');
+    }
+    async sendFriendshipRequest(user, createFriendshipDto) {
+        this.logger.info('Envoi demande amitié', {
+            userId: user.id,
+            targetId: createFriendshipDto.user_two_id,
+        });
+        try {
+            const result = await this.userService
+                .send({ cmd: 'create_friendship_request' }, { userId: user.id, createFriendshipDto })
+                .pipe((0, operators_1.timeout)(5000), (0, operators_1.catchError)(error => {
+                this.logger.error('Erreur envoi demande amitié', error.message);
+                return this.handleMicroserviceError(error);
+            }))
+                .toPromise();
+            this.logger.info('Demande amitié envoyée avec succès', {
+                userId: user.id,
+                friendshipId: result.friendship_id,
+            });
+            return result;
+        }
+        catch (error) {
+            this.logger.error("Erreur lors de l'envoi de la demande", error.message);
+            throw error;
+        }
+    }
+    async acceptFriendshipRequest(user, acceptFriendshipDto) {
+        this.logger.info('Acceptation demande amitié', {
+            userId: user.id,
+            friendshipId: acceptFriendshipDto.friendship_id,
+        });
+        try {
+            const result = await this.userService
+                .send({ cmd: 'accept_friendship_request' }, { userId: user.id, acceptFriendshipDto })
+                .pipe((0, operators_1.timeout)(5000), (0, operators_1.catchError)(error => {
+                this.logger.error('Erreur acceptation demande', error.message);
+                return this.handleMicroserviceError(error);
+            }))
+                .toPromise();
+            this.logger.info('Demande acceptée avec succès', {
+                userId: user.id,
+                friendshipId: acceptFriendshipDto.friendship_id,
+            });
+            return result;
+        }
+        catch (error) {
+            this.logger.error("Erreur lors de l'acceptation", error.message);
+            throw error;
+        }
+    }
+    async declineFriendshipRequest(user, declineFriendshipDto) {
+        this.logger.info('Refus demande amitié', {
+            userId: user.id,
+            friendshipId: declineFriendshipDto.friendship_id,
+        });
+        try {
+            const result = await this.userService
+                .send({ cmd: 'decline_friendship_request' }, { userId: user.id, declineFriendshipDto })
+                .pipe((0, operators_1.timeout)(5000), (0, operators_1.catchError)(error => {
+                this.logger.error('Erreur refus demande', error.message);
+                return this.handleMicroserviceError(error);
+            }))
+                .toPromise();
+            this.logger.info('Demande refusée avec succès', {
+                userId: user.id,
+                friendshipId: declineFriendshipDto.friendship_id,
+            });
+            return result;
+        }
+        catch (error) {
+            this.logger.error('Erreur lors du refus', error.message);
+            throw error;
+        }
+    }
+    async getUserFriends(user, page = 1, limit = 20) {
+        this.logger.info('Récupération amis utilisateur', {
+            userId: user.id,
+            page,
+            limit,
+        });
+        try {
+            const result = await this.userService
+                .send({ cmd: 'get_user_friends' }, { userId: user.id, page, limit })
+                .pipe((0, operators_1.timeout)(5000), (0, operators_1.catchError)(error => {
+                this.logger.error('Erreur récupération amis', error.message);
+                return this.handleMicroserviceError(error);
+            }))
+                .toPromise();
+            this.logger.info('Amis récupérés avec succès', {
+                userId: user.id,
+                friendsCount: result.length,
+            });
+            return result;
+        }
+        catch (error) {
+            this.logger.error('Erreur lors de la récupération des amis', error.message);
+            throw error;
+        }
+    }
+    async removeFriend(user, friendId) {
+        this.logger.info('Suppression ami', {
+            userId: user.id,
+            friendId,
+        });
+        try {
+            const result = await this.userService
+                .send({ cmd: 'remove_friend' }, { userId: user.id, friendId })
+                .pipe((0, operators_1.timeout)(5000), (0, operators_1.catchError)(error => {
+                this.logger.error('Erreur suppression ami', error.message);
+                return this.handleMicroserviceError(error);
+            }))
+                .toPromise();
+            this.logger.info('Ami supprimé avec succès', {
+                userId: user.id,
+                friendId,
+            });
+            return result;
+        }
+        catch (error) {
+            this.logger.error("Erreur lors de la suppression de l'ami", error.message);
+            throw error;
+        }
+    }
+    async getReceivedFriendshipRequests(user, page = 1, limit = 20) {
+        this.logger.info('Récupération demandes reçues', {
+            userId: user.id,
+            page,
+            limit,
+        });
+        try {
+            const result = await this.userService
+                .send({ cmd: 'get_received_friendship_requests' }, { userId: user.id, page, limit })
+                .pipe((0, operators_1.timeout)(5000), (0, operators_1.catchError)(error => {
+                this.logger.error('Erreur récupération demandes reçues', error.message);
+                return this.handleMicroserviceError(error);
+            }))
+                .toPromise();
+            this.logger.info('Demandes reçues récupérées avec succès', {
+                userId: user.id,
+                requestsCount: result.length,
+            });
+            return result;
+        }
+        catch (error) {
+            this.logger.error('Erreur lors de la récupération des demandes reçues', error.message);
+            throw error;
+        }
+    }
+    async getSentFriendshipRequests(user, page = 1, limit = 20) {
+        this.logger.info('Récupération demandes envoyées', {
+            userId: user.id,
+            page,
+            limit,
+        });
+        try {
+            const result = await this.userService
+                .send({ cmd: 'get_sent_friendship_requests' }, { userId: user.id, page, limit })
+                .pipe((0, operators_1.timeout)(5000), (0, operators_1.catchError)(error => {
+                this.logger.error('Erreur récupération demandes envoyées', error.message);
+                return this.handleMicroserviceError(error);
+            }))
+                .toPromise();
+            this.logger.info('Demandes envoyées récupérées avec succès', {
+                userId: user.id,
+                requestsCount: result.length,
+            });
+            return result;
+        }
+        catch (error) {
+            this.logger.error('Erreur lors de la récupération des demandes envoyées', error.message);
+            throw error;
+        }
+    }
+    async blockUser(user, blockUserDto) {
+        this.logger.info('Blocage utilisateur', {
+            userId: user.id,
+            targetId: blockUserDto.user_id,
+        });
+        try {
+            const result = await this.userService
+                .send({ cmd: 'block_user' }, { userId: user.id, blockUserDto })
+                .pipe((0, operators_1.timeout)(5000), (0, operators_1.catchError)(error => {
+                this.logger.error('Erreur blocage utilisateur', error.message);
+                return this.handleMicroserviceError(error);
+            }))
+                .toPromise();
+            this.logger.info('Utilisateur bloqué avec succès', {
+                userId: user.id,
+                targetId: blockUserDto.user_id,
+            });
+            return result;
+        }
+        catch (error) {
+            this.logger.error('Erreur lors du blocage', error.message);
+            throw error;
+        }
+    }
+    async unblockUser(user, unblockUserDto) {
+        this.logger.info('Déblocage utilisateur', {
+            userId: user.id,
+            targetId: unblockUserDto.user_id,
+        });
+        try {
+            const result = await this.userService
+                .send({ cmd: 'unblock_user' }, { userId: user.id, unblockUserDto })
+                .pipe((0, operators_1.timeout)(5000), (0, operators_1.catchError)(error => {
+                this.logger.error('Erreur déblocage utilisateur', error.message);
+                return this.handleMicroserviceError(error);
+            }))
+                .toPromise();
+            this.logger.info('Utilisateur débloqué avec succès', {
+                userId: user.id,
+                targetId: unblockUserDto.user_id,
+            });
+            return result;
+        }
+        catch (error) {
+            this.logger.error('Erreur lors du déblocage', error.message);
+            throw error;
+        }
+    }
+    async getFriendshipStats(user) {
+        this.logger.info('Récupération stats amitié', {
+            userId: user.id,
+        });
+        try {
+            const result = await this.userService
+                .send({ cmd: 'get_friendship_stats' }, user.id)
+                .pipe((0, operators_1.timeout)(5000), (0, operators_1.catchError)(error => {
+                this.logger.error('Erreur récupération stats', error.message);
+                return this.handleMicroserviceError(error);
+            }))
+                .toPromise();
+            this.logger.info('Stats récupérées avec succès', {
+                userId: user.id,
+                totalFriends: result.total_friends,
+            });
+            return result;
+        }
+        catch (error) {
+            this.logger.error('Erreur lors de la récupération des stats', error.message);
+            throw error;
+        }
+    }
+    async getMutualFriends(user, otherUserId) {
+        this.logger.info('Récupération amis en commun', {
+            userId: user.id,
+            otherUserId,
+        });
+        try {
+            const result = await this.userService
+                .send({ cmd: 'get_mutual_friends' }, { userId: user.id, otherUserId })
+                .pipe((0, operators_1.timeout)(5000), (0, operators_1.catchError)(error => {
+                this.logger.error('Erreur récupération amis en commun', error.message);
+                return this.handleMicroserviceError(error);
+            }))
+                .toPromise();
+            this.logger.info('Amis en commun récupérés avec succès', {
+                userId: user.id,
+                otherUserId,
+                mutualCount: result.length,
+            });
+            return result;
+        }
+        catch (error) {
+            this.logger.error('Erreur lors de la récupération des amis en commun', error.message);
+            throw error;
+        }
+    }
+    async getFriendshipSuggestions(user, limit = 10) {
+        this.logger.info('Récupération suggestions amitié', {
+            userId: user.id,
+            limit,
+        });
+        try {
+            const result = await this.userService
+                .send({ cmd: 'get_friendship_suggestions' }, { userId: user.id, limit })
+                .pipe((0, operators_1.timeout)(5000), (0, operators_1.catchError)(error => {
+                this.logger.error('Erreur récupération suggestions', error.message);
+                return this.handleMicroserviceError(error);
+            }))
+                .toPromise();
+            this.logger.info('Suggestions récupérées avec succès', {
+                userId: user.id,
+                suggestionsCount: result.length,
+            });
+            return result;
+        }
+        catch (error) {
+            this.logger.error('Erreur lors de la récupération des suggestions', error.message);
+            throw error;
+        }
+    }
+    async getFriendshipStatus(user, otherUserId) {
+        this.logger.info('Vérification statut amitié', {
+            userId: user.id,
+            otherUserId,
+        });
+        try {
+            const result = await this.userService
+                .send({ cmd: 'get_friendship_status' }, { userId: user.id, otherUserId })
+                .pipe((0, operators_1.timeout)(5000), (0, operators_1.catchError)(error => {
+                this.logger.error('Erreur vérification statut', error.message);
+                return this.handleMicroserviceError(error);
+            }))
+                .toPromise();
+            this.logger.info('Statut vérifié avec succès', {
+                userId: user.id,
+                otherUserId,
+                status: result.status,
+            });
+            return result;
+        }
+        catch (error) {
+            this.logger.error('Erreur lors de la vérification du statut', error.message);
+            throw error;
+        }
+    }
+    handleMicroserviceError(error) {
+        if (error.code === 'ECONNREFUSED') {
+            this.exceptionThrower.throwMicroserviceConnection('user-service', {
+                originalError: error.message,
+            });
+        }
+        if (error.response) {
+            const { message, statusCode } = error.response;
+            switch (statusCode) {
+                case 400:
+                    this.exceptionThrower.throwValidation(message, [
+                        {
+                            field: 'unknown',
+                            value: null,
+                            constraints: [message],
+                        },
+                    ]);
+                    break;
+                case 404:
+                    this.exceptionThrower.throwRecordNotFound(message);
+                    break;
+                case 409:
+                    this.exceptionThrower.throwBusinessRule(message, 'FRIENDSHIP_CONFLICT');
+                    break;
+                case 403:
+                    this.exceptionThrower.throwForbidden(message);
+                    break;
+                default:
+                    this.exceptionThrower.throwInternalError(message);
+            }
+        }
+        return (0, rxjs_1.throwError)(error);
+    }
+};
+exports.FriendshipsController = FriendshipsController;
+__decorate([
+    (0, common_1.Post)('request'),
+    (0, common_1.HttpCode)(common_1.HttpStatus.CREATED),
+    (0, swagger_1.ApiOperation)({ summary: "Envoyer une demande d'amitié" }),
+    (0, swagger_1.ApiResponse)({
+        status: 201,
+        description: "Demande d'amitié envoyée avec succès",
+        type: friendship_dto_1.FriendshipResponseDto,
+    }),
+    (0, swagger_1.ApiResponse)({ status: 400, description: 'Données invalides' }),
+    (0, swagger_1.ApiResponse)({ status: 409, description: 'Relation existante' }),
+    __param(0, (0, current_user_decorator_1.CurrentUser)()),
+    __param(1, (0, common_1.Body)(common_1.ValidationPipe)),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [typeof (_d = typeof auth_interface_1.ICurrentUser !== "undefined" && auth_interface_1.ICurrentUser) === "function" ? _d : Object, typeof (_e = typeof friendship_dto_1.CreateFriendshipDto !== "undefined" && friendship_dto_1.CreateFriendshipDto) === "function" ? _e : Object]),
+    __metadata("design:returntype", Promise)
+], FriendshipsController.prototype, "sendFriendshipRequest", null);
+__decorate([
+    (0, common_1.Post)('accept'),
+    (0, common_1.HttpCode)(common_1.HttpStatus.OK),
+    (0, swagger_1.ApiOperation)({ summary: "Accepter une demande d'amitié" }),
+    (0, swagger_1.ApiResponse)({
+        status: 200,
+        description: "Demande d'amitié acceptée avec succès",
+        type: friendship_dto_1.FriendshipResponseDto,
+    }),
+    (0, swagger_1.ApiResponse)({ status: 404, description: 'Demande non trouvée' }),
+    (0, swagger_1.ApiResponse)({ status: 403, description: 'Non autorisé' }),
+    __param(0, (0, current_user_decorator_1.CurrentUser)()),
+    __param(1, (0, common_1.Body)(common_1.ValidationPipe)),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [typeof (_f = typeof auth_interface_1.ICurrentUser !== "undefined" && auth_interface_1.ICurrentUser) === "function" ? _f : Object, typeof (_g = typeof friendship_dto_1.AcceptFriendshipDto !== "undefined" && friendship_dto_1.AcceptFriendshipDto) === "function" ? _g : Object]),
+    __metadata("design:returntype", Promise)
+], FriendshipsController.prototype, "acceptFriendshipRequest", null);
+__decorate([
+    (0, common_1.Post)('decline'),
+    (0, common_1.HttpCode)(common_1.HttpStatus.OK),
+    (0, swagger_1.ApiOperation)({ summary: "Refuser une demande d'amitié" }),
+    (0, swagger_1.ApiResponse)({ status: 200, description: 'Demande refusée avec succès' }),
+    (0, swagger_1.ApiResponse)({ status: 404, description: 'Demande non trouvée' }),
+    (0, swagger_1.ApiResponse)({ status: 403, description: 'Non autorisé' }),
+    __param(0, (0, current_user_decorator_1.CurrentUser)()),
+    __param(1, (0, common_1.Body)(common_1.ValidationPipe)),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [typeof (_h = typeof auth_interface_1.ICurrentUser !== "undefined" && auth_interface_1.ICurrentUser) === "function" ? _h : Object, typeof (_j = typeof friendship_dto_1.DeclineFriendshipDto !== "undefined" && friendship_dto_1.DeclineFriendshipDto) === "function" ? _j : Object]),
+    __metadata("design:returntype", Promise)
+], FriendshipsController.prototype, "declineFriendshipRequest", null);
+__decorate([
+    (0, common_1.Get)('friends'),
+    (0, swagger_1.ApiOperation)({ summary: 'Obtenir la liste des amis' }),
+    (0, swagger_1.ApiQuery)({ name: 'page', required: false, type: Number, example: 1 }),
+    (0, swagger_1.ApiQuery)({ name: 'limit', required: false, type: Number, example: 20 }),
+    (0, swagger_1.ApiResponse)({
+        status: 200,
+        description: 'Liste des amis récupérée avec succès',
+        type: [friendship_dto_1.FriendDto],
+    }),
+    __param(0, (0, current_user_decorator_1.CurrentUser)()),
+    __param(1, (0, common_1.Query)('page', new common_1.ParseIntPipe({ optional: true }))),
+    __param(2, (0, common_1.Query)('limit', new common_1.ParseIntPipe({ optional: true }))),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [typeof (_k = typeof auth_interface_1.ICurrentUser !== "undefined" && auth_interface_1.ICurrentUser) === "function" ? _k : Object, Object, Object]),
+    __metadata("design:returntype", Promise)
+], FriendshipsController.prototype, "getUserFriends", null);
+__decorate([
+    (0, common_1.Delete)('friends/:friendId'),
+    (0, common_1.HttpCode)(common_1.HttpStatus.OK),
+    (0, swagger_1.ApiOperation)({ summary: 'Supprimer un ami' }),
+    (0, swagger_1.ApiParam)({ name: 'friendId', type: Number, description: "ID de l'ami à supprimer" }),
+    (0, swagger_1.ApiResponse)({ status: 200, description: 'Ami supprimé avec succès' }),
+    (0, swagger_1.ApiResponse)({ status: 404, description: 'Amitié non trouvée' }),
+    __param(0, (0, current_user_decorator_1.CurrentUser)()),
+    __param(1, (0, common_1.Param)('friendId', common_1.ParseIntPipe)),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [typeof (_l = typeof auth_interface_1.ICurrentUser !== "undefined" && auth_interface_1.ICurrentUser) === "function" ? _l : Object, Number]),
+    __metadata("design:returntype", Promise)
+], FriendshipsController.prototype, "removeFriend", null);
+__decorate([
+    (0, common_1.Get)('requests/received'),
+    (0, swagger_1.ApiOperation)({ summary: "Obtenir les demandes d'amitié reçues" }),
+    (0, swagger_1.ApiQuery)({ name: 'page', required: false, type: Number, example: 1 }),
+    (0, swagger_1.ApiQuery)({ name: 'limit', required: false, type: Number, example: 20 }),
+    (0, swagger_1.ApiResponse)({
+        status: 200,
+        description: 'Demandes reçues récupérées avec succès',
+        type: [friendship_dto_1.FriendshipRequestDto],
+    }),
+    __param(0, (0, current_user_decorator_1.CurrentUser)()),
+    __param(1, (0, common_1.Query)('page', new common_1.ParseIntPipe({ optional: true }))),
+    __param(2, (0, common_1.Query)('limit', new common_1.ParseIntPipe({ optional: true }))),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [typeof (_m = typeof auth_interface_1.ICurrentUser !== "undefined" && auth_interface_1.ICurrentUser) === "function" ? _m : Object, Object, Object]),
+    __metadata("design:returntype", Promise)
+], FriendshipsController.prototype, "getReceivedFriendshipRequests", null);
+__decorate([
+    (0, common_1.Get)('requests/sent'),
+    (0, swagger_1.ApiOperation)({ summary: "Obtenir les demandes d'amitié envoyées" }),
+    (0, swagger_1.ApiQuery)({ name: 'page', required: false, type: Number, example: 1 }),
+    (0, swagger_1.ApiQuery)({ name: 'limit', required: false, type: Number, example: 20 }),
+    (0, swagger_1.ApiResponse)({
+        status: 200,
+        description: 'Demandes envoyées récupérées avec succès',
+        type: [friendship_dto_1.FriendshipRequestDto],
+    }),
+    __param(0, (0, current_user_decorator_1.CurrentUser)()),
+    __param(1, (0, common_1.Query)('page', new common_1.ParseIntPipe({ optional: true }))),
+    __param(2, (0, common_1.Query)('limit', new common_1.ParseIntPipe({ optional: true }))),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [typeof (_o = typeof auth_interface_1.ICurrentUser !== "undefined" && auth_interface_1.ICurrentUser) === "function" ? _o : Object, Object, Object]),
+    __metadata("design:returntype", Promise)
+], FriendshipsController.prototype, "getSentFriendshipRequests", null);
+__decorate([
+    (0, common_1.Post)('block'),
+    (0, common_1.HttpCode)(common_1.HttpStatus.OK),
+    (0, swagger_1.ApiOperation)({ summary: 'Bloquer un utilisateur' }),
+    (0, swagger_1.ApiResponse)({ status: 200, description: 'Utilisateur bloqué avec succès' }),
+    (0, swagger_1.ApiResponse)({ status: 400, description: 'Données invalides' }),
+    __param(0, (0, current_user_decorator_1.CurrentUser)()),
+    __param(1, (0, common_1.Body)(common_1.ValidationPipe)),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [typeof (_p = typeof auth_interface_1.ICurrentUser !== "undefined" && auth_interface_1.ICurrentUser) === "function" ? _p : Object, typeof (_q = typeof friendship_dto_1.BlockUserDto !== "undefined" && friendship_dto_1.BlockUserDto) === "function" ? _q : Object]),
+    __metadata("design:returntype", Promise)
+], FriendshipsController.prototype, "blockUser", null);
+__decorate([
+    (0, common_1.Post)('unblock'),
+    (0, common_1.HttpCode)(common_1.HttpStatus.OK),
+    (0, swagger_1.ApiOperation)({ summary: 'Débloquer un utilisateur' }),
+    (0, swagger_1.ApiResponse)({ status: 200, description: 'Utilisateur débloqué avec succès' }),
+    (0, swagger_1.ApiResponse)({ status: 404, description: 'Relation non trouvée' }),
+    __param(0, (0, current_user_decorator_1.CurrentUser)()),
+    __param(1, (0, common_1.Body)(common_1.ValidationPipe)),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [typeof (_r = typeof auth_interface_1.ICurrentUser !== "undefined" && auth_interface_1.ICurrentUser) === "function" ? _r : Object, typeof (_s = typeof friendship_dto_1.UnblockUserDto !== "undefined" && friendship_dto_1.UnblockUserDto) === "function" ? _s : Object]),
+    __metadata("design:returntype", Promise)
+], FriendshipsController.prototype, "unblockUser", null);
+__decorate([
+    (0, common_1.Get)('stats'),
+    (0, swagger_1.ApiOperation)({ summary: "Obtenir les statistiques d'amitié" }),
+    (0, swagger_1.ApiResponse)({
+        status: 200,
+        description: 'Statistiques récupérées avec succès',
+        type: friendship_dto_1.FriendshipStatsDto,
+    }),
+    __param(0, (0, current_user_decorator_1.CurrentUser)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [typeof (_t = typeof auth_interface_1.ICurrentUser !== "undefined" && auth_interface_1.ICurrentUser) === "function" ? _t : Object]),
+    __metadata("design:returntype", Promise)
+], FriendshipsController.prototype, "getFriendshipStats", null);
+__decorate([
+    (0, common_1.Get)('mutual/:otherUserId'),
+    (0, swagger_1.ApiOperation)({ summary: 'Obtenir les amis en commun avec un utilisateur' }),
+    (0, swagger_1.ApiParam)({ name: 'otherUserId', type: Number, description: "ID de l'autre utilisateur" }),
+    (0, swagger_1.ApiResponse)({
+        status: 200,
+        description: 'Amis en commun récupérés avec succès',
+        type: [friendship_dto_1.FriendDto],
+    }),
+    __param(0, (0, current_user_decorator_1.CurrentUser)()),
+    __param(1, (0, common_1.Param)('otherUserId', common_1.ParseIntPipe)),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [typeof (_u = typeof auth_interface_1.ICurrentUser !== "undefined" && auth_interface_1.ICurrentUser) === "function" ? _u : Object, Number]),
+    __metadata("design:returntype", Promise)
+], FriendshipsController.prototype, "getMutualFriends", null);
+__decorate([
+    (0, common_1.Get)('suggestions'),
+    (0, swagger_1.ApiOperation)({ summary: "Obtenir des suggestions d'amitié" }),
+    (0, swagger_1.ApiQuery)({ name: 'limit', required: false, type: Number, example: 10 }),
+    (0, swagger_1.ApiResponse)({
+        status: 200,
+        description: 'Suggestions récupérées avec succès',
+        type: [friendship_dto_1.FriendDto],
+    }),
+    __param(0, (0, current_user_decorator_1.CurrentUser)()),
+    __param(1, (0, common_1.Query)('limit', new common_1.ParseIntPipe({ optional: true }))),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [typeof (_v = typeof auth_interface_1.ICurrentUser !== "undefined" && auth_interface_1.ICurrentUser) === "function" ? _v : Object, Object]),
+    __metadata("design:returntype", Promise)
+], FriendshipsController.prototype, "getFriendshipSuggestions", null);
+__decorate([
+    (0, common_1.Get)('status/:otherUserId'),
+    (0, swagger_1.ApiOperation)({ summary: "Vérifier le statut d'amitié avec un utilisateur" }),
+    (0, swagger_1.ApiParam)({ name: 'otherUserId', type: Number, description: "ID de l'autre utilisateur" }),
+    (0, swagger_1.ApiResponse)({
+        status: 200,
+        description: 'Statut récupéré avec succès',
+        schema: {
+            type: 'object',
+            properties: {
+                status: {
+                    type: 'string',
+                    nullable: true,
+                    enum: ['pending', 'accepted', 'declined', 'blocked'],
+                },
+                friendship_id: { type: 'number' },
+            },
+        },
+    }),
+    __param(0, (0, current_user_decorator_1.CurrentUser)()),
+    __param(1, (0, common_1.Param)('otherUserId', common_1.ParseIntPipe)),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [typeof (_w = typeof auth_interface_1.ICurrentUser !== "undefined" && auth_interface_1.ICurrentUser) === "function" ? _w : Object, Number]),
+    __metadata("design:returntype", Promise)
+], FriendshipsController.prototype, "getFriendshipStatus", null);
+exports.FriendshipsController = FriendshipsController = __decorate([
+    (0, swagger_1.ApiTags)('Friendships'),
+    (0, swagger_1.ApiBearerAuth)(),
+    (0, common_1.Controller)('friendships'),
+    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
+    __param(0, (0, common_1.Inject)('USER_SERVICE')),
+    __metadata("design:paramtypes", [typeof (_a = typeof microservices_1.ClientProxy !== "undefined" && microservices_1.ClientProxy) === "function" ? _a : Object, typeof (_b = typeof src_1.LoggerService !== "undefined" && src_1.LoggerService) === "function" ? _b : Object, typeof (_c = typeof exceptions_1.ExceptionThrower !== "undefined" && exceptions_1.ExceptionThrower) === "function" ? _c : Object])
+], FriendshipsController);
+
+
+/***/ }),
+
+/***/ "./apps/api-gateway/src/friendships/friendships.module.ts":
+/*!****************************************************************!*\
+  !*** ./apps/api-gateway/src/friendships/friendships.module.ts ***!
+  \****************************************************************/
+/***/ (function(__unused_webpack_module, exports, __webpack_require__) {
+
+
+var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
+    var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
+    if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
+    else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+    return c > 3 && r && Object.defineProperty(target, key, r), r;
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.FriendshipsModule = void 0;
+const common_1 = __webpack_require__(/*! @nestjs/common */ "@nestjs/common");
+const friendships_controller_1 = __webpack_require__(/*! ./friendships.controller */ "./apps/api-gateway/src/friendships/friendships.controller.ts");
+const microservices_module_1 = __webpack_require__(/*! ../microservices/microservices.module */ "./apps/api-gateway/src/microservices/microservices.module.ts");
+const exceptions_1 = __webpack_require__(/*! @app/exceptions */ "./libs/exceptions/src/index.ts");
+let FriendshipsModule = class FriendshipsModule {
+};
+exports.FriendshipsModule = FriendshipsModule;
+exports.FriendshipsModule = FriendshipsModule = __decorate([
+    (0, common_1.Module)({
+        imports: [microservices_module_1.MicroservicesModule, exceptions_1.ExceptionsModule],
+        controllers: [friendships_controller_1.FriendshipsController],
+    })
+], FriendshipsModule);
+
+
+/***/ }),
+
 /***/ "./apps/api-gateway/src/health/health.controller.ts":
 /*!**********************************************************!*\
   !*** ./apps/api-gateway/src/health/health.controller.ts ***!
@@ -804,7 +1544,7 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 var __param = (this && this.__param) || function (paramIndex, decorator) {
     return function (target, key) { decorator(target, key, paramIndex); }
 };
-var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l, _m, _o, _p, _q, _r, _s, _t;
+var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l, _m, _o, _p, _q, _r, _s, _t, _u, _v, _w, _x;
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.ServicesController = void 0;
 const common_1 = __webpack_require__(/*! @nestjs/common */ "@nestjs/common");
@@ -815,22 +1555,27 @@ const service_dto_1 = __webpack_require__(/*! @app/contracts/Service/dtos/servic
 const auth_decorator_1 = __webpack_require__(/*! ../auth/decorators/auth.decorator */ "./apps/api-gateway/src/auth/decorators/auth.decorator.ts");
 const current_user_decorator_1 = __webpack_require__(/*! ../auth/decorators/current-user.decorator */ "./apps/api-gateway/src/auth/decorators/current-user.decorator.ts");
 const src_1 = __webpack_require__(/*! libs/logger/src */ "./libs/logger/src/index.ts");
+const auth_interface_1 = __webpack_require__(/*! @app/contracts/Auth/interfaces/auth.interface */ "./libs/contracts/src/Auth/interfaces/auth.interface.ts");
 let ServicesController = class ServicesController {
     banqueClient;
     constructor(banqueClient) {
         this.banqueClient = banqueClient;
     }
     async createService(providerId, createServiceDto) {
-        return (0, rxjs_1.firstValueFrom)(this.banqueClient.send({ cmd: 'create_service' }, { providerId: parseInt(providerId), createServiceDto }));
+        const result = await (0, rxjs_1.firstValueFrom)(this.banqueClient.send({ cmd: 'create_service' }, { providerId: parseInt(providerId), createServiceDto }));
+        return result;
     }
     async updateService(id, updateServiceDto) {
-        return (0, rxjs_1.firstValueFrom)(this.banqueClient.send({ cmd: 'update_service' }, { serviceId: parseInt(id), updateServiceDto }));
+        const result = await (0, rxjs_1.firstValueFrom)(this.banqueClient.send({ cmd: 'update_service' }, { serviceId: parseInt(id), updateServiceDto }));
+        return result;
     }
     async deleteService(id) {
-        return (0, rxjs_1.firstValueFrom)(this.banqueClient.send({ cmd: 'delete_service' }, parseInt(id)));
+        const result = await (0, rxjs_1.firstValueFrom)(this.banqueClient.send({ cmd: 'delete_service' }, parseInt(id)));
+        return result;
     }
     async confirmService(id, beneficiaryId) {
-        return (0, rxjs_1.firstValueFrom)(this.banqueClient.send({ cmd: 'confirm_service' }, { serviceId: parseInt(id), beneficiaryId: parseInt(beneficiaryId) }));
+        const result = await (0, rxjs_1.firstValueFrom)(this.banqueClient.send({ cmd: 'confirm_service' }, { serviceId: parseInt(id), beneficiaryId: parseInt(beneficiaryId) }));
+        return result;
     }
     async repayServiceWithService(serviceId, repaymentServiceId) {
         return (0, rxjs_1.firstValueFrom)(this.banqueClient.send({ cmd: 'repay_service_with_service' }, { serviceId: parseInt(serviceId), repaymentServiceId: parseInt(repaymentServiceId) }));
@@ -842,17 +1587,32 @@ let ServicesController = class ServicesController {
         return (0, rxjs_1.firstValueFrom)(this.banqueClient.send({ cmd: 'get_service_with_details' }, parseInt(id)));
     }
     async findServicesWithFilters(filters) {
+        console.log('filters', filters);
         const cleanedFilters = {
             ...filters,
+            page: filters.page ? parseInt(filters.page.toString()) : 1,
+            limit: filters.limit ? parseInt(filters.limit.toString()) : 20,
             category_id: filters.category_id ? parseInt(filters.category_id.toString()) : undefined,
             provider_id: filters.provider_id ? parseInt(filters.provider_id.toString()) : undefined,
-            beneficiary_id: filters.beneficiary_id ? parseInt(filters.beneficiary_id.toString()) : undefined,
-            jeton_value_min: filters.jeton_value_min ? parseInt(filters.jeton_value_min.toString()) : undefined,
-            jeton_value_max: filters.jeton_value_max ? parseInt(filters.jeton_value_max.toString()) : undefined,
+            beneficiary_id: filters.beneficiary_id
+                ? parseInt(filters.beneficiary_id.toString())
+                : undefined,
+            jeton_value_min: filters.jeton_value_min
+                ? parseInt(filters.jeton_value_min.toString())
+                : undefined,
+            jeton_value_max: filters.jeton_value_max
+                ? parseInt(filters.jeton_value_max.toString())
+                : undefined,
             created_after: filters.created_after ? new Date(filters.created_after) : undefined,
             created_before: filters.created_before ? new Date(filters.created_before) : undefined,
         };
         return (0, rxjs_1.firstValueFrom)(this.banqueClient.send({ cmd: 'find_services_with_filters' }, cleanedFilters));
+    }
+    async getUserServices(user, page, limit) {
+        return (0, rxjs_1.firstValueFrom)(this.banqueClient.send({ cmd: 'get_user_services' }, { userId: user.id, page, limit }));
+    }
+    async getUserPranks(user, page, limit) {
+        return (0, rxjs_1.firstValueFrom)(this.banqueClient.send({ cmd: 'get_user_pranks' }, { userId: user.id, page, limit }));
     }
     async getServiceStats() {
         return (0, rxjs_1.firstValueFrom)(this.banqueClient.send({ cmd: 'get_service_stats' }, {}));
@@ -873,7 +1633,7 @@ let ServicesController = class ServicesController {
 exports.ServicesController = ServicesController;
 __decorate([
     (0, common_1.Post)(),
-    (0, src_1.Log)(),
+    (0, src_1.Log)('Création service', 'info'),
     (0, auth_decorator_1.Auth)(),
     (0, swagger_1.ApiOperation)({ summary: 'Créer un nouveau service' }),
     (0, swagger_1.ApiBody)({ type: service_dto_1.CreateServiceDto }),
@@ -892,6 +1652,7 @@ __decorate([
 ], ServicesController.prototype, "createService", null);
 __decorate([
     (0, common_1.Put)(':id'),
+    (0, src_1.Log)('Mise à jour service', 'info'),
     (0, auth_decorator_1.Auth)(),
     (0, swagger_1.ApiOperation)({ summary: 'Mettre à jour un service' }),
     (0, swagger_1.ApiParam)({ name: 'id', description: 'ID du service' }),
@@ -911,6 +1672,7 @@ __decorate([
 ], ServicesController.prototype, "updateService", null);
 __decorate([
     (0, common_1.Delete)(':id'),
+    (0, src_1.Log)('Suppression service', 'info'),
     (0, auth_decorator_1.Auth)(),
     (0, swagger_1.ApiOperation)({ summary: 'Supprimer un service' }),
     (0, swagger_1.ApiParam)({ name: 'id', description: 'ID du service' }),
@@ -924,6 +1686,7 @@ __decorate([
 ], ServicesController.prototype, "deleteService", null);
 __decorate([
     (0, common_1.Post)(':id/confirm'),
+    (0, src_1.Log)('Confirmation service', 'info'),
     (0, auth_decorator_1.Auth)(),
     (0, swagger_1.ApiOperation)({ summary: 'Confirmer un service' }),
     (0, swagger_1.ApiParam)({ name: 'id', description: 'ID du service' }),
@@ -978,7 +1741,7 @@ __decorate([
 __decorate([
     (0, common_1.Get)(':id/details'),
     (0, auth_decorator_1.Auth)(),
-    (0, swagger_1.ApiOperation)({ summary: 'Récupérer les détails complets d\'un service' }),
+    (0, swagger_1.ApiOperation)({ summary: "Récupérer les détails complets d'un service" }),
     (0, swagger_1.ApiParam)({ name: 'id', description: 'ID du service' }),
     (0, swagger_1.ApiResponse)({
         status: common_1.HttpStatus.OK,
@@ -996,6 +1759,24 @@ __decorate([
     (0, auth_decorator_1.Auth)(),
     (0, swagger_1.ApiOperation)({ summary: 'Rechercher des services avec filtres' }),
     (0, swagger_1.ApiQuery)({ name: 'status', required: false, description: 'Statut du service' }),
+    (0, swagger_1.ApiQuery)({
+        name: 'type',
+        enum: ['service', 'prank'],
+        required: false,
+        description: 'Type de service (service ou prank)',
+    }),
+    (0, swagger_1.ApiQuery)({
+        name: 'page',
+        type: String,
+        required: false,
+        description: 'Numéro de page pour la pagination',
+    }),
+    (0, swagger_1.ApiQuery)({
+        name: 'limit',
+        type: String,
+        required: false,
+        description: "Nombre d'éléments par page",
+    }),
     (0, swagger_1.ApiQuery)({ name: 'category_id', required: false, description: 'ID de la catégorie' }),
     (0, swagger_1.ApiQuery)({ name: 'provider_id', required: false, description: 'ID du fournisseur' }),
     (0, swagger_1.ApiQuery)({ name: 'beneficiary_id', required: false, description: 'ID du bénéficiaire' }),
@@ -1014,6 +1795,40 @@ __decorate([
     __metadata("design:returntype", typeof (_m = typeof Promise !== "undefined" && Promise) === "function" ? _m : Object)
 ], ServicesController.prototype, "findServicesWithFilters", null);
 __decorate([
+    (0, common_1.Get)('user/services'),
+    (0, auth_decorator_1.Auth)(),
+    (0, swagger_1.ApiOperation)({ summary: "Récupérer les services d'un utilisateur" }),
+    (0, swagger_1.ApiParam)({ name: 'userId', description: "ID de l'utilisateur" }),
+    (0, swagger_1.ApiResponse)({
+        status: common_1.HttpStatus.OK,
+        description: 'Services récupérés',
+        type: [service_dto_1.ServiceWithDetailsDto],
+    }),
+    __param(0, (0, current_user_decorator_1.CurrentUser)()),
+    __param(1, (0, common_1.Query)('page')),
+    __param(2, (0, common_1.Query)('limit')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [typeof (_o = typeof auth_interface_1.ICurrentUser !== "undefined" && auth_interface_1.ICurrentUser) === "function" ? _o : Object, String, String]),
+    __metadata("design:returntype", typeof (_p = typeof Promise !== "undefined" && Promise) === "function" ? _p : Object)
+], ServicesController.prototype, "getUserServices", null);
+__decorate([
+    (0, common_1.Get)('user/pranks'),
+    (0, auth_decorator_1.Auth)(),
+    (0, swagger_1.ApiOperation)({ summary: "Récupérer les pranks d'un utilisateur" }),
+    (0, swagger_1.ApiParam)({ name: 'userId', description: "ID de l'utilisateur" }),
+    (0, swagger_1.ApiResponse)({
+        status: common_1.HttpStatus.OK,
+        description: 'Pranks récupérés',
+        type: [service_dto_1.ServiceWithDetailsDto],
+    }),
+    __param(0, (0, current_user_decorator_1.CurrentUser)()),
+    __param(1, (0, common_1.Query)('page')),
+    __param(2, (0, common_1.Query)('limit')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [typeof (_q = typeof auth_interface_1.ICurrentUser !== "undefined" && auth_interface_1.ICurrentUser) === "function" ? _q : Object, String, String]),
+    __metadata("design:returntype", typeof (_r = typeof Promise !== "undefined" && Promise) === "function" ? _r : Object)
+], ServicesController.prototype, "getUserPranks", null);
+__decorate([
     (0, common_1.Get)('stats/global'),
     (0, auth_decorator_1.Auth)(),
     (0, swagger_1.ApiOperation)({ summary: 'Récupérer les statistiques globales des services' }),
@@ -1024,7 +1839,7 @@ __decorate([
     }),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", []),
-    __metadata("design:returntype", typeof (_o = typeof Promise !== "undefined" && Promise) === "function" ? _o : Object)
+    __metadata("design:returntype", typeof (_s = typeof Promise !== "undefined" && Promise) === "function" ? _s : Object)
 ], ServicesController.prototype, "getServiceStats", null);
 __decorate([
     (0, common_1.Post)('categories'),
@@ -1039,8 +1854,8 @@ __decorate([
     (0, swagger_1.ApiResponse)({ status: common_1.HttpStatus.CONFLICT, description: 'Catégorie déjà existante' }),
     __param(0, (0, common_1.Body)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [typeof (_p = typeof service_dto_1.CreateServiceCategoryDto !== "undefined" && service_dto_1.CreateServiceCategoryDto) === "function" ? _p : Object]),
-    __metadata("design:returntype", typeof (_q = typeof Promise !== "undefined" && Promise) === "function" ? _q : Object)
+    __metadata("design:paramtypes", [typeof (_t = typeof service_dto_1.CreateServiceCategoryDto !== "undefined" && service_dto_1.CreateServiceCategoryDto) === "function" ? _t : Object]),
+    __metadata("design:returntype", typeof (_u = typeof Promise !== "undefined" && Promise) === "function" ? _u : Object)
 ], ServicesController.prototype, "createServiceCategory", null);
 __decorate([
     (0, common_1.Get)('categories'),
@@ -1053,7 +1868,7 @@ __decorate([
     }),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", []),
-    __metadata("design:returntype", typeof (_r = typeof Promise !== "undefined" && Promise) === "function" ? _r : Object)
+    __metadata("design:returntype", typeof (_v = typeof Promise !== "undefined" && Promise) === "function" ? _v : Object)
 ], ServicesController.prototype, "getAllServiceCategories", null);
 __decorate([
     (0, common_1.Get)('categories/:id'),
@@ -1069,7 +1884,7 @@ __decorate([
     __param(0, (0, common_1.Param)('id')),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [String]),
-    __metadata("design:returntype", typeof (_s = typeof Promise !== "undefined" && Promise) === "function" ? _s : Object)
+    __metadata("design:returntype", typeof (_w = typeof Promise !== "undefined" && Promise) === "function" ? _w : Object)
 ], ServicesController.prototype, "getServiceCategoryById", null);
 __decorate([
     (0, common_1.Get)('health/check'),
@@ -1088,7 +1903,7 @@ __decorate([
     }),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", []),
-    __metadata("design:returntype", typeof (_t = typeof Promise !== "undefined" && Promise) === "function" ? _t : Object)
+    __metadata("design:returntype", typeof (_x = typeof Promise !== "undefined" && Promise) === "function" ? _x : Object)
 ], ServicesController.prototype, "healthCheck", null);
 exports.ServicesController = ServicesController = __decorate([
     (0, swagger_1.ApiTags)('services'),
@@ -1119,7 +1934,7 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 var __param = (this && this.__param) || function (paramIndex, decorator) {
     return function (target, key) { decorator(target, key, paramIndex); }
 };
-var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l, _m, _o, _p, _q, _r;
+var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l, _m, _o, _p, _q, _r, _s, _t;
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.UsersController = void 0;
 const common_1 = __webpack_require__(/*! @nestjs/common */ "@nestjs/common");
@@ -1157,6 +1972,21 @@ let UsersController = class UsersController {
     }
     async findUserByUsername(username) {
         return (0, rxjs_1.firstValueFrom)(this.userClient.send({ cmd: 'find_user_by_username' }, username));
+    }
+    async searchUsers(searchTerm, page = '1', limit = '10', currentUser) {
+        const pageNum = Math.max(1, parseInt(page) || 1);
+        const limitNum = Math.min(50, Math.max(1, parseInt(limit) || 20));
+        const result = await (0, rxjs_1.firstValueFrom)(this.userClient.send({ cmd: 'search_users' }, {
+            searchTerm,
+            page: pageNum,
+            limit: limitNum,
+            excludeUserId: currentUser.id.toString(),
+        }));
+        return {
+            ...result,
+            page: pageNum,
+            limit: limitNum,
+        };
     }
     async getUserProfile(userId) {
         return (0, rxjs_1.firstValueFrom)(this.userClient.send({ cmd: 'get_user_profile' }, userId));
@@ -1306,6 +2136,36 @@ __decorate([
     __metadata("design:returntype", typeof (_l = typeof Promise !== "undefined" && Promise) === "function" ? _l : Object)
 ], UsersController.prototype, "findUserByUsername", null);
 __decorate([
+    (0, common_1.Get)('search'),
+    (0, auth_decorator_1.Auth)(),
+    (0, swagger_1.ApiOperation)({ summary: 'Rechercher des utilisateurs' }),
+    (0, swagger_1.ApiResponse)({
+        status: common_1.HttpStatus.OK,
+        description: 'Résultats de recherche avec pagination',
+        schema: {
+            type: 'object',
+            properties: {
+                users: {
+                    type: 'array',
+                    items: { $ref: '#/components/schemas/UserResponseDto' },
+                },
+                total: { type: 'number', description: 'Nombre total de résultats' },
+                hasMore: { type: 'boolean', description: "Indique s'il y a plus de résultats" },
+                page: { type: 'number', description: 'Page actuelle' },
+                limit: { type: 'number', description: "Nombre d'éléments par page" },
+            },
+        },
+    }),
+    (0, src_1.Log)(),
+    __param(0, (0, common_1.Query)('query')),
+    __param(1, (0, common_1.Query)('page')),
+    __param(2, (0, common_1.Query)('limit')),
+    __param(3, (0, current_user_decorator_1.CurrentUser)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, Object, Object, typeof (_m = typeof auth_interface_1.ICurrentUser !== "undefined" && auth_interface_1.ICurrentUser) === "function" ? _m : Object]),
+    __metadata("design:returntype", typeof (_o = typeof Promise !== "undefined" && Promise) === "function" ? _o : Object)
+], UsersController.prototype, "searchUsers", null);
+__decorate([
     (0, common_1.Get)('profile/:userId'),
     (0, auth_decorator_1.Auth)(),
     (0, swagger_1.ApiOperation)({ summary: "Récupérer le profil public d'un utilisateur" }),
@@ -1320,7 +2180,7 @@ __decorate([
     __param(0, (0, common_1.Param)('userId')),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [String]),
-    __metadata("design:returntype", typeof (_m = typeof Promise !== "undefined" && Promise) === "function" ? _m : Object)
+    __metadata("design:returntype", typeof (_p = typeof Promise !== "undefined" && Promise) === "function" ? _p : Object)
 ], UsersController.prototype, "getUserProfile", null);
 __decorate([
     (0, common_1.Get)('stats/:userId'),
@@ -1337,7 +2197,7 @@ __decorate([
     __param(0, (0, common_1.Param)('userId')),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [String]),
-    __metadata("design:returntype", typeof (_o = typeof Promise !== "undefined" && Promise) === "function" ? _o : Object)
+    __metadata("design:returntype", typeof (_q = typeof Promise !== "undefined" && Promise) === "function" ? _q : Object)
 ], UsersController.prototype, "getUserStats", null);
 __decorate([
     (0, common_1.Post)('validate'),
@@ -1369,7 +2229,7 @@ __decorate([
     __param(0, (0, common_1.Body)()),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [Object]),
-    __metadata("design:returntype", typeof (_p = typeof Promise !== "undefined" && Promise) === "function" ? _p : Object)
+    __metadata("design:returntype", typeof (_r = typeof Promise !== "undefined" && Promise) === "function" ? _r : Object)
 ], UsersController.prototype, "validateUser", null);
 __decorate([
     (0, common_1.Post)(':userId/xp'),
@@ -1396,7 +2256,7 @@ __decorate([
     __param(1, (0, common_1.Body)()),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [String, Object]),
-    __metadata("design:returntype", typeof (_q = typeof Promise !== "undefined" && Promise) === "function" ? _q : Object)
+    __metadata("design:returntype", typeof (_s = typeof Promise !== "undefined" && Promise) === "function" ? _s : Object)
 ], UsersController.prototype, "addUserXP", null);
 __decorate([
     (0, common_1.Post)(':userId/coins'),
@@ -1423,7 +2283,7 @@ __decorate([
     __param(1, (0, common_1.Body)()),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [String, Object]),
-    __metadata("design:returntype", typeof (_r = typeof Promise !== "undefined" && Promise) === "function" ? _r : Object)
+    __metadata("design:returntype", typeof (_t = typeof Promise !== "undefined" && Promise) === "function" ? _t : Object)
 ], UsersController.prototype, "addUserCoins", null);
 exports.UsersController = UsersController = __decorate([
     (0, swagger_1.ApiTags)('users'),
@@ -1714,7 +2574,7 @@ class RefreshTokenDto {
 exports.RefreshTokenDto = RefreshTokenDto;
 __decorate([
     (0, swagger_1.ApiProperty)({
-        description: 'Refresh token pour renouveler le token d\'accès',
+        description: "Refresh token pour renouveler le token d'accès",
         example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
     }),
     (0, class_validator_1.IsString)(),
@@ -1768,6 +2628,398 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 
 /***/ }),
 
+/***/ "./libs/contracts/src/Friendship/dtos/friendship.dto.ts":
+/*!**************************************************************!*\
+  !*** ./libs/contracts/src/Friendship/dtos/friendship.dto.ts ***!
+  \**************************************************************/
+/***/ (function(__unused_webpack_module, exports, __webpack_require__) {
+
+
+var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
+    var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
+    if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
+    else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+    return c > 3 && r && Object.defineProperty(target, key, r), r;
+};
+var __metadata = (this && this.__metadata) || function (k, v) {
+    if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
+};
+var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l, _m, _o;
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.DeclineFriendshipDto = exports.AcceptFriendshipDto = exports.UnblockUserDto = exports.BlockUserDto = exports.FriendSearchFiltersDto = exports.FriendshipFiltersDto = exports.FriendshipStatsDto = exports.FriendshipRequestDto = exports.FriendDto = exports.FriendshipWithDetailsDto = exports.FriendshipResponseDto = exports.UpdateFriendshipDto = exports.CreateFriendshipDto = void 0;
+const class_validator_1 = __webpack_require__(/*! class-validator */ "class-validator");
+const swagger_1 = __webpack_require__(/*! @nestjs/swagger */ "@nestjs/swagger");
+const common_types_1 = __webpack_require__(/*! ../../types/common.types */ "./libs/contracts/src/types/common.types.ts");
+class CreateFriendshipDto {
+    user_two_id;
+}
+exports.CreateFriendshipDto = CreateFriendshipDto;
+__decorate([
+    (0, swagger_1.ApiProperty)({ example: 2, description: "ID de l'utilisateur à ajouter en ami" }),
+    (0, class_validator_1.IsNumber)(),
+    __metadata("design:type", Number)
+], CreateFriendshipDto.prototype, "user_two_id", void 0);
+class UpdateFriendshipDto {
+    status;
+}
+exports.UpdateFriendshipDto = UpdateFriendshipDto;
+__decorate([
+    (0, swagger_1.ApiProperty)({ enum: common_types_1.FriendshipStatusEnum, description: "Nouveau statut de l'amitié" }),
+    (0, class_validator_1.IsEnum)(common_types_1.FriendshipStatusEnum),
+    __metadata("design:type", typeof (_a = typeof common_types_1.FriendshipStatusEnum !== "undefined" && common_types_1.FriendshipStatusEnum) === "function" ? _a : Object)
+], UpdateFriendshipDto.prototype, "status", void 0);
+class FriendshipResponseDto {
+    friendship_id;
+    user_one_id;
+    user_two_id;
+    status;
+    action_user_id;
+    requested_at;
+    accepted_at;
+    updated_at;
+}
+exports.FriendshipResponseDto = FriendshipResponseDto;
+__decorate([
+    (0, swagger_1.ApiProperty)({ example: 1 }),
+    __metadata("design:type", Number)
+], FriendshipResponseDto.prototype, "friendship_id", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ example: 1 }),
+    __metadata("design:type", Number)
+], FriendshipResponseDto.prototype, "user_one_id", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ example: 2 }),
+    __metadata("design:type", Number)
+], FriendshipResponseDto.prototype, "user_two_id", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ enum: common_types_1.FriendshipStatusEnum }),
+    __metadata("design:type", typeof (_b = typeof common_types_1.FriendshipStatusEnum !== "undefined" && common_types_1.FriendshipStatusEnum) === "function" ? _b : Object)
+], FriendshipResponseDto.prototype, "status", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ example: 1 }),
+    __metadata("design:type", Number)
+], FriendshipResponseDto.prototype, "action_user_id", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ example: '2023-01-01T00:00:00.000Z' }),
+    __metadata("design:type", typeof (_c = typeof Date !== "undefined" && Date) === "function" ? _c : Object)
+], FriendshipResponseDto.prototype, "requested_at", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ example: '2023-01-01T00:00:00.000Z', nullable: true }),
+    __metadata("design:type", typeof (_d = typeof Date !== "undefined" && Date) === "function" ? _d : Object)
+], FriendshipResponseDto.prototype, "accepted_at", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ example: '2023-01-01T00:00:00.000Z' }),
+    __metadata("design:type", typeof (_e = typeof Date !== "undefined" && Date) === "function" ? _e : Object)
+], FriendshipResponseDto.prototype, "updated_at", void 0);
+class FriendshipWithDetailsDto extends FriendshipResponseDto {
+    user_one;
+    user_two;
+    action_user;
+}
+exports.FriendshipWithDetailsDto = FriendshipWithDetailsDto;
+__decorate([
+    (0, swagger_1.ApiProperty)({
+        type: 'object',
+        properties: {
+            user_id: { type: 'number', example: 1 },
+            username: { type: 'string', example: 'john_doe' },
+            profile_picture_url: {
+                type: 'string',
+                example: 'https://example.com/avatar.jpg',
+                nullable: true,
+            },
+            level: { type: 'number', example: 5 },
+        },
+    }),
+    __metadata("design:type", Object)
+], FriendshipWithDetailsDto.prototype, "user_one", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({
+        type: 'object',
+        properties: {
+            user_id: { type: 'number', example: 2 },
+            username: { type: 'string', example: 'jane_doe' },
+            profile_picture_url: {
+                type: 'string',
+                example: 'https://example.com/avatar2.jpg',
+                nullable: true,
+            },
+            level: { type: 'number', example: 3 },
+        },
+    }),
+    __metadata("design:type", Object)
+], FriendshipWithDetailsDto.prototype, "user_two", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({
+        type: 'object',
+        properties: {
+            user_id: { type: 'number', example: 1 },
+            username: { type: 'string', example: 'john_doe' },
+            profile_picture_url: {
+                type: 'string',
+                example: 'https://example.com/avatar.jpg',
+                nullable: true,
+            },
+        },
+    }),
+    __metadata("design:type", Object)
+], FriendshipWithDetailsDto.prototype, "action_user", void 0);
+class FriendDto {
+    user_id;
+    username;
+    profile_picture_url;
+    level;
+    xp_points;
+    game_coins;
+    friendship_status;
+    friendship_since;
+    mutual_friends_count;
+}
+exports.FriendDto = FriendDto;
+__decorate([
+    (0, swagger_1.ApiProperty)({ example: 2 }),
+    __metadata("design:type", Number)
+], FriendDto.prototype, "user_id", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ example: 'jane_doe' }),
+    __metadata("design:type", String)
+], FriendDto.prototype, "username", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ example: 'https://example.com/avatar2.jpg', nullable: true }),
+    __metadata("design:type", String)
+], FriendDto.prototype, "profile_picture_url", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ example: 7 }),
+    __metadata("design:type", Number)
+], FriendDto.prototype, "level", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ example: 2150 }),
+    __metadata("design:type", Number)
+], FriendDto.prototype, "xp_points", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ example: 750 }),
+    __metadata("design:type", Number)
+], FriendDto.prototype, "game_coins", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ enum: common_types_1.FriendshipStatusEnum }),
+    __metadata("design:type", typeof (_f = typeof common_types_1.FriendshipStatusEnum !== "undefined" && common_types_1.FriendshipStatusEnum) === "function" ? _f : Object)
+], FriendDto.prototype, "friendship_status", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ example: '2023-01-01T00:00:00.000Z', nullable: true }),
+    __metadata("design:type", typeof (_g = typeof Date !== "undefined" && Date) === "function" ? _g : Object)
+], FriendDto.prototype, "friendship_since", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ example: 5, nullable: true }),
+    __metadata("design:type", Number)
+], FriendDto.prototype, "mutual_friends_count", void 0);
+class FriendshipRequestDto {
+    friendship_id;
+    requester;
+    requested_at;
+    mutual_friends_count;
+}
+exports.FriendshipRequestDto = FriendshipRequestDto;
+__decorate([
+    (0, swagger_1.ApiProperty)({ example: 1 }),
+    __metadata("design:type", Number)
+], FriendshipRequestDto.prototype, "friendship_id", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({
+        type: 'object',
+        properties: {
+            user_id: { type: 'number', example: 3 },
+            username: { type: 'string', example: 'alice_smith' },
+            profile_picture_url: {
+                type: 'string',
+                example: 'https://example.com/avatar3.jpg',
+                nullable: true,
+            },
+            level: { type: 'number', example: 4 },
+        },
+    }),
+    __metadata("design:type", Object)
+], FriendshipRequestDto.prototype, "requester", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ example: '2023-01-01T00:00:00.000Z' }),
+    __metadata("design:type", typeof (_h = typeof Date !== "undefined" && Date) === "function" ? _h : Object)
+], FriendshipRequestDto.prototype, "requested_at", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ example: 2, nullable: true }),
+    __metadata("design:type", Number)
+], FriendshipRequestDto.prototype, "mutual_friends_count", void 0);
+class FriendshipStatsDto {
+    total_friends;
+    pending_requests_sent;
+    pending_requests_received;
+    blocked_users;
+    mutual_friends_avg;
+    friendship_requests_today;
+}
+exports.FriendshipStatsDto = FriendshipStatsDto;
+__decorate([
+    (0, swagger_1.ApiProperty)({ example: 25 }),
+    __metadata("design:type", Number)
+], FriendshipStatsDto.prototype, "total_friends", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ example: 3 }),
+    __metadata("design:type", Number)
+], FriendshipStatsDto.prototype, "pending_requests_sent", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ example: 5 }),
+    __metadata("design:type", Number)
+], FriendshipStatsDto.prototype, "pending_requests_received", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ example: 1 }),
+    __metadata("design:type", Number)
+], FriendshipStatsDto.prototype, "blocked_users", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ example: 3.2 }),
+    __metadata("design:type", Number)
+], FriendshipStatsDto.prototype, "mutual_friends_avg", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ example: 2 }),
+    __metadata("design:type", Number)
+], FriendshipStatsDto.prototype, "friendship_requests_today", void 0);
+class FriendshipFiltersDto {
+    status;
+    user_id;
+    action_user_id;
+    requested_after;
+    requested_before;
+    accepted_after;
+    accepted_before;
+}
+exports.FriendshipFiltersDto = FriendshipFiltersDto;
+__decorate([
+    (0, swagger_1.ApiProperty)({ enum: common_types_1.FriendshipStatusEnum, required: false }),
+    (0, class_validator_1.IsEnum)(common_types_1.FriendshipStatusEnum),
+    (0, class_validator_1.IsOptional)(),
+    __metadata("design:type", typeof (_j = typeof common_types_1.FriendshipStatusEnum !== "undefined" && common_types_1.FriendshipStatusEnum) === "function" ? _j : Object)
+], FriendshipFiltersDto.prototype, "status", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ example: 1, required: false }),
+    (0, class_validator_1.IsNumber)(),
+    (0, class_validator_1.IsOptional)(),
+    __metadata("design:type", Number)
+], FriendshipFiltersDto.prototype, "user_id", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ example: 1, required: false }),
+    (0, class_validator_1.IsNumber)(),
+    (0, class_validator_1.IsOptional)(),
+    __metadata("design:type", Number)
+], FriendshipFiltersDto.prototype, "action_user_id", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ example: '2023-01-01T00:00:00.000Z', required: false }),
+    (0, class_validator_1.IsDateString)(),
+    (0, class_validator_1.IsOptional)(),
+    __metadata("design:type", typeof (_k = typeof Date !== "undefined" && Date) === "function" ? _k : Object)
+], FriendshipFiltersDto.prototype, "requested_after", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ example: '2023-12-31T23:59:59.999Z', required: false }),
+    (0, class_validator_1.IsDateString)(),
+    (0, class_validator_1.IsOptional)(),
+    __metadata("design:type", typeof (_l = typeof Date !== "undefined" && Date) === "function" ? _l : Object)
+], FriendshipFiltersDto.prototype, "requested_before", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ example: '2023-01-01T00:00:00.000Z', required: false }),
+    (0, class_validator_1.IsDateString)(),
+    (0, class_validator_1.IsOptional)(),
+    __metadata("design:type", typeof (_m = typeof Date !== "undefined" && Date) === "function" ? _m : Object)
+], FriendshipFiltersDto.prototype, "accepted_after", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ example: '2023-12-31T23:59:59.999Z', required: false }),
+    (0, class_validator_1.IsDateString)(),
+    (0, class_validator_1.IsOptional)(),
+    __metadata("design:type", typeof (_o = typeof Date !== "undefined" && Date) === "function" ? _o : Object)
+], FriendshipFiltersDto.prototype, "accepted_before", void 0);
+class FriendSearchFiltersDto {
+    username;
+    level_min;
+    level_max;
+    exclude_friends;
+    exclude_blocked;
+    mutual_friends_min;
+}
+exports.FriendSearchFiltersDto = FriendSearchFiltersDto;
+__decorate([
+    (0, swagger_1.ApiProperty)({ example: 'john', description: "Recherche par nom d'utilisateur", required: false }),
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.IsOptional)(),
+    __metadata("design:type", String)
+], FriendSearchFiltersDto.prototype, "username", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ example: 1, description: 'Niveau minimum', required: false }),
+    (0, class_validator_1.IsNumber)(),
+    (0, class_validator_1.Min)(1),
+    (0, class_validator_1.IsOptional)(),
+    __metadata("design:type", Number)
+], FriendSearchFiltersDto.prototype, "level_min", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ example: 10, description: 'Niveau maximum', required: false }),
+    (0, class_validator_1.IsNumber)(),
+    (0, class_validator_1.Min)(1),
+    (0, class_validator_1.IsOptional)(),
+    __metadata("design:type", Number)
+], FriendSearchFiltersDto.prototype, "level_max", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ example: true, description: 'Exclure les amis existants', required: false }),
+    (0, class_validator_1.IsBoolean)(),
+    (0, class_validator_1.IsOptional)(),
+    __metadata("design:type", Boolean)
+], FriendSearchFiltersDto.prototype, "exclude_friends", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ example: true, description: 'Exclure les utilisateurs bloqués', required: false }),
+    (0, class_validator_1.IsBoolean)(),
+    (0, class_validator_1.IsOptional)(),
+    __metadata("design:type", Boolean)
+], FriendSearchFiltersDto.prototype, "exclude_blocked", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ example: 2, description: "Nombre minimum d'amis en commun", required: false }),
+    (0, class_validator_1.IsNumber)(),
+    (0, class_validator_1.Min)(0),
+    (0, class_validator_1.IsOptional)(),
+    __metadata("design:type", Number)
+], FriendSearchFiltersDto.prototype, "mutual_friends_min", void 0);
+class BlockUserDto {
+    user_id;
+}
+exports.BlockUserDto = BlockUserDto;
+__decorate([
+    (0, swagger_1.ApiProperty)({ example: 2, description: "ID de l'utilisateur à bloquer" }),
+    (0, class_validator_1.IsNumber)(),
+    __metadata("design:type", Number)
+], BlockUserDto.prototype, "user_id", void 0);
+class UnblockUserDto {
+    user_id;
+}
+exports.UnblockUserDto = UnblockUserDto;
+__decorate([
+    (0, swagger_1.ApiProperty)({ example: 2, description: "ID de l'utilisateur à débloquer" }),
+    (0, class_validator_1.IsNumber)(),
+    __metadata("design:type", Number)
+], UnblockUserDto.prototype, "user_id", void 0);
+class AcceptFriendshipDto {
+    friendship_id;
+}
+exports.AcceptFriendshipDto = AcceptFriendshipDto;
+__decorate([
+    (0, swagger_1.ApiProperty)({ example: 1, description: "ID de la demande d'amitié à accepter" }),
+    (0, class_validator_1.IsNumber)(),
+    __metadata("design:type", Number)
+], AcceptFriendshipDto.prototype, "friendship_id", void 0);
+class DeclineFriendshipDto {
+    friendship_id;
+}
+exports.DeclineFriendshipDto = DeclineFriendshipDto;
+__decorate([
+    (0, swagger_1.ApiProperty)({ example: 1, description: "ID de la demande d'amitié à refuser" }),
+    (0, class_validator_1.IsNumber)(),
+    __metadata("design:type", Number)
+], DeclineFriendshipDto.prototype, "friendship_id", void 0);
+
+
+/***/ }),
+
 /***/ "./libs/contracts/src/Service/dtos/service.dto.ts":
 /*!********************************************************!*\
   !*** ./libs/contracts/src/Service/dtos/service.dto.ts ***!
@@ -1784,7 +3036,7 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
 var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
-var _a, _b, _c, _d, _e, _f, _g, _h, _j;
+var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k;
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.ServiceFiltersDto = exports.ServiceStatsDto = exports.ServiceWithDetailsDto = exports.ServiceResponseDto = exports.CreateServiceCategoryDto = exports.ServiceCategoryDto = exports.UpdateServiceDto = exports.CreateServiceDto = void 0;
 const class_validator_1 = __webpack_require__(/*! class-validator */ "class-validator");
@@ -2040,6 +3292,9 @@ __decorate([
 ], ServiceStatsDto.prototype, "average_jeton_value", void 0);
 class ServiceFiltersDto {
     status;
+    type;
+    page;
+    limit;
     category_id;
     provider_id;
     beneficiary_id;
@@ -2055,6 +3310,24 @@ __decorate([
     (0, class_validator_1.IsOptional)(),
     __metadata("design:type", typeof (_g = typeof common_types_1.ServiceStatusEnum !== "undefined" && common_types_1.ServiceStatusEnum) === "function" ? _g : Object)
 ], ServiceFiltersDto.prototype, "status", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ enum: common_types_1.ServiceTypeEnum, required: false }),
+    (0, class_validator_1.IsEnum)(common_types_1.ServiceTypeEnum),
+    (0, class_validator_1.IsOptional)(),
+    __metadata("design:type", typeof (_h = typeof common_types_1.ServiceTypeEnum !== "undefined" && common_types_1.ServiceTypeEnum) === "function" ? _h : Object)
+], ServiceFiltersDto.prototype, "type", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ example: '1', required: false }),
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.IsOptional)(),
+    __metadata("design:type", String)
+], ServiceFiltersDto.prototype, "page", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ example: '20', required: false }),
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.IsOptional)(),
+    __metadata("design:type", String)
+], ServiceFiltersDto.prototype, "limit", void 0);
 __decorate([
     (0, swagger_1.ApiProperty)({ example: 1, required: false }),
     (0, class_validator_1.IsNumber)(),
@@ -2089,13 +3362,13 @@ __decorate([
     (0, swagger_1.ApiProperty)({ example: '2023-01-01T00:00:00.000Z', required: false }),
     (0, class_validator_1.IsDateString)(),
     (0, class_validator_1.IsOptional)(),
-    __metadata("design:type", typeof (_h = typeof Date !== "undefined" && Date) === "function" ? _h : Object)
+    __metadata("design:type", typeof (_j = typeof Date !== "undefined" && Date) === "function" ? _j : Object)
 ], ServiceFiltersDto.prototype, "created_after", void 0);
 __decorate([
     (0, swagger_1.ApiProperty)({ example: '2023-12-31T23:59:59.999Z', required: false }),
     (0, class_validator_1.IsDateString)(),
     (0, class_validator_1.IsOptional)(),
-    __metadata("design:type", typeof (_j = typeof Date !== "undefined" && Date) === "function" ? _j : Object)
+    __metadata("design:type", typeof (_k = typeof Date !== "undefined" && Date) === "function" ? _k : Object)
 ], ServiceFiltersDto.prototype, "created_before", void 0);
 
 
@@ -2342,7 +3615,7 @@ __decorate([
 
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.UserMissionStatusEnum = exports.ServiceStatusEnum = exports.PrankTypeEnum = exports.MissionTypeEnum = exports.FriendshipStatusEnum = exports.ExecutedPrankStatusEnum = void 0;
+exports.UserMissionStatusEnum = exports.ServiceTypeEnum = exports.ServiceStatusEnum = exports.PrankTypeEnum = exports.MissionTypeEnum = exports.FriendshipStatusEnum = exports.ExecutedPrankStatusEnum = void 0;
 var ExecutedPrankStatusEnum;
 (function (ExecutedPrankStatusEnum) {
     ExecutedPrankStatusEnum["PROPOSED_BY_DEBTOR"] = "proposed_by_debtor";
@@ -2387,6 +3660,11 @@ var ServiceStatusEnum;
     ServiceStatusEnum["CANCELLED"] = "cancelled";
     ServiceStatusEnum["DISPUTED"] = "disputed";
 })(ServiceStatusEnum || (exports.ServiceStatusEnum = ServiceStatusEnum = {}));
+var ServiceTypeEnum;
+(function (ServiceTypeEnum) {
+    ServiceTypeEnum["SERVICE"] = "service";
+    ServiceTypeEnum["PRANK"] = "prank";
+})(ServiceTypeEnum || (exports.ServiceTypeEnum = ServiceTypeEnum = {}));
 var UserMissionStatusEnum;
 (function (UserMissionStatusEnum) {
     UserMissionStatusEnum["NOT_STARTED"] = "not_started";
@@ -2395,6 +3673,684 @@ var UserMissionStatusEnum;
     UserMissionStatusEnum["CLAIMED"] = "claimed";
     UserMissionStatusEnum["EXPIRED"] = "expired";
 })(UserMissionStatusEnum || (exports.UserMissionStatusEnum = UserMissionStatusEnum = {}));
+
+
+/***/ }),
+
+/***/ "./libs/exceptions/src/constants/exception.constants.ts":
+/*!**************************************************************!*\
+  !*** ./libs/exceptions/src/constants/exception.constants.ts ***!
+  \**************************************************************/
+/***/ ((__unused_webpack_module, exports) => {
+
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.HTTP_STATUS_CODES = exports.EXCEPTION_CODES = void 0;
+exports.EXCEPTION_CODES = {
+    AUTH_INVALID_CREDENTIALS: 'AUTH_INVALID_CREDENTIALS',
+    AUTH_TOKEN_EXPIRED: 'AUTH_TOKEN_EXPIRED',
+    AUTH_TOKEN_INVALID: 'AUTH_TOKEN_INVALID',
+    AUTH_UNAUTHORIZED: 'AUTH_UNAUTHORIZED',
+    AUTH_FORBIDDEN: 'AUTH_FORBIDDEN',
+    AUTH_USER_NOT_FOUND: 'AUTH_USER_NOT_FOUND',
+    AUTH_EMAIL_ALREADY_EXISTS: 'AUTH_EMAIL_ALREADY_EXISTS',
+    AUTH_GOOGLE_TOKEN_INVALID: 'AUTH_GOOGLE_TOKEN_INVALID',
+    DB_CONNECTION_ERROR: 'DB_CONNECTION_ERROR',
+    DB_QUERY_ERROR: 'DB_QUERY_ERROR',
+    DB_RECORD_NOT_FOUND: 'DB_RECORD_NOT_FOUND',
+    DB_DUPLICATE_ENTRY: 'DB_DUPLICATE_ENTRY',
+    DB_CONSTRAINT_VIOLATION: 'DB_CONSTRAINT_VIOLATION',
+    VALIDATION_ERROR: 'VALIDATION_ERROR',
+    VALIDATION_REQUIRED_FIELD: 'VALIDATION_REQUIRED_FIELD',
+    VALIDATION_INVALID_FORMAT: 'VALIDATION_INVALID_FORMAT',
+    BUSINESS_RULE_VIOLATION: 'BUSINESS_RULE_VIOLATION',
+    INSUFFICIENT_PERMISSIONS: 'INSUFFICIENT_PERMISSIONS',
+    RESOURCE_NOT_AVAILABLE: 'RESOURCE_NOT_AVAILABLE',
+    INTERNAL_SERVER_ERROR: 'INTERNAL_SERVER_ERROR',
+    SERVICE_UNAVAILABLE: 'SERVICE_UNAVAILABLE',
+    MICROSERVICE_CONNECTION_ERROR: 'MICROSERVICE_CONNECTION_ERROR',
+};
+exports.HTTP_STATUS_CODES = {
+    OK: 200,
+    CREATED: 201,
+    BAD_REQUEST: 400,
+    UNAUTHORIZED: 401,
+    FORBIDDEN: 403,
+    NOT_FOUND: 404,
+    CONFLICT: 409,
+    UNPROCESSABLE_ENTITY: 422,
+    INTERNAL_SERVER_ERROR: 500,
+    SERVICE_UNAVAILABLE: 503,
+};
+
+
+/***/ }),
+
+/***/ "./libs/exceptions/src/exceptions.module.ts":
+/*!**************************************************!*\
+  !*** ./libs/exceptions/src/exceptions.module.ts ***!
+  \**************************************************/
+/***/ (function(__unused_webpack_module, exports, __webpack_require__) {
+
+
+var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
+    var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
+    if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
+    else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+    return c > 3 && r && Object.defineProperty(target, key, r), r;
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.ExceptionsModule = void 0;
+const common_1 = __webpack_require__(/*! @nestjs/common */ "@nestjs/common");
+const exception_thrower_1 = __webpack_require__(/*! ./throwers/exception.thrower */ "./libs/exceptions/src/throwers/exception.thrower.ts");
+const global_exception_filter_1 = __webpack_require__(/*! ./filters/global-exception.filter */ "./libs/exceptions/src/filters/global-exception.filter.ts");
+let ExceptionsModule = class ExceptionsModule {
+};
+exports.ExceptionsModule = ExceptionsModule;
+exports.ExceptionsModule = ExceptionsModule = __decorate([
+    (0, common_1.Global)(),
+    (0, common_1.Module)({
+        providers: [exception_thrower_1.ExceptionThrower, global_exception_filter_1.GlobalExceptionFilter],
+        exports: [exception_thrower_1.ExceptionThrower, global_exception_filter_1.GlobalExceptionFilter],
+    })
+], ExceptionsModule);
+
+
+/***/ }),
+
+/***/ "./libs/exceptions/src/exceptions/auth.exception.ts":
+/*!**********************************************************!*\
+  !*** ./libs/exceptions/src/exceptions/auth.exception.ts ***!
+  \**********************************************************/
+/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
+
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.GoogleTokenInvalidException = exports.EmailAlreadyExistsException = exports.UserNotFoundException = exports.ForbiddenException = exports.UnauthorizedException = exports.InvalidTokenException = exports.TokenExpiredException = exports.InvalidCredentialsException = exports.AuthException = void 0;
+const base_exception_1 = __webpack_require__(/*! ./base.exception */ "./libs/exceptions/src/exceptions/base.exception.ts");
+const exception_constants_1 = __webpack_require__(/*! ../constants/exception.constants */ "./libs/exceptions/src/constants/exception.constants.ts");
+class AuthException extends base_exception_1.BaseException {
+    constructor(message, code, details, path) {
+        super(message, exception_constants_1.HTTP_STATUS_CODES.UNAUTHORIZED, code, details, path);
+    }
+}
+exports.AuthException = AuthException;
+class InvalidCredentialsException extends AuthException {
+    constructor(details, path) {
+        super('Identifiants invalides', exception_constants_1.EXCEPTION_CODES.AUTH_INVALID_CREDENTIALS, details, path);
+    }
+}
+exports.InvalidCredentialsException = InvalidCredentialsException;
+class TokenExpiredException extends AuthException {
+    constructor(details, path) {
+        super('Token expiré', exception_constants_1.EXCEPTION_CODES.AUTH_TOKEN_EXPIRED, details, path);
+    }
+}
+exports.TokenExpiredException = TokenExpiredException;
+class InvalidTokenException extends AuthException {
+    constructor(details, path) {
+        super('Token invalide', exception_constants_1.EXCEPTION_CODES.AUTH_TOKEN_INVALID, details, path);
+    }
+}
+exports.InvalidTokenException = InvalidTokenException;
+class UnauthorizedException extends AuthException {
+    constructor(details, path) {
+        super('Non autorisé', exception_constants_1.EXCEPTION_CODES.AUTH_UNAUTHORIZED, details, path);
+    }
+}
+exports.UnauthorizedException = UnauthorizedException;
+class ForbiddenException extends base_exception_1.BaseException {
+    constructor(details, path) {
+        super('Accès interdit', exception_constants_1.HTTP_STATUS_CODES.FORBIDDEN, exception_constants_1.EXCEPTION_CODES.AUTH_FORBIDDEN, details, path);
+    }
+}
+exports.ForbiddenException = ForbiddenException;
+class UserNotFoundException extends base_exception_1.BaseException {
+    constructor(details, path) {
+        super('Utilisateur introuvable', exception_constants_1.HTTP_STATUS_CODES.NOT_FOUND, exception_constants_1.EXCEPTION_CODES.AUTH_USER_NOT_FOUND, details, path);
+    }
+}
+exports.UserNotFoundException = UserNotFoundException;
+class EmailAlreadyExistsException extends base_exception_1.BaseException {
+    constructor(details, path) {
+        super('Cet email est déjà utilisé', exception_constants_1.HTTP_STATUS_CODES.CONFLICT, exception_constants_1.EXCEPTION_CODES.AUTH_EMAIL_ALREADY_EXISTS, details, path);
+    }
+}
+exports.EmailAlreadyExistsException = EmailAlreadyExistsException;
+class GoogleTokenInvalidException extends AuthException {
+    constructor(details, path) {
+        super('Token Google invalide', exception_constants_1.EXCEPTION_CODES.AUTH_GOOGLE_TOKEN_INVALID, details, path);
+    }
+}
+exports.GoogleTokenInvalidException = GoogleTokenInvalidException;
+
+
+/***/ }),
+
+/***/ "./libs/exceptions/src/exceptions/base.exception.ts":
+/*!**********************************************************!*\
+  !*** ./libs/exceptions/src/exceptions/base.exception.ts ***!
+  \**********************************************************/
+/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
+
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.BaseException = void 0;
+const common_1 = __webpack_require__(/*! @nestjs/common */ "@nestjs/common");
+class BaseException extends common_1.HttpException {
+    statusCode;
+    code;
+    timestamp;
+    details;
+    path;
+    constructor(message, statusCode, code, details, path) {
+        super(message, statusCode);
+        this.statusCode = statusCode;
+        this.code = code;
+        this.timestamp = new Date();
+        this.details = details;
+        this.path = path;
+    }
+    toJSON() {
+        return {
+            message: this.message,
+            statusCode: this.getStatus(),
+            code: this.code,
+            details: this.details,
+            timestamp: this.timestamp,
+            path: this.path,
+        };
+    }
+}
+exports.BaseException = BaseException;
+
+
+/***/ }),
+
+/***/ "./libs/exceptions/src/exceptions/business.exception.ts":
+/*!**************************************************************!*\
+  !*** ./libs/exceptions/src/exceptions/business.exception.ts ***!
+  \**************************************************************/
+/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
+
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.ResourceNotAvailableException = exports.InsufficientPermissionsException = exports.BusinessException = void 0;
+const base_exception_1 = __webpack_require__(/*! ./base.exception */ "./libs/exceptions/src/exceptions/base.exception.ts");
+const exception_constants_1 = __webpack_require__(/*! ../constants/exception.constants */ "./libs/exceptions/src/constants/exception.constants.ts");
+class BusinessException extends base_exception_1.BaseException {
+    businessCode;
+    context;
+    constructor(message, businessCode, statusCode = exception_constants_1.HTTP_STATUS_CODES.BAD_REQUEST, context, path) {
+        super(message, statusCode, exception_constants_1.EXCEPTION_CODES.BUSINESS_RULE_VIOLATION, { businessCode, context }, path);
+        this.businessCode = businessCode;
+        this.context = context;
+    }
+}
+exports.BusinessException = BusinessException;
+class InsufficientPermissionsException extends base_exception_1.BaseException {
+    constructor(details, path) {
+        super('Permissions insuffisantes', exception_constants_1.HTTP_STATUS_CODES.FORBIDDEN, exception_constants_1.EXCEPTION_CODES.INSUFFICIENT_PERMISSIONS, details, path);
+    }
+}
+exports.InsufficientPermissionsException = InsufficientPermissionsException;
+class ResourceNotAvailableException extends base_exception_1.BaseException {
+    constructor(details, path) {
+        super('Ressource non disponible', exception_constants_1.HTTP_STATUS_CODES.NOT_FOUND, exception_constants_1.EXCEPTION_CODES.RESOURCE_NOT_AVAILABLE, details, path);
+    }
+}
+exports.ResourceNotAvailableException = ResourceNotAvailableException;
+
+
+/***/ }),
+
+/***/ "./libs/exceptions/src/exceptions/database.exception.ts":
+/*!**************************************************************!*\
+  !*** ./libs/exceptions/src/exceptions/database.exception.ts ***!
+  \**************************************************************/
+/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
+
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.ConstraintViolationException = exports.DuplicateEntryException = exports.RecordNotFoundException = exports.DatabaseQueryException = exports.DatabaseConnectionException = exports.DatabaseException = void 0;
+const base_exception_1 = __webpack_require__(/*! ./base.exception */ "./libs/exceptions/src/exceptions/base.exception.ts");
+const exception_constants_1 = __webpack_require__(/*! ../constants/exception.constants */ "./libs/exceptions/src/constants/exception.constants.ts");
+class DatabaseException extends base_exception_1.BaseException {
+    constructor(message, code, details, path) {
+        super(message, exception_constants_1.HTTP_STATUS_CODES.INTERNAL_SERVER_ERROR, code, details, path);
+    }
+}
+exports.DatabaseException = DatabaseException;
+class DatabaseConnectionException extends DatabaseException {
+    constructor(details, path) {
+        super('Erreur de connexion à la base de données', exception_constants_1.EXCEPTION_CODES.DB_CONNECTION_ERROR, details, path);
+    }
+}
+exports.DatabaseConnectionException = DatabaseConnectionException;
+class DatabaseQueryException extends DatabaseException {
+    constructor(details, path) {
+        super("Erreur lors de l'exécution de la requête", exception_constants_1.EXCEPTION_CODES.DB_QUERY_ERROR, details, path);
+    }
+}
+exports.DatabaseQueryException = DatabaseQueryException;
+class RecordNotFoundException extends base_exception_1.BaseException {
+    constructor(details, path) {
+        super('Enregistrement introuvable', exception_constants_1.HTTP_STATUS_CODES.NOT_FOUND, exception_constants_1.EXCEPTION_CODES.DB_RECORD_NOT_FOUND, details, path);
+    }
+}
+exports.RecordNotFoundException = RecordNotFoundException;
+class DuplicateEntryException extends base_exception_1.BaseException {
+    constructor(details, path) {
+        super('Enregistrement déjà existant', exception_constants_1.HTTP_STATUS_CODES.CONFLICT, exception_constants_1.EXCEPTION_CODES.DB_DUPLICATE_ENTRY, details, path);
+    }
+}
+exports.DuplicateEntryException = DuplicateEntryException;
+class ConstraintViolationException extends base_exception_1.BaseException {
+    constructor(details, path) {
+        super('Violation de contrainte de base de données', exception_constants_1.HTTP_STATUS_CODES.BAD_REQUEST, exception_constants_1.EXCEPTION_CODES.DB_CONSTRAINT_VIOLATION, details, path);
+    }
+}
+exports.ConstraintViolationException = ConstraintViolationException;
+
+
+/***/ }),
+
+/***/ "./libs/exceptions/src/exceptions/validation.exception.ts":
+/*!****************************************************************!*\
+  !*** ./libs/exceptions/src/exceptions/validation.exception.ts ***!
+  \****************************************************************/
+/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
+
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.InvalidFormatException = exports.RequiredFieldException = exports.ValidationException = void 0;
+const base_exception_1 = __webpack_require__(/*! ./base.exception */ "./libs/exceptions/src/exceptions/base.exception.ts");
+const exception_constants_1 = __webpack_require__(/*! ../constants/exception.constants */ "./libs/exceptions/src/constants/exception.constants.ts");
+class ValidationException extends base_exception_1.BaseException {
+    validationErrors;
+    constructor(message, validationErrors, path) {
+        super(message, exception_constants_1.HTTP_STATUS_CODES.UNPROCESSABLE_ENTITY, exception_constants_1.EXCEPTION_CODES.VALIDATION_ERROR, { validationErrors }, path);
+        this.validationErrors = validationErrors;
+    }
+}
+exports.ValidationException = ValidationException;
+class RequiredFieldException extends base_exception_1.BaseException {
+    constructor(fieldName, path) {
+        super(`Le champ '${fieldName}' est requis`, exception_constants_1.HTTP_STATUS_CODES.BAD_REQUEST, exception_constants_1.EXCEPTION_CODES.VALIDATION_REQUIRED_FIELD, { fieldName }, path);
+    }
+}
+exports.RequiredFieldException = RequiredFieldException;
+class InvalidFormatException extends base_exception_1.BaseException {
+    constructor(fieldName, expectedFormat, path) {
+        super(`Format invalide pour le champ '${fieldName}'. Format attendu: ${expectedFormat}`, exception_constants_1.HTTP_STATUS_CODES.BAD_REQUEST, exception_constants_1.EXCEPTION_CODES.VALIDATION_INVALID_FORMAT, { fieldName, expectedFormat }, path);
+    }
+}
+exports.InvalidFormatException = InvalidFormatException;
+
+
+/***/ }),
+
+/***/ "./libs/exceptions/src/filters/global-exception.filter.ts":
+/*!****************************************************************!*\
+  !*** ./libs/exceptions/src/filters/global-exception.filter.ts ***!
+  \****************************************************************/
+/***/ (function(__unused_webpack_module, exports, __webpack_require__) {
+
+
+var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
+    var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
+    if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
+    else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+    return c > 3 && r && Object.defineProperty(target, key, r), r;
+};
+var GlobalExceptionFilter_1;
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.GlobalExceptionFilter = void 0;
+const common_1 = __webpack_require__(/*! @nestjs/common */ "@nestjs/common");
+const base_exception_1 = __webpack_require__(/*! ../exceptions/base.exception */ "./libs/exceptions/src/exceptions/base.exception.ts");
+const exception_constants_1 = __webpack_require__(/*! ../constants/exception.constants */ "./libs/exceptions/src/constants/exception.constants.ts");
+let GlobalExceptionFilter = GlobalExceptionFilter_1 = class GlobalExceptionFilter {
+    logger = new common_1.Logger(GlobalExceptionFilter_1.name);
+    catch(exception, host) {
+        const ctx = host.switchToHttp();
+        const response = ctx.getResponse();
+        const request = ctx.getRequest();
+        const exceptionResponse = this.buildExceptionResponse(exception, request);
+        this.logException(exception, request, exceptionResponse);
+        response.status(exceptionResponse.statusCode).json(exceptionResponse);
+    }
+    buildExceptionResponse(exception, request) {
+        const timestamp = new Date().toISOString();
+        const path = request.url;
+        if (exception instanceof base_exception_1.BaseException) {
+            return {
+                status: 'error',
+                message: exception.message,
+                code: exception.code,
+                statusCode: exception.getStatus(),
+                timestamp,
+                path,
+                details: exception.details,
+            };
+        }
+        if (exception instanceof common_1.HttpException) {
+            const statusCode = exception.getStatus();
+            const response = exception.getResponse();
+            let message;
+            let details;
+            if (typeof response === 'string') {
+                message = response;
+            }
+            else if (typeof response === 'object' && response !== null) {
+                const responseObj = response;
+                message = responseObj.message ?? responseObj.error ?? 'Erreur HTTP';
+                details = responseObj;
+            }
+            else {
+                message = 'Erreur HTTP';
+            }
+            return {
+                status: 'error',
+                message,
+                code: this.getHttpExceptionCode(statusCode),
+                statusCode,
+                timestamp,
+                path,
+                details,
+            };
+        }
+        if (this.isPrismaError(exception)) {
+            return this.handlePrismaError(exception, timestamp, path);
+        }
+        if (this.isMicroserviceError(exception)) {
+            return {
+                status: 'error',
+                message: 'Service temporairement indisponible',
+                code: exception_constants_1.EXCEPTION_CODES.MICROSERVICE_CONNECTION_ERROR,
+                statusCode: exception_constants_1.HTTP_STATUS_CODES.SERVICE_UNAVAILABLE,
+                timestamp,
+                path,
+                details: { originalError: exception.message },
+            };
+        }
+        return {
+            status: 'error',
+            message: 'Erreur interne du serveur',
+            code: exception_constants_1.EXCEPTION_CODES.INTERNAL_SERVER_ERROR,
+            statusCode: exception_constants_1.HTTP_STATUS_CODES.INTERNAL_SERVER_ERROR,
+            timestamp,
+            path,
+            details: process.env.NODE_ENV === 'development'
+                ? {
+                    originalError: exception.message,
+                    stack: exception.stack,
+                }
+                : undefined,
+        };
+    }
+    logException(exception, request, response) {
+        const { method, url, ip, headers } = request;
+        const userAgent = headers?.['user-agent'] ?? 'Unknown';
+        const logContext = {
+            method,
+            url,
+            ip,
+            userAgent,
+            statusCode: response.statusCode,
+            code: response.code,
+            timestamp: response.timestamp,
+        };
+        if (response.statusCode >= 500) {
+            this.logger.error(`${method} ${url} - ${response.statusCode} ${response.code}: ${response.message}`, exception.stack, logContext);
+        }
+        else if (response.statusCode >= 400) {
+            this.logger.warn(`${method} ${url} - ${response.statusCode} ${response.code}: ${response.message}`, logContext);
+        }
+        else {
+            this.logger.log(`${method} ${url} - ${response.statusCode} ${response.code}: ${response.message}`, logContext);
+        }
+    }
+    getHttpExceptionCode(statusCode) {
+        const httpStatus = statusCode;
+        switch (httpStatus) {
+            case common_1.HttpStatus.BAD_REQUEST:
+                return 'BAD_REQUEST';
+            case common_1.HttpStatus.UNAUTHORIZED:
+                return exception_constants_1.EXCEPTION_CODES.AUTH_UNAUTHORIZED;
+            case common_1.HttpStatus.FORBIDDEN:
+                return exception_constants_1.EXCEPTION_CODES.AUTH_FORBIDDEN;
+            case common_1.HttpStatus.NOT_FOUND:
+                return 'NOT_FOUND';
+            case common_1.HttpStatus.CONFLICT:
+                return 'CONFLICT';
+            case common_1.HttpStatus.UNPROCESSABLE_ENTITY:
+                return exception_constants_1.EXCEPTION_CODES.VALIDATION_ERROR;
+            case common_1.HttpStatus.INTERNAL_SERVER_ERROR:
+                return exception_constants_1.EXCEPTION_CODES.INTERNAL_SERVER_ERROR;
+            case common_1.HttpStatus.SERVICE_UNAVAILABLE:
+                return exception_constants_1.EXCEPTION_CODES.SERVICE_UNAVAILABLE;
+            default:
+                return 'HTTP_EXCEPTION';
+        }
+    }
+    isPrismaError(exception) {
+        return Boolean(exception &&
+            typeof exception === 'object' &&
+            'code' in exception &&
+            ('clientVersion' in exception || 'meta' in exception));
+    }
+    handlePrismaError(exception, timestamp, path) {
+        const prismaCode = exception.code;
+        switch (prismaCode) {
+            case 'P1001':
+                return {
+                    status: 'error',
+                    message: 'Impossible de se connecter à la base de données',
+                    code: exception_constants_1.EXCEPTION_CODES.DB_CONNECTION_ERROR,
+                    statusCode: exception_constants_1.HTTP_STATUS_CODES.SERVICE_UNAVAILABLE,
+                    timestamp,
+                    path,
+                    details: { prismaCode, clientVersion: exception.clientVersion },
+                };
+            case 'P2002':
+                return {
+                    status: 'error',
+                    message: "Violation de contrainte d'unicité",
+                    code: exception_constants_1.EXCEPTION_CODES.DB_DUPLICATE_ENTRY,
+                    statusCode: exception_constants_1.HTTP_STATUS_CODES.CONFLICT,
+                    timestamp,
+                    path,
+                    details: { prismaCode, target: exception.meta?.target },
+                };
+            case 'P2025':
+                return {
+                    status: 'error',
+                    message: 'Enregistrement non trouvé',
+                    code: exception_constants_1.EXCEPTION_CODES.DB_RECORD_NOT_FOUND,
+                    statusCode: exception_constants_1.HTTP_STATUS_CODES.NOT_FOUND,
+                    timestamp,
+                    path,
+                    details: { prismaCode },
+                };
+            default:
+                return {
+                    status: 'error',
+                    message: 'Erreur de base de données',
+                    code: exception_constants_1.EXCEPTION_CODES.DB_QUERY_ERROR,
+                    statusCode: exception_constants_1.HTTP_STATUS_CODES.INTERNAL_SERVER_ERROR,
+                    timestamp,
+                    path,
+                    details: { prismaCode, message: exception.message },
+                };
+        }
+    }
+    isMicroserviceError(exception) {
+        return (exception &&
+            typeof exception === 'object' &&
+            'code' in exception &&
+            (exception.code === 'ECONNREFUSED' ||
+                exception.message?.includes('ECONNREFUSED')));
+    }
+};
+exports.GlobalExceptionFilter = GlobalExceptionFilter;
+exports.GlobalExceptionFilter = GlobalExceptionFilter = GlobalExceptionFilter_1 = __decorate([
+    (0, common_1.Catch)()
+], GlobalExceptionFilter);
+
+
+/***/ }),
+
+/***/ "./libs/exceptions/src/index.ts":
+/*!**************************************!*\
+  !*** ./libs/exceptions/src/index.ts ***!
+  \**************************************/
+/***/ (function(__unused_webpack_module, exports, __webpack_require__) {
+
+
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __exportStar = (this && this.__exportStar) || function(m, exports) {
+    for (var p in m) if (p !== "default" && !Object.prototype.hasOwnProperty.call(exports, p)) __createBinding(exports, m, p);
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+__exportStar(__webpack_require__(/*! ./filters/global-exception.filter */ "./libs/exceptions/src/filters/global-exception.filter.ts"), exports);
+__exportStar(__webpack_require__(/*! ./exceptions/base.exception */ "./libs/exceptions/src/exceptions/base.exception.ts"), exports);
+__exportStar(__webpack_require__(/*! ./exceptions/business.exception */ "./libs/exceptions/src/exceptions/business.exception.ts"), exports);
+__exportStar(__webpack_require__(/*! ./exceptions/validation.exception */ "./libs/exceptions/src/exceptions/validation.exception.ts"), exports);
+__exportStar(__webpack_require__(/*! ./exceptions/auth.exception */ "./libs/exceptions/src/exceptions/auth.exception.ts"), exports);
+__exportStar(__webpack_require__(/*! ./exceptions/database.exception */ "./libs/exceptions/src/exceptions/database.exception.ts"), exports);
+__exportStar(__webpack_require__(/*! ./throwers/exception.thrower */ "./libs/exceptions/src/throwers/exception.thrower.ts"), exports);
+__exportStar(__webpack_require__(/*! ./interfaces/exception.interface */ "./libs/exceptions/src/interfaces/exception.interface.ts"), exports);
+__exportStar(__webpack_require__(/*! ./constants/exception.constants */ "./libs/exceptions/src/constants/exception.constants.ts"), exports);
+__exportStar(__webpack_require__(/*! ./exceptions.module */ "./libs/exceptions/src/exceptions.module.ts"), exports);
+
+
+/***/ }),
+
+/***/ "./libs/exceptions/src/interfaces/exception.interface.ts":
+/*!***************************************************************!*\
+  !*** ./libs/exceptions/src/interfaces/exception.interface.ts ***!
+  \***************************************************************/
+/***/ ((__unused_webpack_module, exports) => {
+
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+
+
+/***/ }),
+
+/***/ "./libs/exceptions/src/throwers/exception.thrower.ts":
+/*!***********************************************************!*\
+  !*** ./libs/exceptions/src/throwers/exception.thrower.ts ***!
+  \***********************************************************/
+/***/ (function(__unused_webpack_module, exports, __webpack_require__) {
+
+
+var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
+    var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
+    if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
+    else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+    return c > 3 && r && Object.defineProperty(target, key, r), r;
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.ExceptionThrower = void 0;
+const common_1 = __webpack_require__(/*! @nestjs/common */ "@nestjs/common");
+const auth_exception_1 = __webpack_require__(/*! ../exceptions/auth.exception */ "./libs/exceptions/src/exceptions/auth.exception.ts");
+const database_exception_1 = __webpack_require__(/*! ../exceptions/database.exception */ "./libs/exceptions/src/exceptions/database.exception.ts");
+const business_exception_1 = __webpack_require__(/*! ../exceptions/business.exception */ "./libs/exceptions/src/exceptions/business.exception.ts");
+const validation_exception_1 = __webpack_require__(/*! ../exceptions/validation.exception */ "./libs/exceptions/src/exceptions/validation.exception.ts");
+const base_exception_1 = __webpack_require__(/*! ../exceptions/base.exception */ "./libs/exceptions/src/exceptions/base.exception.ts");
+const exception_constants_1 = __webpack_require__(/*! ../constants/exception.constants */ "./libs/exceptions/src/constants/exception.constants.ts");
+let ExceptionThrower = class ExceptionThrower {
+    getRequestPath(request) {
+        return request?.url || request?.path;
+    }
+    throwInvalidCredentials(details, request) {
+        throw new auth_exception_1.InvalidCredentialsException(details, this.getRequestPath(request));
+    }
+    throwTokenExpired(details, request) {
+        throw new auth_exception_1.TokenExpiredException(details, this.getRequestPath(request));
+    }
+    throwInvalidToken(details, request) {
+        throw new auth_exception_1.InvalidTokenException(details, this.getRequestPath(request));
+    }
+    throwUnauthorized(details, request) {
+        throw new auth_exception_1.UnauthorizedException(details, this.getRequestPath(request));
+    }
+    throwForbidden(details, request) {
+        throw new auth_exception_1.ForbiddenException(details, this.getRequestPath(request));
+    }
+    throwUserNotFound(details, request) {
+        throw new auth_exception_1.UserNotFoundException(details, this.getRequestPath(request));
+    }
+    throwEmailAlreadyExists(details, request) {
+        throw new auth_exception_1.EmailAlreadyExistsException(details, this.getRequestPath(request));
+    }
+    throwGoogleTokenInvalid(details, request) {
+        throw new auth_exception_1.GoogleTokenInvalidException(details, this.getRequestPath(request));
+    }
+    throwDatabaseConnection(details, request) {
+        throw new database_exception_1.DatabaseConnectionException(details, this.getRequestPath(request));
+    }
+    throwDatabaseQuery(details, request) {
+        throw new database_exception_1.DatabaseQueryException(details, this.getRequestPath(request));
+    }
+    throwRecordNotFound(details, request) {
+        throw new database_exception_1.RecordNotFoundException(details, this.getRequestPath(request));
+    }
+    throwDuplicateEntry(details, request) {
+        throw new database_exception_1.DuplicateEntryException(details, this.getRequestPath(request));
+    }
+    throwConstraintViolation(details, request) {
+        throw new database_exception_1.ConstraintViolationException(details, this.getRequestPath(request));
+    }
+    throwBusinessRule(message, businessCode, context, request) {
+        throw new business_exception_1.BusinessException(message, businessCode, exception_constants_1.HTTP_STATUS_CODES.BAD_REQUEST, context, this.getRequestPath(request));
+    }
+    throwInsufficientPermissions(details, request) {
+        throw new business_exception_1.InsufficientPermissionsException(details, this.getRequestPath(request));
+    }
+    throwResourceNotAvailable(details, request) {
+        throw new business_exception_1.ResourceNotAvailableException(details, this.getRequestPath(request));
+    }
+    throwValidation(message, validationErrors, request) {
+        throw new validation_exception_1.ValidationException(message, validationErrors, this.getRequestPath(request));
+    }
+    throwRequiredField(fieldName, request) {
+        throw new validation_exception_1.RequiredFieldException(fieldName, this.getRequestPath(request));
+    }
+    throwInvalidFormat(fieldName, expectedFormat, request) {
+        throw new validation_exception_1.InvalidFormatException(fieldName, expectedFormat, this.getRequestPath(request));
+    }
+    throwGeneric(message, statusCode, code, details, request) {
+        class GenericException extends base_exception_1.BaseException {
+        }
+        throw new GenericException(message, statusCode, code, details, this.getRequestPath(request));
+    }
+    throwMicroserviceConnection(serviceName, details, request) {
+        class MicroserviceException extends base_exception_1.BaseException {
+        }
+        throw new MicroserviceException(`Impossible de contacter le service ${serviceName}`, exception_constants_1.HTTP_STATUS_CODES.SERVICE_UNAVAILABLE, exception_constants_1.EXCEPTION_CODES.MICROSERVICE_CONNECTION_ERROR, { serviceName, ...details }, this.getRequestPath(request));
+    }
+    throwInternalError(message = 'Erreur interne du serveur', details, request) {
+        class InternalException extends base_exception_1.BaseException {
+        }
+        throw new InternalException(message, exception_constants_1.HTTP_STATUS_CODES.INTERNAL_SERVER_ERROR, exception_constants_1.EXCEPTION_CODES.INTERNAL_SERVER_ERROR, details, this.getRequestPath(request));
+    }
+};
+exports.ExceptionThrower = ExceptionThrower;
+exports.ExceptionThrower = ExceptionThrower = __decorate([
+    (0, common_1.Injectable)()
+], ExceptionThrower);
 
 
 /***/ }),
@@ -2951,10 +4907,12 @@ const swagger_1 = __webpack_require__(/*! @nestjs/swagger */ "@nestjs/swagger");
 const api_gateway_module_1 = __webpack_require__(/*! ./api-gateway.module */ "./apps/api-gateway/src/api-gateway.module.ts");
 const src_1 = __webpack_require__(/*! libs/logger/src */ "./libs/logger/src/index.ts");
 const config_1 = __webpack_require__(/*! @app/config */ "./libs/config/src/index.ts");
+const exceptions_1 = __webpack_require__(/*! @app/exceptions */ "./libs/exceptions/src/index.ts");
 async function bootstrap() {
     const app = await core_1.NestFactory.create(api_gateway_module_1.ApiGatewayModule);
     const globalConfig = app.get(config_1.GlobalConfigService);
     app.enableCors();
+    app.useGlobalFilters(app.get(exceptions_1.GlobalExceptionFilter));
     app.useGlobalPipes(new common_1.ValidationPipe({
         whitelist: true,
         forbidNonWhitelisted: true,

@@ -24,12 +24,20 @@ const auth_module_1 = __webpack_require__(/*! ./auth/auth.module */ "./apps/auth
 const user_module_1 = __webpack_require__(/*! ./user/user.module */ "./apps/auth-service/src/user/user.module.ts");
 const prisma_module_1 = __webpack_require__(/*! ./prisma/prisma.module */ "./apps/auth-service/src/prisma/prisma.module.ts");
 const health_controller_1 = __webpack_require__(/*! ./health/health.controller */ "./apps/auth-service/src/health/health.controller.ts");
+const exceptions_1 = __webpack_require__(/*! @app/exceptions */ "./libs/exceptions/src/index.ts");
 let AppModule = class AppModule {
 };
 exports.AppModule = AppModule;
 exports.AppModule = AppModule = __decorate([
     (0, common_1.Module)({
-        imports: [config_1.GlobalConfigModule, src_1.LoggerModule, prisma_module_1.PrismaModule, user_module_1.UserModule, auth_module_1.AuthModule],
+        imports: [
+            config_1.GlobalConfigModule,
+            src_1.LoggerModule,
+            prisma_module_1.PrismaModule,
+            user_module_1.UserModule,
+            auth_module_1.AuthModule,
+            exceptions_1.ExceptionsModule,
+        ],
         controllers: [health_controller_1.HealthController],
     })
 ], AppModule);
@@ -56,7 +64,7 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 var __param = (this && this.__param) || function (paramIndex, decorator) {
     return function (target, key) { decorator(target, key, paramIndex); }
 };
-var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l, _m, _o, _p;
+var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l, _m, _o, _p, _q;
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.AuthController = void 0;
 const common_1 = __webpack_require__(/*! @nestjs/common */ "@nestjs/common");
@@ -66,57 +74,206 @@ const user_service_1 = __webpack_require__(/*! ../user/user.service */ "./apps/a
 const login_dto_1 = __webpack_require__(/*! ./dto/login.dto */ "./apps/auth-service/src/auth/dto/login.dto.ts");
 const user_dto_1 = __webpack_require__(/*! libs/contracts/src/User/dtos/user.dto */ "./libs/contracts/src/User/dtos/user.dto.ts");
 const src_1 = __webpack_require__(/*! libs/logger/src */ "./libs/logger/src/index.ts");
+const exceptions_1 = __webpack_require__(/*! @app/exceptions */ "./libs/exceptions/src/index.ts");
 let AuthController = class AuthController {
     authService;
     userService;
     logger;
-    constructor(authService, userService, logger) {
+    thrower;
+    constructor(authService, userService, logger, thrower) {
         this.authService = authService;
         this.userService = userService;
         this.logger = logger;
+        this.thrower = thrower;
     }
     async register(createUserDto) {
-        this.logger.info('Inscription utilisateur (microservice)', { email: createUserDto.email });
-        return this.authService.register(createUserDto);
+        try {
+            this.logger.info('Inscription utilisateur (microservice)', { email: createUserDto.email });
+            return await this.authService.register(createUserDto);
+        }
+        catch (error) {
+            this.logger.error("Erreur lors de l'inscription:", error);
+            this.handleServiceError(error, 'register');
+        }
     }
     async login(loginDto) {
-        this.logger.info('Connexion utilisateur (microservice)', { email: loginDto.email });
-        return this.authService.loginWithCredentials(loginDto);
+        try {
+            this.logger.info('Connexion utilisateur (microservice)', { email: loginDto.email });
+            return await this.authService.loginWithCredentials(loginDto);
+        }
+        catch (error) {
+            this.logger.error('Erreur lors de la connexion:', error);
+            this.handleServiceError(error, 'login');
+        }
     }
     async validateToken(token) {
-        this.logger.info('Validation du token (microservice)');
-        return await this.authService.validateToken(token);
+        try {
+            this.logger.info('Validation du token (microservice)');
+            return await this.authService.validateToken(token);
+        }
+        catch (error) {
+            this.logger.error('Erreur lors de la validation du token:', error);
+            this.handleServiceError(error, 'validate_token');
+        }
     }
     async validateRefreshToken(token) {
-        this.logger.info('Validation du refresh token (microservice)');
-        return await this.authService.validateToken(token, true);
+        try {
+            this.logger.info('Validation du refresh token (microservice)');
+            return await this.authService.validateToken(token, true);
+        }
+        catch (error) {
+            this.logger.error('Erreur lors de la validation du refresh token:', error);
+            this.handleServiceError(error, 'validate_refresh_token');
+        }
     }
     async googleLogin(googleUser) {
-        this.logger.info('Connexion Google (microservice)', { email: googleUser?.email });
-        return this.authService.googleLogin(googleUser);
+        try {
+            this.logger.info('Connexion Google (microservice)', { email: googleUser?.email });
+            return await this.authService.googleLogin(googleUser);
+        }
+        catch (error) {
+            this.logger.error('Erreur lors de la connexion Google:', error);
+            this.handleServiceError(error, 'google_login');
+        }
     }
     async googleVerifyIdToken(idToken) {
-        this.logger.info('Vérification Google ID Token (microservice)');
-        return this.authService.verifyGoogleIdTokenAndLogin(idToken);
+        try {
+            this.logger.info('Vérification Google ID Token (microservice)');
+            return await this.authService.verifyGoogleIdTokenAndLogin(idToken);
+        }
+        catch (error) {
+            this.logger.error('Erreur lors de la vérification du Google ID Token:', error);
+            this.handleServiceError(error, 'google_verify_id_token');
+        }
     }
     async validateGoogleUser(googleUserData) {
-        this.logger.info('Validation utilisateur Google (microservice)', {
-            email: googleUserData?.email,
-        });
-        return await this.authService.validateGoogleUser(googleUserData);
+        try {
+            this.logger.info('Validation utilisateur Google (microservice)', {
+                email: googleUserData?.email,
+            });
+            return await this.authService.validateGoogleUser(googleUserData);
+        }
+        catch (error) {
+            this.logger.error("Erreur lors de la validation de l'utilisateur Google:", error);
+            this.handleServiceError(error, 'validate_google_user');
+        }
     }
     async refreshToken(refreshToken) {
-        this.logger.info('Renouvellement du token (microservice)');
-        return await this.authService.refreshAccessToken(refreshToken);
+        try {
+            this.logger.info('Renouvellement du token (microservice)');
+            return await this.authService.refreshAccessToken(refreshToken);
+        }
+        catch (error) {
+            this.logger.error('Erreur lors du renouvellement du token:', error);
+            this.handleServiceError(error, 'refresh_token');
+        }
     }
     async getUserFromToken(token) {
-        this.logger.info('Récupération utilisateur depuis token (microservice)');
-        return await this.authService.getCurrentUserFromToken(token);
+        try {
+            this.logger.info('Récupération utilisateur depuis token (microservice)');
+            return await this.authService.getCurrentUserFromToken(token);
+        }
+        catch (error) {
+            this.logger.error("Erreur lors de la récupération de l'utilisateur:", error);
+            this.handleServiceError(error, 'get_user_from_token');
+        }
     }
     async revokeToken(token) {
-        this.logger.info('Révocation du token (microservice)');
-        const success = await this.authService.revokeToken(token);
-        return { success };
+        try {
+            this.logger.info('Révocation du token (microservice)');
+            const success = await this.authService.revokeToken(token);
+            return { success };
+        }
+        catch (error) {
+            this.logger.error('Erreur lors de la révocation du token:', error);
+            this.handleServiceError(error, 'revoke_token');
+        }
+    }
+    handleServiceError(error, operation) {
+        this.logger.error(`Erreur dans l'opération ${operation}:`, error);
+        if (this.isPrismaError(error)) {
+            this.handlePrismaError(error);
+        }
+        if (this.isJwtError(error)) {
+            if (error.name === 'TokenExpiredError') {
+                this.thrower.throwTokenExpired({ operation, originalError: error.message });
+            }
+            else if (error.name === 'JsonWebTokenError') {
+                this.thrower.throwInvalidToken({ operation, originalError: error.message });
+            }
+        }
+        if (error.message?.includes('Invalid credentials') || error.message?.includes('Identifiants')) {
+            this.thrower.throwInvalidCredentials({ operation });
+        }
+        if (error.message?.includes('User not found') ||
+            error.message?.includes('Utilisateur introuvable')) {
+            this.thrower.throwUserNotFound({ operation });
+        }
+        if (error.message?.includes('Email already exists') ||
+            error.message?.includes('Email déjà utilisé')) {
+            this.thrower.throwEmailAlreadyExists({ operation });
+        }
+        if (error.message?.includes('Google token') || error.message?.includes('Token Google')) {
+            this.thrower.throwGoogleTokenInvalid({ operation, originalError: error.message });
+        }
+        if (error.name === 'ValidationError' || error.message?.includes('validation')) {
+            this.thrower.throwValidation('Erreur de validation', [
+                {
+                    field: 'unknown',
+                    value: error.value,
+                    constraints: [error.message],
+                },
+            ]);
+        }
+        if (error.code === 'ECONNREFUSED' || error.message?.includes('database server')) {
+            this.thrower.throwDatabaseConnection({ operation, originalError: error.message });
+        }
+        this.thrower.throwInternalError("Erreur interne du service d'authentification", {
+            operation,
+            originalError: error.message,
+            stack: process.env.NODE_ENV === 'development' ? error.stack : undefined,
+        });
+    }
+    isPrismaError(error) {
+        return (error &&
+            typeof error === 'object' &&
+            'code' in error &&
+            ('clientVersion' in error || 'meta' in error));
+    }
+    handlePrismaError(error) {
+        const prismaCode = error.code;
+        switch (prismaCode) {
+            case 'P1001':
+                this.thrower.throwDatabaseConnection({
+                    prismaCode,
+                    originalError: error.message,
+                });
+                break;
+            case 'P2002':
+                this.thrower.throwDuplicateEntry({
+                    prismaCode,
+                    target: error.meta?.target,
+                    originalError: error.message,
+                });
+                break;
+            case 'P2025':
+                this.thrower.throwRecordNotFound({
+                    prismaCode,
+                    originalError: error.message,
+                });
+                break;
+            default:
+                this.thrower.throwDatabaseQuery({
+                    prismaCode,
+                    originalError: error.message,
+                });
+        }
+    }
+    isJwtError(error) {
+        return (error &&
+            (error.name === 'TokenExpiredError' ||
+                error.name === 'JsonWebTokenError' ||
+                error.name === 'NotBeforeError'));
     }
 };
 exports.AuthController = AuthController;
@@ -124,57 +281,57 @@ __decorate([
     (0, microservices_1.MessagePattern)({ cmd: 'register_user' }),
     __param(0, (0, microservices_1.Payload)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [typeof (_d = typeof user_dto_1.CreateUserDto !== "undefined" && user_dto_1.CreateUserDto) === "function" ? _d : Object]),
-    __metadata("design:returntype", typeof (_e = typeof Promise !== "undefined" && Promise) === "function" ? _e : Object)
+    __metadata("design:paramtypes", [typeof (_e = typeof user_dto_1.CreateUserDto !== "undefined" && user_dto_1.CreateUserDto) === "function" ? _e : Object]),
+    __metadata("design:returntype", typeof (_f = typeof Promise !== "undefined" && Promise) === "function" ? _f : Object)
 ], AuthController.prototype, "register", null);
 __decorate([
     (0, microservices_1.MessagePattern)({ cmd: 'login_user' }),
     __param(0, (0, microservices_1.Payload)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [typeof (_f = typeof login_dto_1.LoginDto !== "undefined" && login_dto_1.LoginDto) === "function" ? _f : Object]),
-    __metadata("design:returntype", typeof (_g = typeof Promise !== "undefined" && Promise) === "function" ? _g : Object)
+    __metadata("design:paramtypes", [typeof (_g = typeof login_dto_1.LoginDto !== "undefined" && login_dto_1.LoginDto) === "function" ? _g : Object]),
+    __metadata("design:returntype", typeof (_h = typeof Promise !== "undefined" && Promise) === "function" ? _h : Object)
 ], AuthController.prototype, "login", null);
 __decorate([
     (0, microservices_1.MessagePattern)({ cmd: 'validate_token' }),
     __param(0, (0, microservices_1.Payload)()),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [String]),
-    __metadata("design:returntype", typeof (_h = typeof Promise !== "undefined" && Promise) === "function" ? _h : Object)
+    __metadata("design:returntype", typeof (_j = typeof Promise !== "undefined" && Promise) === "function" ? _j : Object)
 ], AuthController.prototype, "validateToken", null);
 __decorate([
     (0, microservices_1.MessagePattern)({ cmd: 'validate_refresh_token' }),
     __param(0, (0, microservices_1.Payload)()),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [String]),
-    __metadata("design:returntype", typeof (_j = typeof Promise !== "undefined" && Promise) === "function" ? _j : Object)
+    __metadata("design:returntype", typeof (_k = typeof Promise !== "undefined" && Promise) === "function" ? _k : Object)
 ], AuthController.prototype, "validateRefreshToken", null);
 __decorate([
     (0, microservices_1.MessagePattern)({ cmd: 'google_login' }),
     __param(0, (0, microservices_1.Payload)()),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [Object]),
-    __metadata("design:returntype", typeof (_k = typeof Promise !== "undefined" && Promise) === "function" ? _k : Object)
+    __metadata("design:returntype", typeof (_l = typeof Promise !== "undefined" && Promise) === "function" ? _l : Object)
 ], AuthController.prototype, "googleLogin", null);
 __decorate([
     (0, microservices_1.MessagePattern)({ cmd: 'google_verify_id_token' }),
     __param(0, (0, microservices_1.Payload)()),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [String]),
-    __metadata("design:returntype", typeof (_l = typeof Promise !== "undefined" && Promise) === "function" ? _l : Object)
+    __metadata("design:returntype", typeof (_m = typeof Promise !== "undefined" && Promise) === "function" ? _m : Object)
 ], AuthController.prototype, "googleVerifyIdToken", null);
 __decorate([
     (0, microservices_1.MessagePattern)({ cmd: 'validate_google_user' }),
     __param(0, (0, microservices_1.Payload)()),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [Object]),
-    __metadata("design:returntype", typeof (_m = typeof Promise !== "undefined" && Promise) === "function" ? _m : Object)
+    __metadata("design:returntype", typeof (_o = typeof Promise !== "undefined" && Promise) === "function" ? _o : Object)
 ], AuthController.prototype, "validateGoogleUser", null);
 __decorate([
     (0, microservices_1.MessagePattern)({ cmd: 'refresh_token' }),
     __param(0, (0, microservices_1.Payload)()),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [String]),
-    __metadata("design:returntype", typeof (_o = typeof Promise !== "undefined" && Promise) === "function" ? _o : Object)
+    __metadata("design:returntype", typeof (_p = typeof Promise !== "undefined" && Promise) === "function" ? _p : Object)
 ], AuthController.prototype, "refreshToken", null);
 __decorate([
     (0, microservices_1.MessagePattern)({ cmd: 'get_user_from_token' }),
@@ -188,11 +345,11 @@ __decorate([
     __param(0, (0, microservices_1.Payload)()),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [String]),
-    __metadata("design:returntype", typeof (_p = typeof Promise !== "undefined" && Promise) === "function" ? _p : Object)
+    __metadata("design:returntype", typeof (_q = typeof Promise !== "undefined" && Promise) === "function" ? _q : Object)
 ], AuthController.prototype, "revokeToken", null);
 exports.AuthController = AuthController = __decorate([
     (0, common_1.Controller)(),
-    __metadata("design:paramtypes", [typeof (_a = typeof auth_service_1.AuthService !== "undefined" && auth_service_1.AuthService) === "function" ? _a : Object, typeof (_b = typeof user_service_1.UserService !== "undefined" && user_service_1.UserService) === "function" ? _b : Object, typeof (_c = typeof src_1.LoggerService !== "undefined" && src_1.LoggerService) === "function" ? _c : Object])
+    __metadata("design:paramtypes", [typeof (_a = typeof auth_service_1.AuthService !== "undefined" && auth_service_1.AuthService) === "function" ? _a : Object, typeof (_b = typeof user_service_1.UserService !== "undefined" && user_service_1.UserService) === "function" ? _b : Object, typeof (_c = typeof src_1.LoggerService !== "undefined" && src_1.LoggerService) === "function" ? _c : Object, typeof (_d = typeof exceptions_1.ExceptionThrower !== "undefined" && exceptions_1.ExceptionThrower) === "function" ? _d : Object])
 ], AuthController);
 
 
@@ -220,6 +377,7 @@ const auth_service_1 = __webpack_require__(/*! ./auth.service */ "./apps/auth-se
 const auth_controller_1 = __webpack_require__(/*! ./auth.controller */ "./apps/auth-service/src/auth/auth.controller.ts");
 const user_module_1 = __webpack_require__(/*! ../user/user.module */ "./apps/auth-service/src/user/user.module.ts");
 const src_1 = __webpack_require__(/*! libs/logger/src */ "./libs/logger/src/index.ts");
+const exceptions_1 = __webpack_require__(/*! @app/exceptions */ "./libs/exceptions/src/index.ts");
 let AuthModule = class AuthModule {
 };
 exports.AuthModule = AuthModule;
@@ -229,6 +387,7 @@ exports.AuthModule = AuthModule = __decorate([
             config_1.ConfigModule,
             user_module_1.UserModule,
             src_1.LoggerModule,
+            exceptions_1.ExceptionsModule,
             jwt_1.JwtModule.registerAsync({
                 imports: [config_1.ConfigModule],
                 useFactory: async (configService) => ({
@@ -1212,6 +1371,684 @@ __decorate([
 
 /***/ }),
 
+/***/ "./libs/exceptions/src/constants/exception.constants.ts":
+/*!**************************************************************!*\
+  !*** ./libs/exceptions/src/constants/exception.constants.ts ***!
+  \**************************************************************/
+/***/ ((__unused_webpack_module, exports) => {
+
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.HTTP_STATUS_CODES = exports.EXCEPTION_CODES = void 0;
+exports.EXCEPTION_CODES = {
+    AUTH_INVALID_CREDENTIALS: 'AUTH_INVALID_CREDENTIALS',
+    AUTH_TOKEN_EXPIRED: 'AUTH_TOKEN_EXPIRED',
+    AUTH_TOKEN_INVALID: 'AUTH_TOKEN_INVALID',
+    AUTH_UNAUTHORIZED: 'AUTH_UNAUTHORIZED',
+    AUTH_FORBIDDEN: 'AUTH_FORBIDDEN',
+    AUTH_USER_NOT_FOUND: 'AUTH_USER_NOT_FOUND',
+    AUTH_EMAIL_ALREADY_EXISTS: 'AUTH_EMAIL_ALREADY_EXISTS',
+    AUTH_GOOGLE_TOKEN_INVALID: 'AUTH_GOOGLE_TOKEN_INVALID',
+    DB_CONNECTION_ERROR: 'DB_CONNECTION_ERROR',
+    DB_QUERY_ERROR: 'DB_QUERY_ERROR',
+    DB_RECORD_NOT_FOUND: 'DB_RECORD_NOT_FOUND',
+    DB_DUPLICATE_ENTRY: 'DB_DUPLICATE_ENTRY',
+    DB_CONSTRAINT_VIOLATION: 'DB_CONSTRAINT_VIOLATION',
+    VALIDATION_ERROR: 'VALIDATION_ERROR',
+    VALIDATION_REQUIRED_FIELD: 'VALIDATION_REQUIRED_FIELD',
+    VALIDATION_INVALID_FORMAT: 'VALIDATION_INVALID_FORMAT',
+    BUSINESS_RULE_VIOLATION: 'BUSINESS_RULE_VIOLATION',
+    INSUFFICIENT_PERMISSIONS: 'INSUFFICIENT_PERMISSIONS',
+    RESOURCE_NOT_AVAILABLE: 'RESOURCE_NOT_AVAILABLE',
+    INTERNAL_SERVER_ERROR: 'INTERNAL_SERVER_ERROR',
+    SERVICE_UNAVAILABLE: 'SERVICE_UNAVAILABLE',
+    MICROSERVICE_CONNECTION_ERROR: 'MICROSERVICE_CONNECTION_ERROR',
+};
+exports.HTTP_STATUS_CODES = {
+    OK: 200,
+    CREATED: 201,
+    BAD_REQUEST: 400,
+    UNAUTHORIZED: 401,
+    FORBIDDEN: 403,
+    NOT_FOUND: 404,
+    CONFLICT: 409,
+    UNPROCESSABLE_ENTITY: 422,
+    INTERNAL_SERVER_ERROR: 500,
+    SERVICE_UNAVAILABLE: 503,
+};
+
+
+/***/ }),
+
+/***/ "./libs/exceptions/src/exceptions.module.ts":
+/*!**************************************************!*\
+  !*** ./libs/exceptions/src/exceptions.module.ts ***!
+  \**************************************************/
+/***/ (function(__unused_webpack_module, exports, __webpack_require__) {
+
+
+var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
+    var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
+    if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
+    else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+    return c > 3 && r && Object.defineProperty(target, key, r), r;
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.ExceptionsModule = void 0;
+const common_1 = __webpack_require__(/*! @nestjs/common */ "@nestjs/common");
+const exception_thrower_1 = __webpack_require__(/*! ./throwers/exception.thrower */ "./libs/exceptions/src/throwers/exception.thrower.ts");
+const global_exception_filter_1 = __webpack_require__(/*! ./filters/global-exception.filter */ "./libs/exceptions/src/filters/global-exception.filter.ts");
+let ExceptionsModule = class ExceptionsModule {
+};
+exports.ExceptionsModule = ExceptionsModule;
+exports.ExceptionsModule = ExceptionsModule = __decorate([
+    (0, common_1.Global)(),
+    (0, common_1.Module)({
+        providers: [exception_thrower_1.ExceptionThrower, global_exception_filter_1.GlobalExceptionFilter],
+        exports: [exception_thrower_1.ExceptionThrower, global_exception_filter_1.GlobalExceptionFilter],
+    })
+], ExceptionsModule);
+
+
+/***/ }),
+
+/***/ "./libs/exceptions/src/exceptions/auth.exception.ts":
+/*!**********************************************************!*\
+  !*** ./libs/exceptions/src/exceptions/auth.exception.ts ***!
+  \**********************************************************/
+/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
+
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.GoogleTokenInvalidException = exports.EmailAlreadyExistsException = exports.UserNotFoundException = exports.ForbiddenException = exports.UnauthorizedException = exports.InvalidTokenException = exports.TokenExpiredException = exports.InvalidCredentialsException = exports.AuthException = void 0;
+const base_exception_1 = __webpack_require__(/*! ./base.exception */ "./libs/exceptions/src/exceptions/base.exception.ts");
+const exception_constants_1 = __webpack_require__(/*! ../constants/exception.constants */ "./libs/exceptions/src/constants/exception.constants.ts");
+class AuthException extends base_exception_1.BaseException {
+    constructor(message, code, details, path) {
+        super(message, exception_constants_1.HTTP_STATUS_CODES.UNAUTHORIZED, code, details, path);
+    }
+}
+exports.AuthException = AuthException;
+class InvalidCredentialsException extends AuthException {
+    constructor(details, path) {
+        super('Identifiants invalides', exception_constants_1.EXCEPTION_CODES.AUTH_INVALID_CREDENTIALS, details, path);
+    }
+}
+exports.InvalidCredentialsException = InvalidCredentialsException;
+class TokenExpiredException extends AuthException {
+    constructor(details, path) {
+        super('Token expiré', exception_constants_1.EXCEPTION_CODES.AUTH_TOKEN_EXPIRED, details, path);
+    }
+}
+exports.TokenExpiredException = TokenExpiredException;
+class InvalidTokenException extends AuthException {
+    constructor(details, path) {
+        super('Token invalide', exception_constants_1.EXCEPTION_CODES.AUTH_TOKEN_INVALID, details, path);
+    }
+}
+exports.InvalidTokenException = InvalidTokenException;
+class UnauthorizedException extends AuthException {
+    constructor(details, path) {
+        super('Non autorisé', exception_constants_1.EXCEPTION_CODES.AUTH_UNAUTHORIZED, details, path);
+    }
+}
+exports.UnauthorizedException = UnauthorizedException;
+class ForbiddenException extends base_exception_1.BaseException {
+    constructor(details, path) {
+        super('Accès interdit', exception_constants_1.HTTP_STATUS_CODES.FORBIDDEN, exception_constants_1.EXCEPTION_CODES.AUTH_FORBIDDEN, details, path);
+    }
+}
+exports.ForbiddenException = ForbiddenException;
+class UserNotFoundException extends base_exception_1.BaseException {
+    constructor(details, path) {
+        super('Utilisateur introuvable', exception_constants_1.HTTP_STATUS_CODES.NOT_FOUND, exception_constants_1.EXCEPTION_CODES.AUTH_USER_NOT_FOUND, details, path);
+    }
+}
+exports.UserNotFoundException = UserNotFoundException;
+class EmailAlreadyExistsException extends base_exception_1.BaseException {
+    constructor(details, path) {
+        super('Cet email est déjà utilisé', exception_constants_1.HTTP_STATUS_CODES.CONFLICT, exception_constants_1.EXCEPTION_CODES.AUTH_EMAIL_ALREADY_EXISTS, details, path);
+    }
+}
+exports.EmailAlreadyExistsException = EmailAlreadyExistsException;
+class GoogleTokenInvalidException extends AuthException {
+    constructor(details, path) {
+        super('Token Google invalide', exception_constants_1.EXCEPTION_CODES.AUTH_GOOGLE_TOKEN_INVALID, details, path);
+    }
+}
+exports.GoogleTokenInvalidException = GoogleTokenInvalidException;
+
+
+/***/ }),
+
+/***/ "./libs/exceptions/src/exceptions/base.exception.ts":
+/*!**********************************************************!*\
+  !*** ./libs/exceptions/src/exceptions/base.exception.ts ***!
+  \**********************************************************/
+/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
+
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.BaseException = void 0;
+const common_1 = __webpack_require__(/*! @nestjs/common */ "@nestjs/common");
+class BaseException extends common_1.HttpException {
+    statusCode;
+    code;
+    timestamp;
+    details;
+    path;
+    constructor(message, statusCode, code, details, path) {
+        super(message, statusCode);
+        this.statusCode = statusCode;
+        this.code = code;
+        this.timestamp = new Date();
+        this.details = details;
+        this.path = path;
+    }
+    toJSON() {
+        return {
+            message: this.message,
+            statusCode: this.getStatus(),
+            code: this.code,
+            details: this.details,
+            timestamp: this.timestamp,
+            path: this.path,
+        };
+    }
+}
+exports.BaseException = BaseException;
+
+
+/***/ }),
+
+/***/ "./libs/exceptions/src/exceptions/business.exception.ts":
+/*!**************************************************************!*\
+  !*** ./libs/exceptions/src/exceptions/business.exception.ts ***!
+  \**************************************************************/
+/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
+
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.ResourceNotAvailableException = exports.InsufficientPermissionsException = exports.BusinessException = void 0;
+const base_exception_1 = __webpack_require__(/*! ./base.exception */ "./libs/exceptions/src/exceptions/base.exception.ts");
+const exception_constants_1 = __webpack_require__(/*! ../constants/exception.constants */ "./libs/exceptions/src/constants/exception.constants.ts");
+class BusinessException extends base_exception_1.BaseException {
+    businessCode;
+    context;
+    constructor(message, businessCode, statusCode = exception_constants_1.HTTP_STATUS_CODES.BAD_REQUEST, context, path) {
+        super(message, statusCode, exception_constants_1.EXCEPTION_CODES.BUSINESS_RULE_VIOLATION, { businessCode, context }, path);
+        this.businessCode = businessCode;
+        this.context = context;
+    }
+}
+exports.BusinessException = BusinessException;
+class InsufficientPermissionsException extends base_exception_1.BaseException {
+    constructor(details, path) {
+        super('Permissions insuffisantes', exception_constants_1.HTTP_STATUS_CODES.FORBIDDEN, exception_constants_1.EXCEPTION_CODES.INSUFFICIENT_PERMISSIONS, details, path);
+    }
+}
+exports.InsufficientPermissionsException = InsufficientPermissionsException;
+class ResourceNotAvailableException extends base_exception_1.BaseException {
+    constructor(details, path) {
+        super('Ressource non disponible', exception_constants_1.HTTP_STATUS_CODES.NOT_FOUND, exception_constants_1.EXCEPTION_CODES.RESOURCE_NOT_AVAILABLE, details, path);
+    }
+}
+exports.ResourceNotAvailableException = ResourceNotAvailableException;
+
+
+/***/ }),
+
+/***/ "./libs/exceptions/src/exceptions/database.exception.ts":
+/*!**************************************************************!*\
+  !*** ./libs/exceptions/src/exceptions/database.exception.ts ***!
+  \**************************************************************/
+/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
+
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.ConstraintViolationException = exports.DuplicateEntryException = exports.RecordNotFoundException = exports.DatabaseQueryException = exports.DatabaseConnectionException = exports.DatabaseException = void 0;
+const base_exception_1 = __webpack_require__(/*! ./base.exception */ "./libs/exceptions/src/exceptions/base.exception.ts");
+const exception_constants_1 = __webpack_require__(/*! ../constants/exception.constants */ "./libs/exceptions/src/constants/exception.constants.ts");
+class DatabaseException extends base_exception_1.BaseException {
+    constructor(message, code, details, path) {
+        super(message, exception_constants_1.HTTP_STATUS_CODES.INTERNAL_SERVER_ERROR, code, details, path);
+    }
+}
+exports.DatabaseException = DatabaseException;
+class DatabaseConnectionException extends DatabaseException {
+    constructor(details, path) {
+        super('Erreur de connexion à la base de données', exception_constants_1.EXCEPTION_CODES.DB_CONNECTION_ERROR, details, path);
+    }
+}
+exports.DatabaseConnectionException = DatabaseConnectionException;
+class DatabaseQueryException extends DatabaseException {
+    constructor(details, path) {
+        super("Erreur lors de l'exécution de la requête", exception_constants_1.EXCEPTION_CODES.DB_QUERY_ERROR, details, path);
+    }
+}
+exports.DatabaseQueryException = DatabaseQueryException;
+class RecordNotFoundException extends base_exception_1.BaseException {
+    constructor(details, path) {
+        super('Enregistrement introuvable', exception_constants_1.HTTP_STATUS_CODES.NOT_FOUND, exception_constants_1.EXCEPTION_CODES.DB_RECORD_NOT_FOUND, details, path);
+    }
+}
+exports.RecordNotFoundException = RecordNotFoundException;
+class DuplicateEntryException extends base_exception_1.BaseException {
+    constructor(details, path) {
+        super('Enregistrement déjà existant', exception_constants_1.HTTP_STATUS_CODES.CONFLICT, exception_constants_1.EXCEPTION_CODES.DB_DUPLICATE_ENTRY, details, path);
+    }
+}
+exports.DuplicateEntryException = DuplicateEntryException;
+class ConstraintViolationException extends base_exception_1.BaseException {
+    constructor(details, path) {
+        super('Violation de contrainte de base de données', exception_constants_1.HTTP_STATUS_CODES.BAD_REQUEST, exception_constants_1.EXCEPTION_CODES.DB_CONSTRAINT_VIOLATION, details, path);
+    }
+}
+exports.ConstraintViolationException = ConstraintViolationException;
+
+
+/***/ }),
+
+/***/ "./libs/exceptions/src/exceptions/validation.exception.ts":
+/*!****************************************************************!*\
+  !*** ./libs/exceptions/src/exceptions/validation.exception.ts ***!
+  \****************************************************************/
+/***/ ((__unused_webpack_module, exports, __webpack_require__) => {
+
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.InvalidFormatException = exports.RequiredFieldException = exports.ValidationException = void 0;
+const base_exception_1 = __webpack_require__(/*! ./base.exception */ "./libs/exceptions/src/exceptions/base.exception.ts");
+const exception_constants_1 = __webpack_require__(/*! ../constants/exception.constants */ "./libs/exceptions/src/constants/exception.constants.ts");
+class ValidationException extends base_exception_1.BaseException {
+    validationErrors;
+    constructor(message, validationErrors, path) {
+        super(message, exception_constants_1.HTTP_STATUS_CODES.UNPROCESSABLE_ENTITY, exception_constants_1.EXCEPTION_CODES.VALIDATION_ERROR, { validationErrors }, path);
+        this.validationErrors = validationErrors;
+    }
+}
+exports.ValidationException = ValidationException;
+class RequiredFieldException extends base_exception_1.BaseException {
+    constructor(fieldName, path) {
+        super(`Le champ '${fieldName}' est requis`, exception_constants_1.HTTP_STATUS_CODES.BAD_REQUEST, exception_constants_1.EXCEPTION_CODES.VALIDATION_REQUIRED_FIELD, { fieldName }, path);
+    }
+}
+exports.RequiredFieldException = RequiredFieldException;
+class InvalidFormatException extends base_exception_1.BaseException {
+    constructor(fieldName, expectedFormat, path) {
+        super(`Format invalide pour le champ '${fieldName}'. Format attendu: ${expectedFormat}`, exception_constants_1.HTTP_STATUS_CODES.BAD_REQUEST, exception_constants_1.EXCEPTION_CODES.VALIDATION_INVALID_FORMAT, { fieldName, expectedFormat }, path);
+    }
+}
+exports.InvalidFormatException = InvalidFormatException;
+
+
+/***/ }),
+
+/***/ "./libs/exceptions/src/filters/global-exception.filter.ts":
+/*!****************************************************************!*\
+  !*** ./libs/exceptions/src/filters/global-exception.filter.ts ***!
+  \****************************************************************/
+/***/ (function(__unused_webpack_module, exports, __webpack_require__) {
+
+
+var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
+    var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
+    if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
+    else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+    return c > 3 && r && Object.defineProperty(target, key, r), r;
+};
+var GlobalExceptionFilter_1;
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.GlobalExceptionFilter = void 0;
+const common_1 = __webpack_require__(/*! @nestjs/common */ "@nestjs/common");
+const base_exception_1 = __webpack_require__(/*! ../exceptions/base.exception */ "./libs/exceptions/src/exceptions/base.exception.ts");
+const exception_constants_1 = __webpack_require__(/*! ../constants/exception.constants */ "./libs/exceptions/src/constants/exception.constants.ts");
+let GlobalExceptionFilter = GlobalExceptionFilter_1 = class GlobalExceptionFilter {
+    logger = new common_1.Logger(GlobalExceptionFilter_1.name);
+    catch(exception, host) {
+        const ctx = host.switchToHttp();
+        const response = ctx.getResponse();
+        const request = ctx.getRequest();
+        const exceptionResponse = this.buildExceptionResponse(exception, request);
+        this.logException(exception, request, exceptionResponse);
+        response.status(exceptionResponse.statusCode).json(exceptionResponse);
+    }
+    buildExceptionResponse(exception, request) {
+        const timestamp = new Date().toISOString();
+        const path = request.url;
+        if (exception instanceof base_exception_1.BaseException) {
+            return {
+                status: 'error',
+                message: exception.message,
+                code: exception.code,
+                statusCode: exception.getStatus(),
+                timestamp,
+                path,
+                details: exception.details,
+            };
+        }
+        if (exception instanceof common_1.HttpException) {
+            const statusCode = exception.getStatus();
+            const response = exception.getResponse();
+            let message;
+            let details;
+            if (typeof response === 'string') {
+                message = response;
+            }
+            else if (typeof response === 'object' && response !== null) {
+                const responseObj = response;
+                message = responseObj.message ?? responseObj.error ?? 'Erreur HTTP';
+                details = responseObj;
+            }
+            else {
+                message = 'Erreur HTTP';
+            }
+            return {
+                status: 'error',
+                message,
+                code: this.getHttpExceptionCode(statusCode),
+                statusCode,
+                timestamp,
+                path,
+                details,
+            };
+        }
+        if (this.isPrismaError(exception)) {
+            return this.handlePrismaError(exception, timestamp, path);
+        }
+        if (this.isMicroserviceError(exception)) {
+            return {
+                status: 'error',
+                message: 'Service temporairement indisponible',
+                code: exception_constants_1.EXCEPTION_CODES.MICROSERVICE_CONNECTION_ERROR,
+                statusCode: exception_constants_1.HTTP_STATUS_CODES.SERVICE_UNAVAILABLE,
+                timestamp,
+                path,
+                details: { originalError: exception.message },
+            };
+        }
+        return {
+            status: 'error',
+            message: 'Erreur interne du serveur',
+            code: exception_constants_1.EXCEPTION_CODES.INTERNAL_SERVER_ERROR,
+            statusCode: exception_constants_1.HTTP_STATUS_CODES.INTERNAL_SERVER_ERROR,
+            timestamp,
+            path,
+            details: process.env.NODE_ENV === 'development'
+                ? {
+                    originalError: exception.message,
+                    stack: exception.stack,
+                }
+                : undefined,
+        };
+    }
+    logException(exception, request, response) {
+        const { method, url, ip, headers } = request;
+        const userAgent = headers?.['user-agent'] ?? 'Unknown';
+        const logContext = {
+            method,
+            url,
+            ip,
+            userAgent,
+            statusCode: response.statusCode,
+            code: response.code,
+            timestamp: response.timestamp,
+        };
+        if (response.statusCode >= 500) {
+            this.logger.error(`${method} ${url} - ${response.statusCode} ${response.code}: ${response.message}`, exception.stack, logContext);
+        }
+        else if (response.statusCode >= 400) {
+            this.logger.warn(`${method} ${url} - ${response.statusCode} ${response.code}: ${response.message}`, logContext);
+        }
+        else {
+            this.logger.log(`${method} ${url} - ${response.statusCode} ${response.code}: ${response.message}`, logContext);
+        }
+    }
+    getHttpExceptionCode(statusCode) {
+        const httpStatus = statusCode;
+        switch (httpStatus) {
+            case common_1.HttpStatus.BAD_REQUEST:
+                return 'BAD_REQUEST';
+            case common_1.HttpStatus.UNAUTHORIZED:
+                return exception_constants_1.EXCEPTION_CODES.AUTH_UNAUTHORIZED;
+            case common_1.HttpStatus.FORBIDDEN:
+                return exception_constants_1.EXCEPTION_CODES.AUTH_FORBIDDEN;
+            case common_1.HttpStatus.NOT_FOUND:
+                return 'NOT_FOUND';
+            case common_1.HttpStatus.CONFLICT:
+                return 'CONFLICT';
+            case common_1.HttpStatus.UNPROCESSABLE_ENTITY:
+                return exception_constants_1.EXCEPTION_CODES.VALIDATION_ERROR;
+            case common_1.HttpStatus.INTERNAL_SERVER_ERROR:
+                return exception_constants_1.EXCEPTION_CODES.INTERNAL_SERVER_ERROR;
+            case common_1.HttpStatus.SERVICE_UNAVAILABLE:
+                return exception_constants_1.EXCEPTION_CODES.SERVICE_UNAVAILABLE;
+            default:
+                return 'HTTP_EXCEPTION';
+        }
+    }
+    isPrismaError(exception) {
+        return Boolean(exception &&
+            typeof exception === 'object' &&
+            'code' in exception &&
+            ('clientVersion' in exception || 'meta' in exception));
+    }
+    handlePrismaError(exception, timestamp, path) {
+        const prismaCode = exception.code;
+        switch (prismaCode) {
+            case 'P1001':
+                return {
+                    status: 'error',
+                    message: 'Impossible de se connecter à la base de données',
+                    code: exception_constants_1.EXCEPTION_CODES.DB_CONNECTION_ERROR,
+                    statusCode: exception_constants_1.HTTP_STATUS_CODES.SERVICE_UNAVAILABLE,
+                    timestamp,
+                    path,
+                    details: { prismaCode, clientVersion: exception.clientVersion },
+                };
+            case 'P2002':
+                return {
+                    status: 'error',
+                    message: "Violation de contrainte d'unicité",
+                    code: exception_constants_1.EXCEPTION_CODES.DB_DUPLICATE_ENTRY,
+                    statusCode: exception_constants_1.HTTP_STATUS_CODES.CONFLICT,
+                    timestamp,
+                    path,
+                    details: { prismaCode, target: exception.meta?.target },
+                };
+            case 'P2025':
+                return {
+                    status: 'error',
+                    message: 'Enregistrement non trouvé',
+                    code: exception_constants_1.EXCEPTION_CODES.DB_RECORD_NOT_FOUND,
+                    statusCode: exception_constants_1.HTTP_STATUS_CODES.NOT_FOUND,
+                    timestamp,
+                    path,
+                    details: { prismaCode },
+                };
+            default:
+                return {
+                    status: 'error',
+                    message: 'Erreur de base de données',
+                    code: exception_constants_1.EXCEPTION_CODES.DB_QUERY_ERROR,
+                    statusCode: exception_constants_1.HTTP_STATUS_CODES.INTERNAL_SERVER_ERROR,
+                    timestamp,
+                    path,
+                    details: { prismaCode, message: exception.message },
+                };
+        }
+    }
+    isMicroserviceError(exception) {
+        return (exception &&
+            typeof exception === 'object' &&
+            'code' in exception &&
+            (exception.code === 'ECONNREFUSED' ||
+                exception.message?.includes('ECONNREFUSED')));
+    }
+};
+exports.GlobalExceptionFilter = GlobalExceptionFilter;
+exports.GlobalExceptionFilter = GlobalExceptionFilter = GlobalExceptionFilter_1 = __decorate([
+    (0, common_1.Catch)()
+], GlobalExceptionFilter);
+
+
+/***/ }),
+
+/***/ "./libs/exceptions/src/index.ts":
+/*!**************************************!*\
+  !*** ./libs/exceptions/src/index.ts ***!
+  \**************************************/
+/***/ (function(__unused_webpack_module, exports, __webpack_require__) {
+
+
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __exportStar = (this && this.__exportStar) || function(m, exports) {
+    for (var p in m) if (p !== "default" && !Object.prototype.hasOwnProperty.call(exports, p)) __createBinding(exports, m, p);
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+__exportStar(__webpack_require__(/*! ./filters/global-exception.filter */ "./libs/exceptions/src/filters/global-exception.filter.ts"), exports);
+__exportStar(__webpack_require__(/*! ./exceptions/base.exception */ "./libs/exceptions/src/exceptions/base.exception.ts"), exports);
+__exportStar(__webpack_require__(/*! ./exceptions/business.exception */ "./libs/exceptions/src/exceptions/business.exception.ts"), exports);
+__exportStar(__webpack_require__(/*! ./exceptions/validation.exception */ "./libs/exceptions/src/exceptions/validation.exception.ts"), exports);
+__exportStar(__webpack_require__(/*! ./exceptions/auth.exception */ "./libs/exceptions/src/exceptions/auth.exception.ts"), exports);
+__exportStar(__webpack_require__(/*! ./exceptions/database.exception */ "./libs/exceptions/src/exceptions/database.exception.ts"), exports);
+__exportStar(__webpack_require__(/*! ./throwers/exception.thrower */ "./libs/exceptions/src/throwers/exception.thrower.ts"), exports);
+__exportStar(__webpack_require__(/*! ./interfaces/exception.interface */ "./libs/exceptions/src/interfaces/exception.interface.ts"), exports);
+__exportStar(__webpack_require__(/*! ./constants/exception.constants */ "./libs/exceptions/src/constants/exception.constants.ts"), exports);
+__exportStar(__webpack_require__(/*! ./exceptions.module */ "./libs/exceptions/src/exceptions.module.ts"), exports);
+
+
+/***/ }),
+
+/***/ "./libs/exceptions/src/interfaces/exception.interface.ts":
+/*!***************************************************************!*\
+  !*** ./libs/exceptions/src/interfaces/exception.interface.ts ***!
+  \***************************************************************/
+/***/ ((__unused_webpack_module, exports) => {
+
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+
+
+/***/ }),
+
+/***/ "./libs/exceptions/src/throwers/exception.thrower.ts":
+/*!***********************************************************!*\
+  !*** ./libs/exceptions/src/throwers/exception.thrower.ts ***!
+  \***********************************************************/
+/***/ (function(__unused_webpack_module, exports, __webpack_require__) {
+
+
+var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
+    var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
+    if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
+    else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+    return c > 3 && r && Object.defineProperty(target, key, r), r;
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.ExceptionThrower = void 0;
+const common_1 = __webpack_require__(/*! @nestjs/common */ "@nestjs/common");
+const auth_exception_1 = __webpack_require__(/*! ../exceptions/auth.exception */ "./libs/exceptions/src/exceptions/auth.exception.ts");
+const database_exception_1 = __webpack_require__(/*! ../exceptions/database.exception */ "./libs/exceptions/src/exceptions/database.exception.ts");
+const business_exception_1 = __webpack_require__(/*! ../exceptions/business.exception */ "./libs/exceptions/src/exceptions/business.exception.ts");
+const validation_exception_1 = __webpack_require__(/*! ../exceptions/validation.exception */ "./libs/exceptions/src/exceptions/validation.exception.ts");
+const base_exception_1 = __webpack_require__(/*! ../exceptions/base.exception */ "./libs/exceptions/src/exceptions/base.exception.ts");
+const exception_constants_1 = __webpack_require__(/*! ../constants/exception.constants */ "./libs/exceptions/src/constants/exception.constants.ts");
+let ExceptionThrower = class ExceptionThrower {
+    getRequestPath(request) {
+        return request?.url || request?.path;
+    }
+    throwInvalidCredentials(details, request) {
+        throw new auth_exception_1.InvalidCredentialsException(details, this.getRequestPath(request));
+    }
+    throwTokenExpired(details, request) {
+        throw new auth_exception_1.TokenExpiredException(details, this.getRequestPath(request));
+    }
+    throwInvalidToken(details, request) {
+        throw new auth_exception_1.InvalidTokenException(details, this.getRequestPath(request));
+    }
+    throwUnauthorized(details, request) {
+        throw new auth_exception_1.UnauthorizedException(details, this.getRequestPath(request));
+    }
+    throwForbidden(details, request) {
+        throw new auth_exception_1.ForbiddenException(details, this.getRequestPath(request));
+    }
+    throwUserNotFound(details, request) {
+        throw new auth_exception_1.UserNotFoundException(details, this.getRequestPath(request));
+    }
+    throwEmailAlreadyExists(details, request) {
+        throw new auth_exception_1.EmailAlreadyExistsException(details, this.getRequestPath(request));
+    }
+    throwGoogleTokenInvalid(details, request) {
+        throw new auth_exception_1.GoogleTokenInvalidException(details, this.getRequestPath(request));
+    }
+    throwDatabaseConnection(details, request) {
+        throw new database_exception_1.DatabaseConnectionException(details, this.getRequestPath(request));
+    }
+    throwDatabaseQuery(details, request) {
+        throw new database_exception_1.DatabaseQueryException(details, this.getRequestPath(request));
+    }
+    throwRecordNotFound(details, request) {
+        throw new database_exception_1.RecordNotFoundException(details, this.getRequestPath(request));
+    }
+    throwDuplicateEntry(details, request) {
+        throw new database_exception_1.DuplicateEntryException(details, this.getRequestPath(request));
+    }
+    throwConstraintViolation(details, request) {
+        throw new database_exception_1.ConstraintViolationException(details, this.getRequestPath(request));
+    }
+    throwBusinessRule(message, businessCode, context, request) {
+        throw new business_exception_1.BusinessException(message, businessCode, exception_constants_1.HTTP_STATUS_CODES.BAD_REQUEST, context, this.getRequestPath(request));
+    }
+    throwInsufficientPermissions(details, request) {
+        throw new business_exception_1.InsufficientPermissionsException(details, this.getRequestPath(request));
+    }
+    throwResourceNotAvailable(details, request) {
+        throw new business_exception_1.ResourceNotAvailableException(details, this.getRequestPath(request));
+    }
+    throwValidation(message, validationErrors, request) {
+        throw new validation_exception_1.ValidationException(message, validationErrors, this.getRequestPath(request));
+    }
+    throwRequiredField(fieldName, request) {
+        throw new validation_exception_1.RequiredFieldException(fieldName, this.getRequestPath(request));
+    }
+    throwInvalidFormat(fieldName, expectedFormat, request) {
+        throw new validation_exception_1.InvalidFormatException(fieldName, expectedFormat, this.getRequestPath(request));
+    }
+    throwGeneric(message, statusCode, code, details, request) {
+        class GenericException extends base_exception_1.BaseException {
+        }
+        throw new GenericException(message, statusCode, code, details, this.getRequestPath(request));
+    }
+    throwMicroserviceConnection(serviceName, details, request) {
+        class MicroserviceException extends base_exception_1.BaseException {
+        }
+        throw new MicroserviceException(`Impossible de contacter le service ${serviceName}`, exception_constants_1.HTTP_STATUS_CODES.SERVICE_UNAVAILABLE, exception_constants_1.EXCEPTION_CODES.MICROSERVICE_CONNECTION_ERROR, { serviceName, ...details }, this.getRequestPath(request));
+    }
+    throwInternalError(message = 'Erreur interne du serveur', details, request) {
+        class InternalException extends base_exception_1.BaseException {
+        }
+        throw new InternalException(message, exception_constants_1.HTTP_STATUS_CODES.INTERNAL_SERVER_ERROR, exception_constants_1.EXCEPTION_CODES.INTERNAL_SERVER_ERROR, details, this.getRequestPath(request));
+    }
+};
+exports.ExceptionThrower = ExceptionThrower;
+exports.ExceptionThrower = ExceptionThrower = __decorate([
+    (0, common_1.Injectable)()
+], ExceptionThrower);
+
+
+/***/ }),
+
 /***/ "./libs/logger/src/decorators/log.decorator.ts":
 /*!*****************************************************!*\
   !*** ./libs/logger/src/decorators/log.decorator.ts ***!
@@ -1762,6 +2599,7 @@ const core_1 = __webpack_require__(/*! @nestjs/core */ "@nestjs/core");
 const microservices_1 = __webpack_require__(/*! @nestjs/microservices */ "@nestjs/microservices");
 const app_module_1 = __webpack_require__(/*! ./app.module */ "./apps/auth-service/src/app.module.ts");
 const src_1 = __webpack_require__(/*! libs/logger/src */ "./libs/logger/src/index.ts");
+const exceptions_1 = __webpack_require__(/*! @app/exceptions */ "./libs/exceptions/src/index.ts");
 async function bootstrap() {
     const app = await core_1.NestFactory.createMicroservice(app_module_1.AppModule, {
         transport: microservices_1.Transport.TCP,
@@ -1770,6 +2608,7 @@ async function bootstrap() {
             port: parseInt(process.env.AUTH_SERVICE_PORT ?? '4002'),
         },
     });
+    app.useGlobalFilters(app.get(exceptions_1.GlobalExceptionFilter));
     const logger = app.get(src_1.LoggerService);
     logger.setContext('Auth.main');
     logger.info(`🌐 Auth Service is running on port ${process.env.AUTH_SERVICE_PORT}`);

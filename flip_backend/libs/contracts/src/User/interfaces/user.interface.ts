@@ -23,6 +23,7 @@ export interface IUserResponse {
   game_coins: number;
   createdAt?: Date;
   updatedAt?: Date;
+  friendship_status?: string | null;
 }
 
 export interface IUserWithPassword extends IUser {

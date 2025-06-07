@@ -32,8 +32,8 @@ import {
 } from '@app/contracts/Service/interfaces/service.interface';
 import { Auth } from '../auth/decorators/auth.decorator';
 import { CurrentUser, GetUserId } from '../auth/decorators/current-user.decorator';
-import { ICurrentUser } from '@app/contracts/Auth/interfaces/auth.interface';
 import { Log } from 'libs/logger/src';
+import { ICurrentUser } from '@app/contracts/Auth/interfaces/auth.interface';
 
 /**
  * Contrôleur API Gateway pour la gestion des services
@@ -47,7 +47,7 @@ export class ServicesController {
   // ==================== SERVICE CRUD OPERATIONS ====================
 
   @Post()
-  @Log()
+  @Log('Création service', 'info')
   @Auth()
   @ApiOperation({ summary: 'Créer un nouveau service' })
   @ApiBody({ type: CreateServiceDto })
@@ -62,15 +62,17 @@ export class ServicesController {
     @GetUserId() providerId: string,
     @Body() createServiceDto: CreateServiceDto
   ): Promise<IService> {
-    return firstValueFrom(
+    const result = await firstValueFrom(
       this.banqueClient.send<IService>(
         { cmd: 'create_service' },
         { providerId: parseInt(providerId), createServiceDto }
       )
     );
+    return result;
   }
 
   @Put(':id')
+  @Log('Mise à jour service', 'info')
   @Auth()
   @ApiOperation({ summary: 'Mettre à jour un service' })
   @ApiParam({ name: 'id', description: 'ID du service' })
@@ -86,15 +88,17 @@ export class ServicesController {
     @Param('id') id: string,
     @Body() updateServiceDto: UpdateServiceDto
   ): Promise<IService> {
-    return firstValueFrom(
+    const result = await firstValueFrom(
       this.banqueClient.send<IService>(
         { cmd: 'update_service' },
         { serviceId: parseInt(id), updateServiceDto }
       )
     );
+    return result;
   }
 
   @Delete(':id')
+  @Log('Suppression service', 'info')
   @Auth()
   @ApiOperation({ summary: 'Supprimer un service' })
   @ApiParam({ name: 'id', description: 'ID du service' })
@@ -102,12 +106,14 @@ export class ServicesController {
   @ApiResponse({ status: HttpStatus.NOT_FOUND, description: 'Service non trouvé' })
   @ApiResponse({ status: HttpStatus.FORBIDDEN, description: 'Service non supprimable' })
   public async deleteService(@Param('id') id: string): Promise<{ message: string }> {
-    return firstValueFrom(
+    const result = await firstValueFrom(
       this.banqueClient.send<{ message: string }>({ cmd: 'delete_service' }, parseInt(id))
     );
+    return result;
   }
 
   @Post(':id/confirm')
+  @Log('Confirmation service', 'info')
   @Auth()
   @ApiOperation({ summary: 'Confirmer un service' })
   @ApiParam({ name: 'id', description: 'ID du service' })
@@ -122,12 +128,13 @@ export class ServicesController {
     @Param('id') id: string,
     @GetUserId() beneficiaryId: string
   ): Promise<IService> {
-    return firstValueFrom(
+    const result = await firstValueFrom(
       this.banqueClient.send<IService>(
         { cmd: 'confirm_service' },
         { serviceId: parseInt(id), beneficiaryId: parseInt(beneficiaryId) }
       )
     );
+    return result;
   }
 
   @Post(':id/repay/:repaymentServiceId')
@@ -174,7 +181,7 @@ export class ServicesController {
 
   @Get(':id/details')
   @Auth()
-  @ApiOperation({ summary: 'Récupérer les détails complets d\'un service' })
+  @ApiOperation({ summary: "Récupérer les détails complets d'un service" })
   @ApiParam({ name: 'id', description: 'ID du service' })
   @ApiResponse({
     status: HttpStatus.OK,
@@ -195,6 +202,24 @@ export class ServicesController {
   @Auth()
   @ApiOperation({ summary: 'Rechercher des services avec filtres' })
   @ApiQuery({ name: 'status', required: false, description: 'Statut du service' })
+  @ApiQuery({
+    name: 'type',
+    enum: ['service', 'prank'],
+    required: false,
+    description: 'Type de service (service ou prank)',
+  })
+  @ApiQuery({
+    name: 'page',
+    type: String,
+    required: false,
+    description: 'Numéro de page pour la pagination',
+  })
+  @ApiQuery({
+    name: 'limit',
+    type: String,
+    required: false,
+    description: "Nombre d'éléments par page",
+  })
   @ApiQuery({ name: 'category_id', required: false, description: 'ID de la catégorie' })
   @ApiQuery({ name: 'provider_id', required: false, description: 'ID du fournisseur' })
   @ApiQuery({ name: 'beneficiary_id', required: false, description: 'ID du bénéficiaire' })
@@ -207,15 +232,26 @@ export class ServicesController {
     description: 'Services trouvés',
     type: [ServiceWithDetailsDto],
   })
-  public async findServicesWithFilters(@Query() filters: ServiceFiltersDto): Promise<IServiceWithDetails[]> {
-    // Convertir les IDs en nombres si présents
+  public async findServicesWithFilters(
+    @Query() filters: ServiceFiltersDto
+  ): Promise<IServiceWithDetails[]> {
+    console.log('filters', filters);
+    // Convertir les IDs et paramètres de pagination en nombres si présents
     const cleanedFilters: IServiceFilters = {
       ...filters,
+      page: filters.page ? parseInt(filters.page.toString()) : 1,
+      limit: filters.limit ? parseInt(filters.limit.toString()) : 20,
       category_id: filters.category_id ? parseInt(filters.category_id.toString()) : undefined,
       provider_id: filters.provider_id ? parseInt(filters.provider_id.toString()) : undefined,
-      beneficiary_id: filters.beneficiary_id ? parseInt(filters.beneficiary_id.toString()) : undefined,
-      jeton_value_min: filters.jeton_value_min ? parseInt(filters.jeton_value_min.toString()) : undefined,
-      jeton_value_max: filters.jeton_value_max ? parseInt(filters.jeton_value_max.toString()) : undefined,
+      beneficiary_id: filters.beneficiary_id
+        ? parseInt(filters.beneficiary_id.toString())
+        : undefined,
+      jeton_value_min: filters.jeton_value_min
+        ? parseInt(filters.jeton_value_min.toString())
+        : undefined,
+      jeton_value_max: filters.jeton_value_max
+        ? parseInt(filters.jeton_value_max.toString())
+        : undefined,
       created_after: filters.created_after ? new Date(filters.created_after) : undefined,
       created_before: filters.created_before ? new Date(filters.created_before) : undefined,
     };
@@ -224,6 +260,50 @@ export class ServicesController {
       this.banqueClient.send<IServiceWithDetails[]>(
         { cmd: 'find_services_with_filters' },
         cleanedFilters
+      )
+    );
+  }
+
+  @Get('user/services')
+  @Auth()
+  @ApiOperation({ summary: "Récupérer les services d'un utilisateur" })
+  @ApiParam({ name: 'userId', description: "ID de l'utilisateur" })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: 'Services récupérés',
+    type: [ServiceWithDetailsDto],
+  })
+  public async getUserServices(
+    @CurrentUser() user: ICurrentUser,
+    @Query('page') page: string,
+    @Query('limit') limit: string
+  ): Promise<IServiceWithDetails[]> {
+    return firstValueFrom(
+      this.banqueClient.send<IServiceWithDetails[]>(
+        { cmd: 'get_user_services' },
+        { userId: user.id, page, limit }
+      )
+    );
+  }
+
+  @Get('user/pranks')
+  @Auth()
+  @ApiOperation({ summary: "Récupérer les pranks d'un utilisateur" })
+  @ApiParam({ name: 'userId', description: "ID de l'utilisateur" })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: 'Pranks récupérés',
+    type: [ServiceWithDetailsDto],
+  })
+  public async getUserPranks(
+    @CurrentUser() user: ICurrentUser,
+    @Query('page') page: string,
+    @Query('limit') limit: string
+  ): Promise<IServiceWithDetails[]> {
+    return firstValueFrom(
+      this.banqueClient.send<IServiceWithDetails[]>(
+        { cmd: 'get_user_pranks' },
+        { userId: user.id, page, limit }
       )
     );
   }
@@ -239,9 +319,7 @@ export class ServicesController {
     type: ServiceStatsDto,
   })
   public async getServiceStats(): Promise<IServiceStats> {
-    return firstValueFrom(
-      this.banqueClient.send<IServiceStats>({ cmd: 'get_service_stats' }, {})
-    );
+    return firstValueFrom(this.banqueClient.send<IServiceStats>({ cmd: 'get_service_stats' }, {}));
   }
 
   // ==================== SERVICE CATEGORIES ====================
@@ -260,7 +338,10 @@ export class ServicesController {
     @Body() createCategoryDto: CreateServiceCategoryDto
   ): Promise<IServiceCategory> {
     return firstValueFrom(
-      this.banqueClient.send<IServiceCategory>({ cmd: 'create_service_category' }, createCategoryDto)
+      this.banqueClient.send<IServiceCategory>(
+        { cmd: 'create_service_category' },
+        createCategoryDto
+      )
     );
   }
 
@@ -321,4 +402,4 @@ export class ServicesController {
       )
     );
   }
-} 
+}

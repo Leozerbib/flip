@@ -6,6 +6,7 @@ import {
   Delete,
   Body,
   Param,
+  Query,
   Inject,
   HttpStatus,
   UseInterceptors,
@@ -166,6 +167,61 @@ export class UsersController {
   @Log()
   public async findUserByUsername(@Param('username') username: string): Promise<any> {
     return firstValueFrom(this.userClient.send({ cmd: 'find_user_by_username' }, username));
+  }
+
+  @Get('search')
+  @Auth()
+  @ApiOperation({ summary: 'Rechercher des utilisateurs' })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: 'Résultats de recherche avec pagination',
+    schema: {
+      type: 'object',
+      properties: {
+        users: {
+          type: 'array',
+          items: { $ref: '#/components/schemas/UserResponseDto' },
+        },
+        total: { type: 'number', description: 'Nombre total de résultats' },
+        hasMore: { type: 'boolean', description: "Indique s'il y a plus de résultats" },
+        page: { type: 'number', description: 'Page actuelle' },
+        limit: { type: 'number', description: "Nombre d'éléments par page" },
+      },
+    },
+  })
+  @Log()
+  public async searchUsers(
+    @Query('query') searchTerm: string,
+    @Query('page') page = '1',
+    @Query('limit') limit = '10',
+    @CurrentUser() currentUser: ICurrentUser
+  ): Promise<{
+    users: IUserResponse[];
+    total: number;
+    hasMore: boolean;
+    page: number;
+    limit: number;
+  }> {
+    const pageNum = Math.max(1, parseInt(page) || 1);
+    const limitNum = Math.min(50, Math.max(1, parseInt(limit) || 20)); // Limiter à 50 max
+
+    const result = await firstValueFrom(
+      this.userClient.send(
+        { cmd: 'search_users' },
+        {
+          searchTerm,
+          page: pageNum,
+          limit: limitNum,
+          excludeUserId: currentUser.id.toString(),
+        }
+      )
+    );
+
+    return {
+      ...result,
+      page: pageNum,
+      limit: limitNum,
+    };
   }
 
   // ==================== PROFILE & STATS ====================

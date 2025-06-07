@@ -4,12 +4,17 @@ import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { ApiGatewayModule } from './api-gateway.module';
 import { LoggerService } from 'libs/logger/src';
 import { GlobalConfigService } from '@app/config';
+import { GlobalExceptionFilter } from '@app/exceptions';
+
 async function bootstrap() {
   const app = await NestFactory.create(ApiGatewayModule);
   const globalConfig = app.get(GlobalConfigService);
 
   // Enable CORS
   app.enableCors();
+
+  // Global Exception Filter
+  app.useGlobalFilters(app.get(GlobalExceptionFilter));
 
   // Configuration des pipes de validation globaux
   app.useGlobalPipes(

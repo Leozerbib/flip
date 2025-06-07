@@ -21,7 +21,9 @@
       "@app/config": ["libs/config/src"],
       "@app/config/*": ["libs/config/src/*"],
       "@app/contracts": ["libs/contracts/src"],
-      "@app/contracts/*": ["libs/contracts/src/*"]
+      "@app/contracts/*": ["libs/contracts/src/*"],
+      "@app/exceptions": ["libs/exceptions/src"],
+      "@app/exceptions/*": ["libs/exceptions/src/*"]
     }
   }
 }

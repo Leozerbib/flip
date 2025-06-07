@@ -5,13 +5,16 @@ import '../utils/logger.dart';
 
 class AuthInterceptor extends Interceptor {
   @override
-  void onRequest(RequestOptions options, RequestInterceptorHandler handler) async {
+  void onRequest(
+    RequestOptions options,
+    RequestInterceptorHandler handler,
+  ) async {
     // Ajouter le token d'authentification à chaque requête
     final token = await AuthService.getAccessToken();
     if (token != null) {
       options.headers['Authorization'] = 'Bearer $token';
     }
-    
+
     AppLogger.info('Requête API: ${options.method} ${options.path}');
     handler.next(options);
   }
@@ -36,7 +39,7 @@ class AuthInterceptor extends Interceptor {
           // Réessayer la requête originale avec le nouveau token
           final requestOptions = err.requestOptions;
           requestOptions.headers['Authorization'] = 'Bearer $newAccessToken';
-          
+
           final newResponse = await dio.fetch(requestOptions);
           handler.resolve(newResponse);
           return;
@@ -47,14 +50,16 @@ class AuthInterceptor extends Interceptor {
         }
       }
     }
-    
+
     AppLogger.error('Erreur API: ${err.message}');
     handler.next(err);
   }
 
   @override
   void onResponse(Response response, ResponseInterceptorHandler handler) {
-    AppLogger.info('Réponse API: ${response.statusCode} ${response.requestOptions.path}');
+    AppLogger.info(
+      'Réponse API: ${response.statusCode} ${response.requestOptions.path}',
+    );
     handler.next(response);
   }
 }
@@ -65,7 +70,7 @@ class LoggingInterceptor extends Interceptor {
     if (AppConfig.debugMode) {
       AppLogger.debug('🚀 REQUÊTE: ${options.method} ${options.uri}');
       AppLogger.debug('📋 Headers: ${options.headers}');
-      AppLogger.debug('📝 Data: ${options.data}');
+      AppLogger.debug('📝 Params: ${options.queryParameters}');
     }
     handler.next(options);
   }
@@ -73,7 +78,9 @@ class LoggingInterceptor extends Interceptor {
   @override
   void onResponse(Response response, ResponseInterceptorHandler handler) {
     if (AppConfig.debugMode) {
-      AppLogger.debug('✅ RÉPONSE: ${response.statusCode} ${response.requestOptions.uri}');
+      AppLogger.debug(
+        '✅ RÉPONSE: ${response.statusCode} ${response.requestOptions.uri}',
+      );
       AppLogger.debug('📋 Headers: ${response.headers}');
       AppLogger.debug('📄 Data: ${response.data}');
     }
@@ -88,4 +95,4 @@ class LoggingInterceptor extends Interceptor {
     }
     handler.next(err);
   }
-} 
+}

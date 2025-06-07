@@ -1,6 +1,6 @@
 import { IsString, IsNumber, IsEnum, IsOptional, IsUrl, Min, IsDateString } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
-import { ServiceStatusEnum } from '../../types/common.types';
+import { ServiceStatusEnum, ServiceTypeEnum } from '../../types/common.types';
 
 export class CreateServiceDto {
   @ApiProperty({ example: 1, description: 'ID du bénéficiaire du service' })
@@ -182,6 +182,21 @@ export class ServiceFiltersDto {
   @IsEnum(ServiceStatusEnum)
   @IsOptional()
   status?: ServiceStatusEnum;
+
+  @ApiProperty({ enum: ServiceTypeEnum, required: false })
+  @IsEnum(ServiceTypeEnum)
+  @IsOptional()
+  type?: ServiceTypeEnum;
+
+  @ApiProperty({ example: '1', required: false })
+  @IsString()
+  @IsOptional()
+  page?: string;
+
+  @ApiProperty({ example: '20', required: false })
+  @IsString()
+  @IsOptional()
+  limit?: string;
 
   @ApiProperty({ example: 1, required: false })
   @IsNumber()

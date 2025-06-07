@@ -1,12 +1,9 @@
-import {
-  Injectable,
-  NotFoundException,
-  BadRequestException,
-  ConflictException,
-  ForbiddenException,
-} from '@nestjs/common';
+import { Injectable, Inject } from '@nestjs/common';
+import { ClientProxy } from '@nestjs/microservices';
+import { firstValueFrom } from 'rxjs';
 import { PrismaService } from './prisma/prisma.service';
 import { LoggerService } from 'libs/logger/src';
+import { ExceptionThrower } from '@app/exceptions';
 import {
   CreateServiceDto,
   UpdateServiceDto,
@@ -25,7 +22,9 @@ import { ServiceStatusEnum } from '@app/contracts/types/common.types';
 export class BanqueService {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly logger: LoggerService
+    private readonly logger: LoggerService,
+    private readonly exceptionThrower: ExceptionThrower,
+    @Inject('USER_SERVICE') private readonly userClient: ClientProxy
   ) {
     this.logger.setContext('Banque.service');
   }
@@ -47,20 +46,38 @@ export class BanqueService {
 
     // Vérifier que le provider et beneficiary existent
     const [provider, beneficiary] = await Promise.all([
-      this.prisma.user.findUnique({ where: { user_id: providerId } }),
-      this.prisma.user.findUnique({ where: { user_id: createServiceDto.beneficiary_id } }),
+      this.findUserById(providerId),
+      this.findUserById(createServiceDto.beneficiary_id),
     ]);
 
     if (!provider) {
-      throw new NotFoundException('Fournisseur de service non trouvé');
+      this.exceptionThrower.throwRecordNotFound('Fournisseur de service non trouvé');
     }
 
     if (!beneficiary) {
-      throw new NotFoundException('Bénéficiaire du service non trouvé');
+      this.exceptionThrower.throwRecordNotFound('Bénéficiaire du service non trouvé');
     }
 
     if (providerId === createServiceDto.beneficiary_id) {
-      throw new BadRequestException('Un utilisateur ne peut pas se rendre service à lui-même');
+      this.exceptionThrower.throwValidation(
+        'Un utilisateur ne peut pas se rendre service à lui-même',
+        [
+          {
+            field: 'providerId',
+            value: providerId,
+            constraints: [createServiceDto.beneficiary_id.toString()],
+          },
+        ]
+      );
+    }
+
+    // Vérifier que les utilisateurs sont amis
+    const friendshipStatus = await this.checkFriendshipStatus(
+      providerId,
+      createServiceDto.beneficiary_id
+    );
+    if (friendshipStatus !== 'accepted') {
+      this.exceptionThrower.throwForbidden("Un service ne peut être créé qu'entre amis");
     }
 
     // Vérifier la catégorie si fournie
@@ -69,7 +86,7 @@ export class BanqueService {
         where: { category_id: createServiceDto.category_id },
       });
       if (!category) {
-        throw new NotFoundException('Catégorie de service non trouvée');
+        this.exceptionThrower.throwRecordNotFound('Catégorie de service non trouvée');
       }
     }
 
@@ -89,7 +106,10 @@ export class BanqueService {
       return service as IService;
     } catch (error) {
       this.logger.error('Erreur lors de la création du service', error);
-      throw new BadRequestException('Erreur lors de la création du service');
+      this.exceptionThrower.throwDatabaseQuery({
+        operation: 'create_service',
+        originalError: error.message,
+      });
     }
   }
 
@@ -104,12 +124,12 @@ export class BanqueService {
 
     const service = await this.findServiceById(serviceId);
     if (!service) {
-      throw new NotFoundException('Service non trouvé');
+      this.exceptionThrower.throwRecordNotFound('Service non trouvé');
     }
 
     // Vérifier que le service peut être modifié
     if (service.status !== ServiceStatusEnum.PENDING_CONFIRMATION) {
-      throw new ForbiddenException('Ce service ne peut plus être modifié');
+      this.exceptionThrower.throwForbidden('Ce service ne peut plus être modifié');
     }
 
     // Vérifier la catégorie si fournie
@@ -118,7 +138,7 @@ export class BanqueService {
         where: { category_id: updateServiceDto.category_id },
       });
       if (!category) {
-        throw new NotFoundException('Catégorie de service non trouvée');
+        this.exceptionThrower.throwRecordNotFound('Catégorie de service non trouvée');
       }
     }
 
@@ -135,7 +155,10 @@ export class BanqueService {
       return updatedService as IService;
     } catch (error) {
       this.logger.error('Erreur lors de la mise à jour', error);
-      throw new BadRequestException('Erreur lors de la mise à jour');
+      this.exceptionThrower.throwDatabaseQuery({
+        operation: 'update_service',
+        originalError: error.message,
+      });
     }
   }
 
@@ -147,12 +170,12 @@ export class BanqueService {
 
     const service = await this.findServiceById(serviceId);
     if (!service) {
-      throw new NotFoundException('Service non trouvé');
+      this.exceptionThrower.throwRecordNotFound('Service non trouvé');
     }
 
     // Vérifier que le service peut être supprimé
     if (service.status !== ServiceStatusEnum.PENDING_CONFIRMATION) {
-      throw new ForbiddenException('Ce service ne peut plus être supprimé');
+      this.exceptionThrower.throwForbidden('Ce service ne peut plus être supprimé');
     }
 
     try {
@@ -164,7 +187,10 @@ export class BanqueService {
       return { message: 'Service supprimé avec succès' };
     } catch (error) {
       this.logger.error('Erreur lors de la suppression', error);
-      throw new BadRequestException('Erreur lors de la suppression');
+      this.exceptionThrower.throwDatabaseQuery({
+        operation: 'delete_service',
+        originalError: error.message,
+      });
     }
   }
 
@@ -176,15 +202,21 @@ export class BanqueService {
 
     const service = await this.findServiceById(serviceId);
     if (!service) {
-      throw new NotFoundException('Service non trouvé');
+      this.exceptionThrower.throwRecordNotFound('Service non trouvé');
     }
 
     if (service.beneficiary_id !== beneficiaryId) {
-      throw new ForbiddenException('Seul le bénéficiaire peut confirmer ce service');
+      this.exceptionThrower.throwForbidden('Seul le bénéficiaire peut confirmer ce service');
     }
 
     if (service.status !== ServiceStatusEnum.PENDING_CONFIRMATION) {
-      throw new BadRequestException('Ce service ne peut plus être confirmé');
+      this.exceptionThrower.throwValidation('Ce service ne peut plus être confirmé', [
+        {
+          field: 'serviceId',
+          value: serviceId,
+          constraints: [service.status],
+        },
+      ]);
     }
 
     try {
@@ -201,7 +233,10 @@ export class BanqueService {
       return confirmedService as IService;
     } catch (error) {
       this.logger.error('Erreur lors de la confirmation', error);
-      throw new BadRequestException('Erreur lors de la confirmation');
+      this.exceptionThrower.throwDatabaseQuery({
+        operation: 'confirm_service',
+        originalError: error.message,
+      });
     }
   }
 
@@ -223,27 +258,47 @@ export class BanqueService {
     ]);
 
     if (!service) {
-      throw new NotFoundException('Service original non trouvé');
+      this.exceptionThrower.throwRecordNotFound('Service original non trouvé');
     }
 
     if (!repaymentService) {
-      throw new NotFoundException('Service de remboursement non trouvé');
+      this.exceptionThrower.throwRecordNotFound('Service de remboursement non trouvé');
     }
 
     if (service.status !== ServiceStatusEnum.CONFIRMED_UNPAID) {
-      throw new BadRequestException(
-        'Le service doit être confirmé et non payé pour être remboursé'
+      this.exceptionThrower.throwValidation(
+        'Le service doit être confirmé et non payé pour être remboursé',
+        [
+          {
+            field: 'serviceId',
+            value: serviceId,
+            constraints: [service.status],
+          },
+        ]
       );
     }
 
     if (repaymentService.status !== ServiceStatusEnum.CONFIRMED_UNPAID) {
-      throw new BadRequestException('Le service de remboursement doit être confirmé');
+      this.exceptionThrower.throwValidation('Le service de remboursement doit être confirmé', [
+        {
+          field: 'repaymentServiceId',
+          value: repaymentServiceId,
+          constraints: [repaymentService.status],
+        },
+      ]);
     }
 
     // Vérifier la logique de remboursement : le débiteur du premier service doit être le créditeur du second
     if (service.beneficiary_id !== repaymentService.provider_id) {
-      throw new BadRequestException(
-        'Le débiteur du service original doit fournir le service de remboursement'
+      this.exceptionThrower.throwValidation(
+        'Le débiteur du service original doit fournir le service de remboursement',
+        [
+          {
+            field: 'serviceId',
+            value: serviceId,
+            constraints: [service.beneficiary_id.toString()],
+          },
+        ]
       );
     }
 
@@ -262,7 +317,10 @@ export class BanqueService {
       return repaidService as IService;
     } catch (error) {
       this.logger.error('Erreur lors du remboursement', error);
-      throw new BadRequestException('Erreur lors du remboursement');
+      this.exceptionThrower.throwDatabaseQuery({
+        operation: 'repay_service',
+        originalError: error.message,
+      });
     }
   }
 
@@ -480,6 +538,62 @@ export class BanqueService {
     }
   }
 
+  public async getUserServices(
+    userId: number,
+    page: string,
+    limit: string
+  ): Promise<IServiceWithDetails[]> {
+    this.logger.info('Récupération des services utilisateur', { userId: userId.toString() });
+
+    try {
+      const services = await this.prisma.services.findMany({
+        where: {
+          OR: [
+            { beneficiary_id: parseInt(userId.toString()) },
+            { provider_id: parseInt(userId.toString()) },
+          ],
+        },
+        skip: (parseInt(page) - 1) * parseInt(limit),
+        take: parseInt(limit),
+      });
+      return services as IServiceWithDetails[];
+    } catch (error) {
+      this.logger.error('Erreur lors de la récupération des services', error);
+      this.exceptionThrower.throwDatabaseQuery({
+        operation: 'get_user_services',
+        originalError: error.message,
+      });
+    }
+  }
+
+  public async getUserPranks(
+    userId: number,
+    page: string,
+    limit: string
+  ): Promise<IServiceWithDetails[]> {
+    this.logger.info('Récupération des pranks utilisateur', { userId: userId.toString() });
+
+    try {
+      const pranks = await this.prisma.services.findMany({
+        where: {
+          OR: [
+            { beneficiary_id: parseInt(userId.toString()) },
+            { provider_id: parseInt(userId.toString()) },
+          ],
+        },
+        skip: (parseInt(page) - 1) * parseInt(limit),
+        take: parseInt(limit),
+      });
+      return pranks as IServiceWithDetails[];
+    } catch (error) {
+      this.logger.error('Erreur lors de la récupération des pranks', error);
+      this.exceptionThrower.throwDatabaseQuery({
+        operation: 'get_user_pranks',
+        originalError: error.message,
+      });
+    }
+  }
+
   /**
    * Obtenir les statistiques des services
    */
@@ -529,7 +643,10 @@ export class BanqueService {
       };
     } catch (error) {
       this.logger.error('Erreur lors de la récupération des statistiques', error);
-      throw new BadRequestException('Erreur lors de la récupération des statistiques');
+      this.exceptionThrower.throwDatabaseQuery({
+        operation: 'get_service_stats',
+        originalError: error.message,
+      });
     }
   }
 
@@ -552,10 +669,13 @@ export class BanqueService {
       return category as IServiceCategory;
     } catch (error) {
       if (error.code === 'P2002') {
-        throw new ConflictException('Une catégorie avec ce nom existe déjà');
+        this.exceptionThrower.throwDuplicateEntry('Une catégorie avec ce nom existe déjà');
       }
       this.logger.error('Erreur lors de la création de la catégorie', error);
-      throw new BadRequestException('Erreur lors de la création de la catégorie');
+      this.exceptionThrower.throwDatabaseQuery({
+        operation: 'create_service_category',
+        originalError: error.message,
+      });
     }
   }
 
@@ -585,6 +705,39 @@ export class BanqueService {
       })) as IServiceCategory | null;
     } catch (e) {
       this.logger.error('Erreur lors de la recherche de catégorie', e);
+      return null;
+    }
+  }
+
+  // ==================== UTILITY METHODS ====================
+
+  /**
+   * Trouver un utilisateur par ID via le microservice User
+   */
+  private async findUserById(userId: number): Promise<any> {
+    try {
+      return await firstValueFrom(
+        this.userClient.send({ cmd: 'find_user_by_id' }, userId.toString())
+      );
+    } catch (error) {
+      this.logger.error('Erreur récupération utilisateur', error);
+      return null;
+    }
+  }
+
+  /**
+   * Vérifier le statut d'amitié entre deux utilisateurs
+   */
+  private async checkFriendshipStatus(userId1: number, userId2: number): Promise<string | null> {
+    try {
+      return await firstValueFrom(
+        this.userClient.send(
+          { cmd: 'check_friendship_status' },
+          { userId: userId1, otherUserId: userId2 }
+        )
+      );
+    } catch (error) {
+      this.logger.error('Erreur vérification amitié', error);
       return null;
     }
   }

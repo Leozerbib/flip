@@ -116,56 +116,6 @@ class _MainNavigationScreenState extends ConsumerState<MainNavigationScreen> {
     );
   }
 
-  void _showOptionsDialog(BuildContext context, WidgetRef ref) {
-    final authState = ref.read(authProvider);
-
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Options'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            if (authState.user != null) ...[
-              Text('Email: ${authState.user!.email}'),
-              Text('Nom d\'utilisateur: ${authState.user!.username}'),
-              const SizedBox(height: 16),
-            ],
-            const Text('Que souhaitez-vous faire ?'),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Fermer'),
-          ),
-          TextButton(
-            onPressed: () {
-              Navigator.of(context).pop();
-              _showThemeSettings(context);
-            },
-            child: const Text('Paramètres de thème'),
-          ),
-          TextButton(
-            onPressed: () {
-              Navigator.of(context).pop();
-              _onTabTapped(4); // Navigate to profile page
-            },
-            child: const Text('Voir le profil'),
-          ),
-          TextButton(
-            onPressed: () {
-              Navigator.of(context).pop();
-              _handleLogout(ref);
-            },
-            child: const Text('Se déconnecter'),
-          ),
-        ],
-      ),
-    );
-  }
-
   void _showThemeSettings(BuildContext context) {
     showModalBottomSheet(
       context: context,
@@ -199,10 +149,6 @@ class _MainNavigationScreenState extends ConsumerState<MainNavigationScreen> {
       ),
     );
   }
-
-  void _handleLogout(WidgetRef ref) {
-    ref.read(authProvider.notifier).logout();
-  }
 }
 
 class TopBar extends ConsumerWidget {
@@ -226,119 +172,128 @@ class TopBar extends ConsumerWidget {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(10),
-      decoration: BoxDecoration(
-        color: theme.colors.background,
-        border: Border(
-          bottom: BorderSide(color: theme.colors.border, width: 1),
-        ),
-      ),
+      decoration: BoxDecoration(color: theme.colors.background),
       child: SafeArea(
         bottom: false,
         child: Center(
           child: Stack(
             children: [
-              Row(
-                children: [
-                  // Left Section: Username, Progress Bar, Level
-                  Expanded(
-                    flex: 2,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          user?.displayName ?? 'Utilisateur',
-                          style: theme.typography.sm.copyWith(
-                            fontWeight: FontWeight.w600,
-                            color: theme.colors.foreground,
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        const SizedBox(height: 4),
-                        Row(
-                          children: [
-                            Text(
-                              'Niv. $level',
-                              style: theme.typography.xs.copyWith(
-                                color: theme.colors.mutedForeground,
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                            Expanded(child: FProgress(value: expProgress)),
-                          ],
-                        ),
-                        const SizedBox(height: 2),
-                        Text(
-                          '$currentExp / $expToNext XP',
-                          style: theme.typography.xs.copyWith(
-                            color: theme.colors.mutedForeground,
-                          ),
-                        ),
-                      ],
-                    ),
+              Container(
+                padding: const EdgeInsets.symmetric(vertical: 10.0),
+                decoration: BoxDecoration(
+                  border: Border(
+                    bottom: BorderSide(color: theme.colors.border, width: 1),
                   ),
-                  const SizedBox(width: 80),
-                  // Right Section: Coins and Settings
-                  Expanded(
-                    flex: 2,
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.end,
-                      children: [
-                        // Coins
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 12,
-                            vertical: 6,
-                          ),
-                          decoration: BoxDecoration(
-                            color: theme.colors.secondary,
-                            borderRadius: BorderRadius.circular(20),
-                            border: Border.all(color: theme.colors.border),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
+                ),
+                child: Row(
+                  children: [
+                    // Left Section: Username, Progress Bar, Level
+                    Expanded(
+                      flex: 2,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Row(
                             children: [
-                              Icon(
-                                FIcons.circle,
-                                size: 16,
-                                color: theme.colors.primary,
-                              ),
-                              const SizedBox(width: 4),
                               Text(
-                                '${_getUserCoins(user)}',
+                                user?.displayName ?? 'Utilisateur',
                                 style: theme.typography.sm.copyWith(
                                   fontWeight: FontWeight.w600,
                                   color: theme.colors.foreground,
                                 ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                'Lv $level',
+                                style: theme.typography.xs.copyWith(
+                                  color: theme.colors.mutedForeground,
+                                  fontWeight: FontWeight.w500,
+                                ),
                               ),
                             ],
                           ),
-                        ),
-                        const SizedBox(width: 12),
 
-                        // Settings Button
-                        FButton(
-                          onPress: onSettingsPressed,
-                          child: Icon(
-                            FIcons.settings,
-                            size: 20,
-                            color: theme.colors.foreground,
+                          const SizedBox(height: 8),
+                          Row(
+                            children: [
+                              Expanded(child: FProgress(value: expProgress)),
+                            ],
                           ),
-                        ),
-                      ],
+                          const SizedBox(height: 2),
+                          Text(
+                            '$currentExp / $expToNext XP',
+                            style: theme.typography.xs.copyWith(
+                              fontWeight: FontWeight.w500,
+                              color: theme.colors.mutedForeground,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
-                ],
-              ),
+                    const SizedBox(width: 10),
+                    Center(
+                      child: FAvatar(
+                        size: 60,
+                        image: user?.profilePicture != null
+                            ? NetworkImage(user!.profilePicture!)
+                            : const NetworkImage(''),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    // Right Section: Coins and Settings
+                    Expanded(
+                      flex: 2,
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.end,
+                        children: [
+                          // Coins
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 6,
+                            ),
+                            decoration: BoxDecoration(
+                              color: theme.colors.secondary,
+                              borderRadius: BorderRadius.circular(20),
+                              border: Border.all(color: theme.colors.border),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  FIcons.circle,
+                                  size: 16,
+                                  color: theme.colors.primary,
+                                ),
+                                const SizedBox(width: 4),
+                                Text(
+                                  '${_getUserCoins(user)}',
+                                  style: theme.typography.sm.copyWith(
+                                    fontWeight: FontWeight.w600,
+                                    color: theme.colors.foreground,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(width: 12),
 
-              Center(
-                child: FAvatar(
-                  size: 100,
-                  image: user?.profilePicture != null
-                      ? NetworkImage(user!.profilePicture!)
-                      : const NetworkImage(''),
+                          // Settings Button
+                          FButton(
+                            onPress: onSettingsPressed,
+                            child: Icon(
+                              FIcons.settings,
+                              size: 20,
+                              color: theme.colors.foreground,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ],

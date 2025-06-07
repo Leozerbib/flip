@@ -1,41 +1,84 @@
+import 'dart:developer';
+
 import 'package:equatable/equatable.dart';
 
 class UserModel extends Equatable {
-  final String id;
+  final int userId;
   final String? email;
   final String username;
-  final String? profilePicture;
+  final String? profilePictureUrl;
+  final int? level;
+  final int? xpPoints;
+  final int? gameCoins;
   final DateTime? createdAt;
   final DateTime? updatedAt;
+  final String? friendshipStatus;
 
   const UserModel({
-    required this.id,
+    required this.userId,
     this.email,
     required this.username,
-    this.profilePicture,
+    this.profilePictureUrl,
+    this.level,
+    this.xpPoints,
+    this.gameCoins,
     this.createdAt,
     this.updatedAt,
+    this.friendshipStatus,
   });
 
   factory UserModel.fromJson(Map<String, dynamic> json) {
-    return UserModel(
-      id: json['id'].toString(),
-      email: json['email'] as String?,
-      username: json['username'] as String,
-      profilePicture: json['profilePicture'] as String?,
-      createdAt: json['createdAt'] != null ? DateTime.parse(json['createdAt'] as String) : null,
-      updatedAt: json['updatedAt'] != null ? DateTime.parse(json['updatedAt'] as String) : null,
-    );
+    var id = 0;
+    if (json['user_id'] != null) {
+      id = int.parse(json['user_id'].toString());
+    } else if (json['id'] != null) {
+      id = int.parse(json['id'].toString());
+    }
+    try {
+      return UserModel(
+        userId: id,
+        email: json['email'] as String?,
+        username: json['username'] as String,
+        profilePictureUrl:
+            json['profile_picture_url'].toString().startsWith(
+              'https://i.pravatar.cc/',
+            )
+            ? '${json['profile_picture_url'] as String?}?u=${json['username'] as String}'
+            : json['profile_picture_url'] as String?,
+        level: json['level'] != null
+            ? int.parse(json['level'].toString())
+            : null,
+        xpPoints: json['xp_points'] != null
+            ? int.parse(json['xp_points'].toString())
+            : null,
+        gameCoins: json['game_coins'] != null
+            ? int.parse(json['game_coins'].toString())
+            : null,
+        createdAt: json['created_at'] != null
+            ? DateTime.parse(json['created_at'] as String)
+            : DateTime.now(),
+        updatedAt: json['updated_at'] != null
+            ? DateTime.parse(json['updated_at'] as String)
+            : null,
+        friendshipStatus: json['friendship_status'] as String? ?? null,
+      );
+    } catch (e) {
+      log('Error: $e');
+      throw Exception(e);
+    }
   }
 
   Map<String, dynamic> toJson() {
     return {
-      'id': id,
+      'user_id': userId,
       'email': email,
       'username': username,
-      'profilePicture': profilePicture,
-      'createdAt': createdAt?.toIso8601String(),
-      'updatedAt': updatedAt?.toIso8601String(),
+      'profile_picture_url': profilePictureUrl,
+      'level': level,
+      'xp_points': xpPoints,
+      'game_coins': gameCoins,
+      'created_at': createdAt?.toIso8601String(),
+      'updated_at': updatedAt?.toIso8601String(),
     };
   }
 
@@ -46,31 +89,44 @@ class UserModel extends Equatable {
     return email ?? '';
   }
 
+  // Rétrocompatibilité avec l'ancien modèle
+  String get id => userId.toString();
+  String? get profilePicture => profilePictureUrl;
+
   @override
   List<Object?> get props => [
-        id,
-        email,
-        username,
-        profilePicture,
-        createdAt,
-        updatedAt,
-      ];
+    userId,
+    email,
+    username,
+    profilePictureUrl,
+    level,
+    xpPoints,
+    gameCoins,
+    createdAt,
+    updatedAt,
+  ];
 
   UserModel copyWith({
-    String? id,
+    int? userId,
     String? email,
     String? username,
-    String? profilePicture,
+    String? profilePictureUrl,
+    int? level,
+    int? xpPoints,
+    int? gameCoins,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) {
     return UserModel(
-      id: id ?? this.id,
+      userId: userId ?? this.userId,
       email: email ?? this.email,
       username: username ?? this.username,
-      profilePicture: profilePicture ?? this.profilePicture,
+      profilePictureUrl: profilePictureUrl ?? this.profilePictureUrl,
+      level: level ?? this.level,
+      xpPoints: xpPoints ?? this.xpPoints,
+      gameCoins: gameCoins ?? this.gameCoins,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );
   }
-} 
+}

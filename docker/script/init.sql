@@ -272,6 +272,16 @@ EXCEPTION
     WHEN duplicate_object THEN null;
 END $$;
 
+-- Insert default service categories if they don't exist
+
+INSERT INTO service_categories (name, description) VALUES
+('Aide / Faveur', 'Services généraux d''entraide'),
+('Prêt Matériel', 'Prêt d''objets, voiture, outils...'),
+('Financier', 'Avance d''argent, paiement partagé'),
+('Organisationnel', 'Aide pour organiser un événement, une tâche'),
+('Fun / Divertissement', 'A organisé une sortie, trouvé un bon plan')
+ON CONFLICT (name) DO NOTHING;
+
 -- Column comments
 
 COMMENT ON COLUMN public.service_categories.icon_url IS 'Optionnel: pour affichage';
@@ -332,6 +342,43 @@ DO $$ BEGIN
 EXCEPTION
     WHEN duplicate_object THEN null;
 END $$;
+
+-- Insert default users if they don't exist
+
+DO $$
+DECLARE
+    i INT;
+    base_username TEXT := 'utilisateur';
+    base_email_domain TEXT := 'example.com';
+    profile_pic_base_url TEXT := 'https://picsum.photos/200';
+BEGIN
+    FOR i IN 1..50 LOOP
+        INSERT INTO public.users (
+            username,
+            email,
+            password_hash,
+            profile_picture_url,
+            "level",
+            xp_points,
+            game_coins
+            -- created_at et updated_at utiliseront leurs valeurs par défaut
+        ) VALUES (
+            base_username || i, -- Crée des noms d'utilisateur uniques comme utilisateur1, utilisateur2, etc.
+            base_username || i || '@' || base_email_domain, -- Crée des emails uniques
+            '$2b$12$005ZD3qnSCy/7wfl//wPlOL/uZFtEa9jJ9vncolc1fd1GTQMI6gGC', -- Crée un hash de mot de passe factice (NON SÉCURISÉ POUR LA PRODUCTION)
+            CASE
+                WHEN i % 5 = 0 THEN NULL -- 1 utilisateur sur 5 n'aura pas de photo de profil
+                ELSE profile_pic_base_url || 'pic' || i || '.jpg'
+            END,
+            1 + floor(random() * 10)::int, -- Niveau aléatoire entre 1 et 10
+            floor(random() * 5000)::int,   -- XP aléatoires entre 0 et 4999
+            floor(random() * 1000)::int    -- Game coins aléatoires entre 0 et 999
+        )
+        ON CONFLICT (email) DO NOTHING;
+    END LOOP;
+    RAISE NOTICE '50 utilisateurs insérés avec succès.';
+END;
+$$;
 
 -- Column comments
 

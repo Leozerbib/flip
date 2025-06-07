@@ -12,7 +12,6 @@ class ProfileScreen extends ConsumerWidget {
     final theme = FTheme.of(context);
 
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(24.0),
       child: Column(
         children: [
           // Profile Header Card
@@ -49,7 +48,7 @@ class ProfileScreen extends ConsumerWidget {
                     ),
                   ),
                   const SizedBox(width: 16),
-                  
+
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -62,7 +61,9 @@ class ProfileScreen extends ConsumerWidget {
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          _formatDate(authState.user?.createdAt ?? DateTime.now()),
+                          _formatDate(
+                            authState.user?.createdAt ?? DateTime.now(),
+                          ),
                           style: theme.typography.sm.copyWith(
                             fontWeight: FontWeight.w500,
                             color: theme.colors.foreground,
@@ -114,7 +115,7 @@ class ProfileScreen extends ConsumerWidget {
                     ],
                   ),
                   const SizedBox(height: 12),
-                  
+
                   Row(
                     children: [
                       Expanded(
@@ -132,7 +133,9 @@ class ProfileScreen extends ConsumerWidget {
                           context,
                           icon: FIcons.calendar,
                           title: 'Jours',
-                          value: _calculateDaysSince(authState.user?.createdAt).toString(),
+                          value: _calculateDaysSince(
+                            authState.user?.createdAt,
+                          ).toString(),
                           color: theme.colors.primary,
                         ),
                       ),
@@ -158,9 +161,21 @@ class ProfileScreen extends ConsumerWidget {
               child: Column(
                 children: [
                   if (authState.user != null) ...[
-                    _buildProfileInfo(context, 'Email', authState.user!.email ?? ''),
-                    _buildProfileInfo(context, 'Nom d\'utilisateur', authState.user!.username),
-                    _buildProfileInfo(context, 'Nom d\'affichage', authState.user!.displayName),
+                    _buildProfileInfo(
+                      context,
+                      'Email',
+                      authState.user!.email ?? '',
+                    ),
+                    _buildProfileInfo(
+                      context,
+                      'Nom d\'utilisateur',
+                      authState.user!.username,
+                    ),
+                    _buildProfileInfo(
+                      context,
+                      'Nom d\'affichage',
+                      authState.user!.displayName,
+                    ),
                   ],
                 ],
               ),
@@ -199,7 +214,7 @@ class ProfileScreen extends ConsumerWidget {
                     ),
                   ),
                   const SizedBox(height: 12),
-                  
+
                   // Settings Button
                   SizedBox(
                     width: double.infinity,
@@ -218,7 +233,7 @@ class ProfileScreen extends ConsumerWidget {
                     ),
                   ),
                   const SizedBox(height: 12),
-                  
+
                   // Logout Button
                   SizedBox(
                     width: double.infinity,
@@ -251,7 +266,7 @@ class ProfileScreen extends ConsumerWidget {
     required Color color,
   }) {
     final theme = FTheme.of(context);
-    
+
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -261,11 +276,7 @@ class ProfileScreen extends ConsumerWidget {
       ),
       child: Column(
         children: [
-          Icon(
-            icon,
-            size: 24,
-            color: color,
-          ),
+          Icon(icon, size: 24, color: color),
           const SizedBox(height: 8),
           Text(
             value,
@@ -288,7 +299,7 @@ class ProfileScreen extends ConsumerWidget {
 
   Widget _buildProfileInfo(BuildContext context, String label, String value) {
     final theme = FTheme.of(context);
-    
+
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8),
       child: Row(
@@ -330,4 +341,4 @@ class ProfileScreen extends ConsumerWidget {
   void _handleLogout(WidgetRef ref) {
     ref.read(authProvider.notifier).logout();
   }
-} 
+}

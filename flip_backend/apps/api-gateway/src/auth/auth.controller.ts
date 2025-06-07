@@ -12,7 +12,7 @@ import {
   Logger,
 } from '@nestjs/common';
 import { ClientProxy } from '@nestjs/microservices';
-import { firstValueFrom } from 'rxjs';
+import { firstValueFrom, catchError, throwError } from 'rxjs';
 import { ApiTags, ApiOperation, ApiResponse, ApiBody } from '@nestjs/swagger';
 import { Response } from 'express';
 import { CreateUserDto } from 'libs/contracts/src/User/dtos/user.dto';
@@ -34,6 +34,7 @@ import { GetUserId } from './decorators/current-user.decorator';
 import { AuthGuard } from '@nestjs/passport';
 import { Log } from 'libs/logger/src';
 import { GlobalConfigService } from '@app/config';
+import { ExceptionThrower } from '@app/exceptions';
 
 @ApiTags('auth')
 @Controller('auth')
@@ -42,7 +43,8 @@ export class AuthController {
 
   constructor(
     @Inject('AUTH_SERVICE') private readonly authClient: ClientProxy,
-    private readonly globalConfig: GlobalConfigService
+    private readonly globalConfig: GlobalConfigService,
+    private readonly thrower: ExceptionThrower
   ) {}
 
   @Post('register')
@@ -58,9 +60,18 @@ export class AuthController {
   @OptionalAuth()
   @Log("Création d'un nouveau compte utilisateur", 'info')
   public async register(@Body() createUserDto: CreateUserDto): Promise<IAuthResponse> {
-    return firstValueFrom(
-      this.authClient.send<IAuthResponse>({ cmd: 'register_user' }, createUserDto)
-    );
+    try {
+      return await firstValueFrom(
+        this.authClient.send<IAuthResponse>({ cmd: 'register_user' }, createUserDto).pipe(
+          catchError(error => {
+            this.handleMicroserviceError(error, 'auth-service');
+            return throwError(() => error);
+          })
+        )
+      );
+    } catch (error) {
+      this.handleMicroserviceError(error, 'auth-service');
+    }
   }
 
   @Post('login')
@@ -76,7 +87,18 @@ export class AuthController {
   @OptionalAuth()
   @Log('Authentification utilisateur', 'info')
   public async login(@Body() loginDto: LoginDto): Promise<IAuthResponse> {
-    return firstValueFrom(this.authClient.send<IAuthResponse>({ cmd: 'login_user' }, loginDto));
+    try {
+      return await firstValueFrom(
+        this.authClient.send<IAuthResponse>({ cmd: 'login_user' }, loginDto).pipe(
+          catchError(error => {
+            this.handleMicroserviceError(error, 'auth-service');
+            return throwError(() => error);
+          })
+        )
+      );
+    } catch (error) {
+      this.handleMicroserviceError(error, 'auth-service');
+    }
   }
 
   @Get('google')
@@ -115,7 +137,12 @@ export class AuthController {
 
       // Envoyer au service d'authentification via TCP
       const authResult = await firstValueFrom(
-        this.authClient.send<IAuthResponse>({ cmd: 'google_login' }, googleUser)
+        this.authClient.send<IAuthResponse>({ cmd: 'google_login' }, googleUser).pipe(
+          catchError(error => {
+            this.handleMicroserviceError(error, 'auth-service');
+            return throwError(() => error);
+          })
+        )
       );
 
       if (
@@ -124,7 +151,6 @@ export class AuthController {
         !authResult.refresh_token ||
         !authResult.user
       ) {
-        // Use a logger if available, e.g., this.logger.error(...)
         this.logger.error('Google OAuth - Incomplete auth result from auth service', authResult);
         return res.redirect(
           `${this.globalConfig.app.frontendUrl}/auth/error?error=internal_auth_error`
@@ -171,9 +197,20 @@ export class AuthController {
   public async verifyGoogleIdToken(
     @Body() payload: VerifyGoogleIdTokenDto
   ): Promise<IAuthResponse> {
-    return firstValueFrom(
-      this.authClient.send<IAuthResponse>({ cmd: 'google_verify_id_token' }, payload.idToken)
-    );
+    try {
+      return await firstValueFrom(
+        this.authClient
+          .send<IAuthResponse>({ cmd: 'google_verify_id_token' }, payload.idToken)
+          .pipe(
+            catchError(error => {
+              this.handleMicroserviceError(error, 'auth-service');
+              return throwError(() => error);
+            })
+          )
+      );
+    } catch (error) {
+      this.handleMicroserviceError(error, 'auth-service');
+    }
   }
 
   @Post('validate-token')
@@ -194,9 +231,20 @@ export class AuthController {
   public async validateToken(
     @Body() payload: TokenValidationDto
   ): Promise<ITokenValidationResponse> {
-    return firstValueFrom(
-      this.authClient.send<ITokenValidationResponse>({ cmd: 'validate_token' }, payload.token)
-    );
+    try {
+      return await firstValueFrom(
+        this.authClient
+          .send<ITokenValidationResponse>({ cmd: 'validate_token' }, payload.token)
+          .pipe(
+            catchError(error => {
+              this.handleMicroserviceError(error, 'auth-service');
+              return throwError(() => error);
+            })
+          )
+      );
+    } catch (error) {
+      this.handleMicroserviceError(error, 'auth-service');
+    }
   }
 
   @Post('refresh')
@@ -210,9 +258,20 @@ export class AuthController {
   @ApiResponse({ status: 401, description: 'Token de refresh invalide' })
   @Log('Renouvellement du token', 'info')
   public async refresh(@Body() payload: RefreshTokenDto): Promise<IRefreshTokenResponse> {
-    return firstValueFrom(
-      this.authClient.send<IRefreshTokenResponse>({ cmd: 'refresh_token' }, payload.refreshToken)
-    );
+    try {
+      return await firstValueFrom(
+        this.authClient
+          .send<IRefreshTokenResponse>({ cmd: 'refresh_token' }, payload.refreshToken)
+          .pipe(
+            catchError(error => {
+              this.handleMicroserviceError(error, 'auth-service');
+              return throwError(() => error);
+            })
+          )
+      );
+    } catch (error) {
+      this.handleMicroserviceError(error, 'auth-service');
+    }
   }
 
   @Post('logout')
@@ -254,5 +313,49 @@ export class AuthController {
   @Log("Vérification du statut d'authentification", 'info')
   public checkAuth(): { authenticated: boolean } {
     return { authenticated: true };
+  }
+
+  private handleMicroserviceError(error: any, serviceName: string): never {
+    this.logger.error(`Erreur communication avec ${serviceName}:`, error);
+
+    // Handle connection errors
+    if (error?.code === 'ECONNREFUSED' || error?.message?.includes('ECONNREFUSED')) {
+      this.thrower.throwMicroserviceConnection(serviceName, { originalError: error.message });
+    }
+
+    // Handle microservice response errors
+    if (error?.status === 'error') {
+      switch (error.code) {
+        case 'AUTH_INVALID_CREDENTIALS':
+          this.thrower.throwInvalidCredentials({ microservice: serviceName });
+          break;
+        case 'AUTH_USER_NOT_FOUND':
+          this.thrower.throwUserNotFound({ microservice: serviceName });
+          break;
+        case 'AUTH_EMAIL_ALREADY_EXISTS':
+          this.thrower.throwEmailAlreadyExists({ microservice: serviceName });
+          break;
+        case 'AUTH_GOOGLE_TOKEN_INVALID':
+          this.thrower.throwGoogleTokenInvalid({ microservice: serviceName });
+          break;
+        case 'AUTH_TOKEN_INVALID':
+          this.thrower.throwInvalidToken({ microservice: serviceName });
+          break;
+        case 'AUTH_TOKEN_EXPIRED':
+          this.thrower.throwTokenExpired({ microservice: serviceName });
+          break;
+        default:
+          this.thrower.throwInternalError(error.message ?? "Erreur du service d'authentification", {
+            microservice: serviceName,
+            originalError: error,
+          });
+      }
+    }
+
+    // Generic error
+    this.thrower.throwInternalError('Erreur interne du service', {
+      microservice: serviceName,
+      originalError: error,
+    });
   }
 }

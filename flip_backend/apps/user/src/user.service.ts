@@ -1,11 +1,7 @@
-import {
-  Injectable,
-  NotFoundException,
-  ConflictException,
-  BadRequestException,
-} from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { PrismaService } from './prisma/prisma.service';
 import { LoggerService } from 'libs/logger/src';
+import { ExceptionThrower } from '@app/exceptions';
 import { CreateUserDto, UpdateUserDto } from '@app/contracts/User/dtos/user.dto';
 import {
   IUser,
@@ -15,12 +11,15 @@ import {
   IValidationResponse,
 } from '@app/contracts/User/interfaces/user.interface';
 import * as bcrypt from 'bcrypt';
+import { FriendshipService } from './friendship.service';
 
 @Injectable()
 export class UserService {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly logger: LoggerService
+    private readonly logger: LoggerService,
+    private readonly exceptionThrower: ExceptionThrower,
+    private readonly friendshipService: FriendshipService
   ) {
     this.logger.setContext('User.service');
   }
@@ -39,13 +38,13 @@ export class UserService {
     // Vérifier si l'email existe déjà
     const existingUserByEmail = await this.findUserByEmail(createUserDto.email);
     if (existingUserByEmail) {
-      throw new ConflictException('Un utilisateur avec cet email existe déjà');
+      this.exceptionThrower.throwDuplicateEntry('Un utilisateur avec cet email existe déjà');
     }
 
     // Vérifier si le username existe déjà
     const existingUserByUsername = await this.findUserByUsername(createUserDto.username);
     if (existingUserByUsername) {
-      throw new ConflictException("Ce nom d'utilisateur est déjà pris");
+      this.exceptionThrower.throwDuplicateEntry("Ce nom d'utilisateur est déjà pris");
     }
 
     // Hasher le mot de passe
@@ -68,8 +67,11 @@ export class UserService {
 
       return this.formatUserResponse(user);
     } catch (error: any) {
-      this.logger.error("Erreur lors de la création de l'utilisateur");
-      throw new BadRequestException("Erreur lors de la création de l'utilisateur");
+      this.logger.error("Erreur lors de la création de l'utilisateur", error.message);
+      this.exceptionThrower.throwDatabaseQuery({
+        operation: 'create_user',
+        originalError: error.message,
+      });
     }
   }
 
@@ -81,21 +83,21 @@ export class UserService {
 
     const user = await this.findUserById(userId);
     if (!user) {
-      throw new NotFoundException('Utilisateur non trouvé');
+      this.exceptionThrower.throwRecordNotFound('Utilisateur non trouvé');
     }
 
     // Vérifier les contraintes d'unicité si nécessaire
     if (updateUserDto.email && updateUserDto.email !== user.email) {
       const existingUser = await this.findUserByEmail(updateUserDto.email);
       if (existingUser && existingUser.user_id.toString() !== userId) {
-        throw new ConflictException('Cet email est déjà utilisé');
+        this.exceptionThrower.throwDuplicateEntry('Cet email est déjà utilisé');
       }
     }
 
     if (updateUserDto.username && updateUserDto.username !== user.username) {
       const existingUser = await this.findUserByUsername(updateUserDto.username);
       if (existingUser && existingUser.user_id.toString() !== userId) {
-        throw new ConflictException("Ce nom d'utilisateur est déjà pris");
+        this.exceptionThrower.throwDuplicateEntry("Ce nom d'utilisateur est déjà pris");
       }
     }
 
@@ -110,8 +112,11 @@ export class UserService {
       this.logger.info('Utilisateur mis à jour avec succès', { userId });
       return this.formatUserResponse(updatedUser);
     } catch (error: any) {
-      this.logger.error('Erreur lors de la mise à jour');
-      throw new BadRequestException('Erreur lors de la mise à jour');
+      this.logger.error('Erreur lors de la mise à jour', error.message);
+      this.exceptionThrower.throwDatabaseQuery({
+        operation: 'update_user',
+        originalError: error.message,
+      });
     }
   }
 
@@ -123,7 +128,7 @@ export class UserService {
 
     const user = await this.findUserById(userId);
     if (!user) {
-      throw new NotFoundException('Utilisateur non trouvé');
+      this.exceptionThrower.throwRecordNotFound('Utilisateur non trouvé');
     }
 
     try {
@@ -134,12 +139,187 @@ export class UserService {
       this.logger.info('Utilisateur supprimé avec succès', { userId });
       return { message: 'Utilisateur supprimé avec succès' };
     } catch (error: any) {
-      this.logger.error('Erreur lors de la suppression');
-      throw new BadRequestException('Erreur lors de la suppression');
+      this.logger.error('Erreur lors de la suppression', error.message);
+      this.exceptionThrower.throwDatabaseQuery({
+        operation: 'delete_user',
+        originalError: error.message,
+      });
     }
   }
 
   // ==================== QUERY OPERATIONS ====================
+
+  /**
+   * Rechercher des utilisateurs par terme de recherche
+   * Algorithme intelligent avec tolérance aux erreurs
+   */
+  public async searchUsers(
+    searchTerm: string,
+    page = 1,
+    limit = 20,
+    excludeUserId?: string
+  ): Promise<{ users: IUserResponse[]; total: number; hasMore: boolean }> {
+    this.logger.info('Recherche utilisateurs', { searchTerm, page, limit, excludeUserId });
+
+    // Nettoyer et normaliser le terme de recherche
+    const cleanTerm = this.normalizeSearchTerm(searchTerm);
+    if (!cleanTerm || cleanTerm.length < 1) {
+      return { users: [], total: 0, hasMore: false };
+    }
+
+    const offset = (page - 1) * limit;
+
+    try {
+      // Recherche multi-critères avec pondération
+      const searchQueries = this.generateSearchQueries(cleanTerm);
+      // Construction de la requête Prisma avec différents niveaux de correspondance
+      const whereConditions = {
+        AND: [
+          // Exclure l'utilisateur actuel si spécifié
+          ...(excludeUserId ? [{ user_id: { not: parseInt(excludeUserId) } }] : []),
+          // Conditions de recherche flexibles
+          {
+            OR: [
+              // Correspondance exacte (priorité la plus haute)
+              { username: { equals: cleanTerm, mode: 'insensitive' as const } },
+              // Commence par (priorité haute)
+              { username: { startsWith: cleanTerm, mode: 'insensitive' as const } },
+              // Contient (priorité moyenne)
+              { username: { contains: cleanTerm, mode: 'insensitive' as const } },
+              // Recherche sur l'email aussi
+              { email: { contains: cleanTerm, mode: 'insensitive' as const } },
+              // Recherche floue pour gérer les erreurs de frappe
+              ...searchQueries.map(query => ({
+                username: { contains: query, mode: 'insensitive' as const },
+              })),
+            ],
+          },
+        ],
+      };
+
+      // Compter le total
+      const total = await this.prisma.users.count({ where: whereConditions });
+      if (total === 0) {
+        return { users: [], total: 0, hasMore: false };
+      }
+
+      // Récupérer les utilisateurs avec tri intelligent
+      const users = await this.prisma.users.findMany({
+        where: whereConditions,
+        select: {
+          user_id: true,
+          username: true,
+          email: true,
+          profile_picture_url: true,
+          level: true,
+          xp_points: true,
+          game_coins: true,
+          created_at: true,
+          updated_at: true,
+        },
+        orderBy: [
+          // Trier par pertinence (ceux qui commencent par le terme en premier)
+          {
+            username: 'asc',
+          },
+        ],
+        skip: offset,
+        take: limit,
+      });
+
+      const formattedUsers = users.map(user => this.formatUserResponse(user));
+
+      // eslint-disable-next-line @typescript-eslint/no-misused-promises
+      await Promise.all(
+        formattedUsers.map(async (user: IUserResponse) => {
+          const friendship = await this.friendshipService.findExistingFriendship(
+            parseInt(user.user_id.toString()),
+            parseInt(excludeUserId ?? '0')
+          );
+          user.friendship_status = friendship?.status ?? null;
+        })
+      );
+
+      const hasMore = offset + users.length < total;
+
+      this.logger.info('Recherche terminée', {
+        resultsCount: users.length,
+        total,
+        hasMore,
+        searchTerm: cleanTerm,
+      });
+
+      return {
+        users: formattedUsers,
+        total,
+        hasMore,
+      };
+    } catch (error: any) {
+      this.logger.error('Erreur lors de la recherche', error.message);
+      return { users: [], total: 0, hasMore: false };
+    }
+  }
+
+  /**
+   * Normaliser le terme de recherche
+   */
+  private normalizeSearchTerm(term: string): string {
+    return term
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9]/g, '') // Supprimer les caractères spéciaux
+      .substring(0, 50); // Limiter la longueur
+  }
+
+  /**
+   * Générer des variantes de recherche pour gérer les erreurs de frappe
+   */
+  private generateSearchQueries(cleanTerm: string): string[] {
+    const queries: string[] = [];
+    if (cleanTerm.length < 2) {
+      return queries;
+    }
+
+    // Variantes avec caractères manquants (typos communes)
+    const commonTypos = {
+      a: ['e', 'à', 'á'],
+      e: ['a', 'é', 'è', 'ê'],
+      i: ['y', 'í', 'î'],
+      o: ['u', 'ó', 'ô'],
+      u: ['o', 'ú', 'ù'],
+      c: ['k', 'ç'],
+      k: ['c', 'q'],
+      s: ['z', 'ç'],
+      z: ['s'],
+      ph: ['f'],
+      f: ['ph'],
+    };
+
+    // Générer des variantes avec substitutions communes
+    for (const [original, replacements] of Object.entries(commonTypos)) {
+      if (cleanTerm.includes(original)) {
+        for (const replacement of replacements) {
+          const variant = cleanTerm.replace(new RegExp(original, 'g'), replacement);
+          if (variant !== cleanTerm && variant.length >= 2) {
+            queries.push(variant);
+          }
+        }
+      }
+    }
+
+    // Variantes avec caractères inversés (transpositions)
+    for (let i = 0; i < cleanTerm.length - 1; i++) {
+      if (cleanTerm[i] !== cleanTerm[i + 1]) {
+        const chars = cleanTerm.split('');
+        [chars[i], chars[i + 1]] = [chars[i + 1], chars[i]];
+        const transposed = chars.join('');
+        queries.push(transposed);
+      }
+    }
+
+    // Limiter le nombre de variantes pour éviter les requêtes trop lourdes
+    return queries.slice(0, 5);
+  }
 
   /**
    * Trouver un utilisateur par ID
@@ -151,7 +331,7 @@ export class UserService {
       });
       return user as IUser | null;
     } catch (error: any) {
-      this.logger.error('Erreur lors de la recherche par ID');
+      this.logger.error('Erreur lors de la recherche par ID', error.message);
       return null;
     }
   }
@@ -166,7 +346,7 @@ export class UserService {
       });
       return user as IUser | null;
     } catch (error: any) {
-      this.logger.error('Erreur lors de la recherche par email');
+      this.logger.error('Erreur lors de la recherche par email', error.message);
       return null;
     }
   }
@@ -181,7 +361,7 @@ export class UserService {
       });
       return user as IUser | null;
     } catch (error: any) {
-      this.logger.error('Erreur lors de la recherche par username');
+      this.logger.error('Erreur lors de la recherche par username', error.message);
       return null;
     }
   }
@@ -194,7 +374,7 @@ export class UserService {
 
     const user = await this.findUserById(userId);
     if (!user) {
-      throw new NotFoundException('Utilisateur non trouvé');
+      this.exceptionThrower.throwRecordNotFound('Utilisateur non trouvé');
     }
 
     return {
@@ -217,7 +397,7 @@ export class UserService {
 
     const user = await this.findUserById(userId);
     if (!user) {
-      throw new NotFoundException('Utilisateur non trouvé');
+      this.exceptionThrower.throwRecordNotFound('Utilisateur non trouvé');
     }
 
     // Pour l'instant, on retourne des stats basiques
@@ -276,7 +456,7 @@ export class UserService {
 
     const user = await this.findUserById(userId);
     if (!user) {
-      throw new NotFoundException('Utilisateur non trouvé');
+      this.exceptionThrower.throwRecordNotFound('Utilisateur non trouvé');
     }
 
     const newXP = user.xp_points + xpAmount;
@@ -302,7 +482,7 @@ export class UserService {
 
     const user = await this.findUserById(userId);
     if (!user) {
-      throw new NotFoundException('Utilisateur non trouvé');
+      this.exceptionThrower.throwRecordNotFound('Utilisateur non trouvé');
     }
 
     const updatedUser = await this.prisma.users.update({
@@ -330,8 +510,9 @@ export class UserService {
       level: user.level,
       xp_points: user.xp_points,
       game_coins: user.game_coins,
-      createdAt: user.createdAt,
-      updatedAt: user.updatedAt,
+      createdAt: user.created_at ?? user.createdAt,
+      updatedAt: user.updated_at ?? user.updatedAt,
+      friendship_status: user.friendship_status ?? null,
     };
   }
 

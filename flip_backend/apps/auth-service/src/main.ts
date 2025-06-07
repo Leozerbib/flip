@@ -2,6 +2,7 @@ import { NestFactory } from '@nestjs/core';
 import { MicroserviceOptions, Transport } from '@nestjs/microservices';
 import { AppModule } from './app.module';
 import { LoggerService } from 'libs/logger/src';
+import { GlobalExceptionFilter } from '@app/exceptions';
 
 async function bootstrap() {
   const app = await NestFactory.createMicroservice<MicroserviceOptions>(AppModule, {
@@ -11,6 +12,10 @@ async function bootstrap() {
       port: parseInt(process.env.AUTH_SERVICE_PORT ?? '4002'),
     },
   });
+
+  // Global Exception Filter for microservice
+  app.useGlobalFilters(app.get(GlobalExceptionFilter));
+
   const logger = app.get(LoggerService);
   logger.setContext('Auth.main');
 

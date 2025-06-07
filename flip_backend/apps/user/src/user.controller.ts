@@ -1,6 +1,7 @@
 import { Controller } from '@nestjs/common';
 import { MessagePattern, Payload } from '@nestjs/microservices';
 import { UserService } from './user.service';
+import { FriendshipService } from './friendship.service';
 import { LoggerService } from 'libs/logger/src';
 import { CreateUserDto, UpdateUserDto } from '@app/contracts/User/dtos/user.dto';
 import {
@@ -18,6 +19,7 @@ import {
 export class UserController {
   constructor(
     private readonly userService: UserService,
+    private readonly friendshipService: FriendshipService,
     private readonly logger: LoggerService
   ) {
     this.logger.setContext('User.controller');
@@ -106,5 +108,46 @@ export class UserController {
       coinAmount: payload.coinAmount,
     });
     return this.userService.addCoins(payload.userId, payload.coinAmount);
+  }
+
+  @MessagePattern({ cmd: 'search_users' })
+  public async searchUsers(
+    @Payload()
+    payload: {
+      searchTerm: string;
+      page?: number;
+      limit?: number;
+      excludeUserId?: string;
+    }
+  ): Promise<{ users: IUserResponse[]; total: number; hasMore: boolean }> {
+    this.logger.info('Recherche utilisateurs (microservice)', {
+      searchTerm: payload.searchTerm,
+      page: payload.page,
+      limit: payload.limit,
+      excludeUserId: payload.excludeUserId,
+    });
+    return this.userService.searchUsers(
+      payload.searchTerm,
+      payload.page,
+      payload.limit,
+      payload.excludeUserId
+    );
+  }
+
+  @MessagePattern({ cmd: 'check_friendship_status' })
+  public async checkFriendshipStatus(
+    @Payload() payload: { userId: number; otherUserId: number }
+  ): Promise<string | null> {
+    this.logger.info('Vérification statut amitié (microservice)', {
+      userId: payload.userId.toString(),
+      otherUserId: payload.otherUserId.toString(),
+    });
+
+    const friendship = await this.friendshipService.findExistingFriendship(
+      payload.userId,
+      payload.otherUserId
+    );
+
+    return friendship ? friendship.status : null;
   }
 }

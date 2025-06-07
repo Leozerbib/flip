@@ -4,9 +4,10 @@ import { AuthController } from './auth.controller';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { GoogleStrategy } from './strategies/google.strategy';
 import { MicroservicesModule } from '../microservices/microservices.module';
+import { ExceptionsModule } from '@app/exceptions';
 
 @Module({
-  imports: [PassportModule, MicroservicesModule],
+  imports: [PassportModule, MicroservicesModule, ExceptionsModule],
   controllers: [AuthController],
   providers: [JwtAuthGuard, GoogleStrategy],
   exports: [JwtAuthGuard],

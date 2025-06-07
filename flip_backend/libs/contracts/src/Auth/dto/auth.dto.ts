@@ -37,7 +37,7 @@ export class TokenValidationDto {
 
 export class RefreshTokenDto {
   @ApiProperty({
-    description: 'Refresh token pour renouveler le token d\'accès',
+    description: "Refresh token pour renouveler le token d'accès",
     example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...',
   })
   @IsString()

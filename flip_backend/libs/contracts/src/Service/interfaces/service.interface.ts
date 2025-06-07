@@ -1,4 +1,4 @@
-import { ServiceStatusEnum } from '../../types/common.types';
+import { ServiceStatusEnum, ServiceTypeEnum } from '../../types/common.types';
 
 // === INTERFACES SERVICE BASÉES SUR LE SCHÉMA PRISMA ===
 
@@ -56,6 +56,9 @@ export interface IServiceStats {
 
 export interface IServiceFilters {
   status?: ServiceStatusEnum;
+  type?: ServiceTypeEnum;
+  page?: number;
+  limit?: number;
   category_id?: number;
   provider_id?: number;
   beneficiary_id?: number;
