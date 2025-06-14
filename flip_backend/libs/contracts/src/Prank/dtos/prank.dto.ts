@@ -10,67 +10,7 @@ import {
   IsDateString,
 } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
-import { PrankTypeEnum, ExecutedPrankStatusEnum } from '../../types/common.types';
-
-export class CreatePrankDto {
-  @ApiProperty({ example: 'Chanter en public', description: 'Nom du prank' })
-  @IsString()
-  name: string;
-
-  @ApiProperty({
-    example: 'Chanter une chanson en public pendant 1 minute',
-    description: 'Description détaillée',
-  })
-  @IsString()
-  description: string;
-
-  @ApiProperty({ example: 25, description: 'Coût équivalent en jetons par défaut' })
-  @IsNumber()
-  @Min(1)
-  default_jeton_cost_equivalent: number;
-
-  @ApiProperty({ example: 10, description: "Récompense XP pour l'exécuteur", required: false })
-  @IsNumber()
-  @IsOptional()
-  xp_reward_executor?: number;
-
-  @ApiProperty({ example: 5, description: 'Récompense XP pour la cible', required: false })
-  @IsNumber()
-  @IsOptional()
-  xp_reward_target?: number;
-
-  @ApiProperty({
-    example: 10,
-    description: "Récompense en pièces pour l'exécuteur",
-    required: false,
-  })
-  @IsNumber()
-  @IsOptional()
-  coins_reward_executor?: number;
-
-  @ApiProperty({ example: 5, description: 'Récompense en pièces pour la cible', required: false })
-  @IsNumber()
-  @IsOptional()
-  coins_reward_target?: number;
-
-  @ApiProperty({ enum: PrankTypeEnum, description: 'Type de prank' })
-  @IsEnum(PrankTypeEnum)
-  type: PrankTypeEnum;
-
-  @ApiProperty({ example: { duration: '1 minute', location: 'public' }, required: false })
-  @IsJSON()
-  @IsOptional()
-  config_details_json?: any;
-
-  @ApiProperty({ example: true, description: 'Preuve requise pour validation' })
-  @IsBoolean()
-  requires_proof: boolean;
-
-  @ApiProperty({ example: true, description: 'Prank actif', required: false })
-  @IsBoolean()
-  @IsOptional()
-  is_active?: boolean;
-}
+import { PrankTypeEnum, PrankRarityEnum, ExecutedPrankStatusEnum } from '../../types/common.types';
 
 export class UpdatePrankDto {
   @ApiProperty({ example: 'Nom mis à jour', required: false })
@@ -128,6 +68,16 @@ export class UpdatePrankDto {
   @IsBoolean()
   @IsOptional()
   is_active?: boolean;
+
+  @ApiProperty({ example: 'https://example.com/prank-image.jpg', required: false })
+  @IsUrl()
+  @IsOptional()
+  image_url?: string;
+
+  @ApiProperty({ enum: PrankRarityEnum, required: false })
+  @IsEnum(PrankRarityEnum)
+  @IsOptional()
+  rarity?: PrankRarityEnum;
 }
 
 export class PrankResponseDto {
@@ -169,6 +119,12 @@ export class PrankResponseDto {
 
   @ApiProperty({ example: '2023-01-01T00:00:00.000Z' })
   created_at?: Date;
+
+  @ApiProperty({ example: 'https://example.com/prank-image.jpg', nullable: true })
+  image_url?: string;
+
+  @ApiProperty({ enum: PrankRarityEnum })
+  rarity: PrankRarityEnum;
 }
 
 export class CreateExecutedPrankDto {
@@ -330,6 +286,34 @@ export class PrankFiltersDto {
   @IsNumber()
   @IsOptional()
   jeton_cost_max?: number;
+
+  @ApiProperty({ enum: PrankRarityEnum, required: false })
+  @IsEnum(PrankRarityEnum)
+  @IsOptional()
+  rarity?: PrankRarityEnum;
+}
+
+export class PrankStatsDto {
+  @ApiProperty({ example: 50 })
+  total_pranks: number;
+
+  @ApiProperty({ example: 35 })
+  active_pranks: number;
+
+  @ApiProperty({ example: 120 })
+  total_executions: number;
+
+  @ApiProperty({ example: 15 })
+  pending_executions: number;
+
+  @ApiProperty({ example: 105 })
+  completed_executions: number;
+
+  @ApiProperty({ example: 2500 })
+  total_jeton_value_executed: number;
+
+  @ApiProperty({ example: 25 })
+  average_jeton_cost: number;
 }
 
 export class ExecutedPrankFiltersDto {

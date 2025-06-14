@@ -46,16 +46,16 @@ dependencies:
   go_router: ^15.1.2 # Or latest (declarative routing)
 
   # Secure Storage (for refresh tokens)
-  flutter_secure_storage: ^9.0.0 # Or latest
+  flutter_secure_storage: ^9.2.4 # Or latest
 
   # Google Sign-In
   google_sign_in: ^6.3.0 # Or latest
 
   # Environment Variables
-  flutter_dotenv: ^5.1.0 # Or latest
+  flutter_dotenv: ^5.2.1 # Or latest
 
   # Utility for comparing objects
-  equatable: ^2.0.5
+  equatable: ^2.0.7
 
   # Optional: For easy date formatting, localization
   intl: ^0.20.2
@@ -65,8 +65,18 @@ dependencies:
   url_launcher: ^6.3.1
   flutter_launcher_icons: ^0.14.3
 
+  # JSON Serialization
+  json_annotation: ^4.9.0
+  
   # Theme persistence
-  shared_preferences: ^2.2.2
+  shared_preferences: ^2.5.2
+  
+  # Animations
+  lottie: ^3.1.2
+  flutter_staggered_animations: ^1.1.1
+  
+  # Audio
+  audioplayers: ^6.0.0
 
 dev_dependencies:
   flutter_test:
@@ -84,6 +94,9 @@ dev_dependencies:
   build_runner: ^2.4.0 # Or latest
   custom_lint: ^0.7.5 # For riverpod_lint
   riverpod_lint: ^2.3.0 # For better Riverpod practices
+  
+  # JSON Serialization Code Generation
+  json_serializable: ^6.7.1
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
@@ -99,7 +112,65 @@ flutter:
   # To add assets to your application, add an assets section, like this:
   assets:
     - .env
-    - asset/logo/logo.png
+    - assets/logo/logo.png
+    - assets/sounds/booster_select.mp3
+    - assets/sounds/card_reveal.mp3
+    - assets/sounds/pack_opening.mp3
+    - assets/sounds/rarity_rare.mp3
+    - assets/sounds/rarity_extreme.mp3
+    - assets/sounds/rarity_common.mp3
+    - assets/sounds/swipe_open.mp3
+    - assets/card/extreme/card-extreme (1).png
+    - assets/card/extreme/card-extreme (2).png
+    - assets/card/extreme/card-extreme (3).png
+    - assets/card/extreme/card-extreme (4).png
+    - assets/card/extreme/card-extreme (5).png
+    - assets/card/extreme/card-extreme (6).png
+    - assets/card/extreme/card-extreme (7).png
+    - assets/card/extreme/card-extreme (8).png
+    - assets/card/extreme/card-extreme (9).png
+    - assets/card/extreme/card-extreme (10).png
+    - assets/card/extreme/card-extreme (11).png
+    - assets/card/extreme/card-extreme (12).png
+    - assets/card/extreme/card-extreme (13).png
+    - assets/card/extreme/card-extreme (14).png
+    - assets/card/extreme/card-extreme (15).png
+    - assets/card/extreme/card-extreme (16).png
+    - assets/card/extreme/card-extreme (17).png
+    - assets/card/rare/card-rare (1).png
+    - assets/card/rare/card-rare (2).png
+    - assets/card/rare/card-rare (3).png
+    - assets/card/rare/card-rare (4).png
+    - assets/card/rare/card-rare (5).png
+    - assets/card/rare/card-rare (6).png
+    - assets/card/rare/card-rare (7).png
+    - assets/card/rare/card-rare (8).png
+    - assets/card/rare/card-rare (9).png
+    - assets/card/rare/card-rare (10).png
+    - assets/card/rare/card-rare (11).png
+    - assets/card/rare/card-rare (12).png
+    - assets/card/rare/card-rare (13).png
+    - assets/card/rare/card-rare (14).png
+    - assets/card/rare/card-rare (15).png
+    - assets/card/rare/card-rare (16).png
+    - assets/card/rare/card-rare (17).png
+    - assets/card/common/card-common (1).png
+    - assets/card/common/card-common (2).png
+    - assets/card/common/card-common (3).png
+    - assets/card/common/card-common (4).png
+    - assets/card/common/card-common (5).png
+    - assets/card/common/card-common (6).png
+    - assets/card/common/card-common (7).png
+    - assets/card/common/card-common (8).png
+    - assets/card/common/card-common (9).png
+    - assets/card/common/card-common (10).png
+    - assets/card/common/card-common (11).png
+    - assets/card/common/card-common (12).png
+    - assets/card/common/card-common (13).png
+    - assets/card/common/card-common (14).png
+    - assets/card/common/card-common (15).png
+    - assets/card/common/card-common (16).png
+    - assets/card/common/card-common (17).png
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images

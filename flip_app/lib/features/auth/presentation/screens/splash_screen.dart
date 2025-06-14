@@ -19,7 +19,7 @@ class SplashScreen extends ConsumerWidget {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             // Logo de l'application
-            Image.asset('asset/logo/logo.png', width: 180),
+            Image.asset('assets/logo/logo.png', width: 180),
 
             const SizedBox(height: 32),
 

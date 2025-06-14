@@ -5,17 +5,19 @@ import '../../../auth/presentation/view_models/auth_provider.dart';
 import '../../../history/presentation/screens/history_screen.dart';
 import '../../../friends/presentation/screens/friends_screen.dart';
 import '../../../home/presentation/screens/home_screen.dart';
-import '../../../services/presentation/screens/services_screen.dart';
+import '../../../shop/presentation/screens/shop_screen.dart';
+import '../../../banque/presentation/screens/banque_screen.dart';
 import '../../../profile/presentation/screens/profile_screen.dart';
 import '../../../settings/presentation/screens/theme_settings_screen.dart';
 import '../../../../core/theme/theme_manager.dart';
+import '../../../../core/provider/index.dart';
 
 class MainNavigationScreen extends ConsumerStatefulWidget {
   final int initialIndex;
 
   const MainNavigationScreen({
     super.key,
-    this.initialIndex = 2, // Default to home (middle)
+    this.initialIndex = 2, // Default to home
   });
 
   @override
@@ -53,17 +55,14 @@ class _MainNavigationScreenState extends ConsumerState<MainNavigationScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final authState = ref.watch(authProvider);
-    final themeManager = ref.watch(themeManagerProvider);
+    // Observer la synchronisation user/auth
+    ref.watch(userSyncProvider);
 
     return FScaffold(
       child: Column(
         children: [
           // Custom Top Bar
-          TopBar(
-            user: authState.user,
-            onSettingsPressed: () => _showThemeSettings(context),
-          ),
+          TopBar(onSettingsPressed: () => _showThemeSettings(context)),
 
           // Page Content
           Expanded(
@@ -75,10 +74,10 @@ class _MainNavigationScreenState extends ConsumerState<MainNavigationScreen> {
                 });
               },
               children: const [
-                HistoryScreen(),
+                ShopScreen(),
                 FriendsScreen(),
                 HomeScreen(),
-                ServicesScreen(),
+                BanqueScreen(),
                 ProfileScreen(),
               ],
             ),
@@ -90,8 +89,8 @@ class _MainNavigationScreenState extends ConsumerState<MainNavigationScreen> {
             onChange: _onTabTapped,
             children: [
               FBottomNavigationBarItem(
-                icon: const Icon(FIcons.clock),
-                label: const Text('Historique'),
+                icon: const Icon(FIcons.shoppingBag),
+                label: const Text('Shop'),
               ),
               FBottomNavigationBarItem(
                 icon: const Icon(FIcons.users),
@@ -152,22 +151,23 @@ class _MainNavigationScreenState extends ConsumerState<MainNavigationScreen> {
 }
 
 class TopBar extends ConsumerWidget {
-  final dynamic user;
   final VoidCallback onSettingsPressed;
 
-  const TopBar({
-    super.key,
-    required this.user,
-    required this.onSettingsPressed,
-  });
+  const TopBar({super.key, required this.onSettingsPressed});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = FTheme.of(context);
-    final level = _calculateLevel(user);
-    final currentExp = _getCurrentExp(user);
-    final expToNext = _getExpToNextLevel(level);
-    final expProgress = currentExp / expToNext;
+
+    // Utiliser les providers pour récupérer les données utilisateur
+    final currentUser = ref.watch(currentUserProvider);
+    final userCoins = ref.watch(userCoinsProvider);
+    final userLevel = ref.watch(userLevelProvider);
+    final userXP = ref.watch(userXPProvider);
+
+    // Calculs basés sur les données du provider
+    final currentLevelXP = userXP % 100; // XP dans le niveau actuel
+    final expProgress = currentLevelXP / 100.0;
 
     return Container(
       width: double.infinity,
@@ -197,7 +197,7 @@ class TopBar extends ConsumerWidget {
                           Row(
                             children: [
                               Text(
-                                user?.displayName ?? 'Utilisateur',
+                                currentUser?.username ?? 'Utilisateur',
                                 style: theme.typography.sm.copyWith(
                                   fontWeight: FontWeight.w600,
                                   color: theme.colors.foreground,
@@ -207,7 +207,7 @@ class TopBar extends ConsumerWidget {
                               ),
                               const SizedBox(width: 8),
                               Text(
-                                'Lv $level',
+                                'Lv $userLevel',
                                 style: theme.typography.xs.copyWith(
                                   color: theme.colors.mutedForeground,
                                   fontWeight: FontWeight.w500,
@@ -224,7 +224,7 @@ class TopBar extends ConsumerWidget {
                           ),
                           const SizedBox(height: 2),
                           Text(
-                            '$currentExp / $expToNext XP',
+                            '$currentLevelXP / 100 XP',
                             style: theme.typography.xs.copyWith(
                               fontWeight: FontWeight.w500,
                               color: theme.colors.mutedForeground,
@@ -237,9 +237,11 @@ class TopBar extends ConsumerWidget {
                     Center(
                       child: FAvatar(
                         size: 60,
-                        image: user?.profilePicture != null
-                            ? NetworkImage(user!.profilePicture!)
-                            : const NetworkImage(''),
+                        image: currentUser?.profilePicture != null
+                            ? NetworkImage(currentUser!.profilePicture!)
+                            : const AssetImage(
+                                'assets/images/default_avatar.png',
+                              ),
                       ),
                     ),
                     const SizedBox(width: 10),
@@ -270,7 +272,7 @@ class TopBar extends ConsumerWidget {
                                 ),
                                 const SizedBox(width: 4),
                                 Text(
-                                  '${_getUserCoins(user)}',
+                                  '$userCoins',
                                   style: theme.typography.sm.copyWith(
                                     fontWeight: FontWeight.w600,
                                     color: theme.colors.foreground,
@@ -305,7 +307,7 @@ class TopBar extends ConsumerWidget {
 
   String _getUserInitials(dynamic user) {
     if (user == null) return 'U';
-    final name = user.displayName ?? user.username ?? user.email ?? 'User';
+    final name = user.username ?? user.email ?? 'User';
     final parts = name.split(' ');
     if (parts.length >= 2) {
       return '${parts[0][0]}${parts[1][0]}'.toUpperCase();
@@ -313,30 +315,5 @@ class TopBar extends ConsumerWidget {
     return name.length >= 2
         ? name.substring(0, 2).toUpperCase()
         : name[0].toUpperCase();
-  }
-
-  int _calculateLevel(dynamic user) {
-    // Simple level calculation based on creation date
-    if (user?.createdAt == null) return 1;
-    final daysSince = DateTime.now().difference(user.createdAt).inDays;
-    return (daysSince / 7).floor() + 1; // Level up every week
-  }
-
-  int _getCurrentExp(dynamic user) {
-    // Mock current experience
-    if (user?.createdAt == null) return 50;
-    final daysSince = DateTime.now().difference(user.createdAt).inDays;
-    return (daysSince % 7) * 20 + 50; // 20 XP per day
-  }
-
-  int _getExpToNextLevel(int level) {
-    return level * 100; // Increasing XP requirement per level
-  }
-
-  int _getUserCoins(dynamic user) {
-    // Mock coins calculation
-    if (user?.createdAt == null) return 220;
-    final daysSince = DateTime.now().difference(user.createdAt).inDays;
-    return 220 + (daysSince * 10); // 10 coins per day
   }
 }

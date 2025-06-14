@@ -1389,6 +1389,9 @@ exports.EXCEPTION_CODES = {
     AUTH_USER_NOT_FOUND: 'AUTH_USER_NOT_FOUND',
     AUTH_EMAIL_ALREADY_EXISTS: 'AUTH_EMAIL_ALREADY_EXISTS',
     AUTH_GOOGLE_TOKEN_INVALID: 'AUTH_GOOGLE_TOKEN_INVALID',
+    APP_PACK_NOT_FOUND: 'APP_PACK_NOT_FOUND',
+    APP_INSUFFICIENT_QUANTITY: 'APP_INSUFFICIENT_QUANTITY',
+    APP_PRANK_NOT_FOUND: 'APP_PRANK_NOT_FOUND',
     DB_CONNECTION_ERROR: 'DB_CONNECTION_ERROR',
     DB_QUERY_ERROR: 'DB_QUERY_ERROR',
     DB_RECORD_NOT_FOUND: 'DB_RECORD_NOT_FOUND',
@@ -1569,7 +1572,7 @@ exports.BaseException = BaseException;
 
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.ResourceNotAvailableException = exports.InsufficientPermissionsException = exports.BusinessException = void 0;
+exports.PrankNotFoundException = exports.InsufficientQuantityException = exports.PackNotFoundException = exports.ResourceNotAvailableException = exports.InsufficientPermissionsException = exports.BusinessException = void 0;
 const base_exception_1 = __webpack_require__(/*! ./base.exception */ "./libs/exceptions/src/exceptions/base.exception.ts");
 const exception_constants_1 = __webpack_require__(/*! ../constants/exception.constants */ "./libs/exceptions/src/constants/exception.constants.ts");
 class BusinessException extends base_exception_1.BaseException {
@@ -1594,6 +1597,24 @@ class ResourceNotAvailableException extends base_exception_1.BaseException {
     }
 }
 exports.ResourceNotAvailableException = ResourceNotAvailableException;
+class PackNotFoundException extends base_exception_1.BaseException {
+    constructor(details, path) {
+        super('Pack introuvable', exception_constants_1.HTTP_STATUS_CODES.NOT_FOUND, exception_constants_1.EXCEPTION_CODES.APP_PACK_NOT_FOUND, details, path);
+    }
+}
+exports.PackNotFoundException = PackNotFoundException;
+class InsufficientQuantityException extends base_exception_1.BaseException {
+    constructor(details, path) {
+        super('Quantité insuffisante', exception_constants_1.HTTP_STATUS_CODES.NOT_FOUND, exception_constants_1.EXCEPTION_CODES.APP_INSUFFICIENT_QUANTITY, details, path);
+    }
+}
+exports.InsufficientQuantityException = InsufficientQuantityException;
+class PrankNotFoundException extends base_exception_1.BaseException {
+    constructor(details, path) {
+        super('Prank introuvable', exception_constants_1.HTTP_STATUS_CODES.NOT_FOUND, exception_constants_1.EXCEPTION_CODES.APP_PRANK_NOT_FOUND, details, path);
+    }
+}
+exports.PrankNotFoundException = PrankNotFoundException;
 
 
 /***/ }),

@@ -21,15 +21,15 @@ class ApiClient {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
       },
+      validateStatus: (status) {
+        return status != null && status < 500;
+      },
     );
 
     final dio = Dio(options);
 
     // Ajouter les intercepteurs
-    dio.interceptors.addAll([
-      LoggingInterceptor(),
-      AuthInterceptor(),
-    ]);
+    dio.interceptors.addAll([LoggingInterceptor(), AuthInterceptor()]);
 
     return dio;
   }
@@ -96,4 +96,4 @@ class ApiClient {
       cancelToken: cancelToken,
     );
   }
-} 
+}

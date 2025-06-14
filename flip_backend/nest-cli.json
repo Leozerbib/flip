@@ -46,6 +46,15 @@
         "tsConfigPath": "libs/contracts/tsconfig.lib.json"
       }
     },
+    "exceptions": {
+      "type": "library",
+      "root": "libs/exceptions",
+      "entryFile": "index",
+      "sourceRoot": "libs/exceptions/src",
+      "compilerOptions": {
+        "tsConfigPath": "libs/exceptions/tsconfig.lib.json"
+      }
+    },
     "logger": {
       "type": "library",
       "root": "libs/logger",
@@ -55,13 +64,13 @@
         "tsConfigPath": "libs/logger/tsconfig.lib.json"
       }
     },
-    "exceptions": {
-      "type": "library",
-      "root": "libs/exceptions",
-      "entryFile": "index",
-      "sourceRoot": "libs/exceptions/src",
+    "shop": {
+      "type": "application",
+      "root": "apps/shop",
+      "entryFile": "main",
+      "sourceRoot": "apps/shop/src",
       "compilerOptions": {
-        "tsConfigPath": "libs/exceptions/tsconfig.lib.json"
+        "tsConfigPath": "apps/shop/tsconfig.app.json"
       }
     },
     "user": {

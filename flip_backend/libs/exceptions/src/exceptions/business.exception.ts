@@ -1,6 +1,5 @@
 import { BaseException } from './base.exception';
 import { EXCEPTION_CODES, HTTP_STATUS_CODES } from '../constants/exception.constants';
-import { IBusinessError } from '../interfaces/exception.interface';
 
 export class BusinessException extends BaseException {
   public readonly businessCode: string;
@@ -43,6 +42,42 @@ export class ResourceNotAvailableException extends BaseException {
       'Ressource non disponible',
       HTTP_STATUS_CODES.NOT_FOUND,
       EXCEPTION_CODES.RESOURCE_NOT_AVAILABLE,
+      details,
+      path
+    );
+  }
+}
+
+export class PackNotFoundException extends BaseException {
+  constructor(details?: any, path?: string) {
+    super(
+      'Pack introuvable',
+      HTTP_STATUS_CODES.NOT_FOUND,
+      EXCEPTION_CODES.APP_PACK_NOT_FOUND,
+      details,
+      path
+    );
+  }
+}
+
+export class InsufficientQuantityException extends BaseException {
+  constructor(details?: any, path?: string) {
+    super(
+      'Quantité insuffisante',
+      HTTP_STATUS_CODES.NOT_FOUND,
+      EXCEPTION_CODES.APP_INSUFFICIENT_QUANTITY,
+      details,
+      path
+    );
+  }
+}
+
+export class PrankNotFoundException extends BaseException {
+  constructor(details?: any, path?: string) {
+    super(
+      'Prank introuvable',
+      HTTP_STATUS_CODES.NOT_FOUND,
+      EXCEPTION_CODES.APP_PRANK_NOT_FOUND,
       details,
       path
     );

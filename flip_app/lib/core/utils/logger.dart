@@ -22,4 +22,4 @@ class AppLogger {
   static void warning(String message) {
     talker.warning(message);
   }
-} 
+}

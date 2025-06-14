@@ -1,4 +1,4 @@
-import { PrankTypeEnum, ExecutedPrankStatusEnum } from '../../types/common.types';
+import { PrankTypeEnum, PrankRarityEnum, ExecutedPrankStatusEnum } from '../../types/common.types';
 
 // === INTERFACES PRANK BASÉES SUR LE SCHÉMA PRISMA ===
 
@@ -16,6 +16,8 @@ export interface IPrank {
   requires_proof: boolean;
   is_active: boolean;
   created_at?: Date;
+  image_url?: string;
+  rarity: PrankRarityEnum;
 }
 
 export interface IExecutedPrank {
@@ -68,6 +70,7 @@ export interface IPrankFilters {
   requires_proof?: boolean;
   jeton_cost_min?: number;
   jeton_cost_max?: number;
+  rarity?: PrankRarityEnum;
 }
 
 export interface IExecutedPrankFilters {

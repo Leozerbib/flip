@@ -34,7 +34,7 @@ export interface ITokenPayload {
 }
 
 export interface ICurrentUser {
-  id: string;
+  id: number;
   username?: string;
   level?: number;
   xp_points?: number;

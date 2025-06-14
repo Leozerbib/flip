@@ -48,6 +48,12 @@ export enum PrankTypeEnum {
   EXTERNAL_ACTION = 'external_action',
 }
 
+export enum PrankRarityEnum {
+  COMMON = 'common',
+  RARE = 'rare',
+  EXTREME = 'extreme',
+}
+
 export enum ServiceStatusEnum {
   PENDING_CONFIRMATION = 'pending_confirmation',
   CONFIRMED_UNPAID = 'confirmed_unpaid',

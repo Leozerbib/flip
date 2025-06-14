@@ -1086,6 +1086,1001 @@ exports.PrismaService = PrismaService = __decorate([
 
 /***/ }),
 
+/***/ "./apps/user/src/user-inventory.controller.ts":
+/*!****************************************************!*\
+  !*** ./apps/user/src/user-inventory.controller.ts ***!
+  \****************************************************/
+/***/ (function(__unused_webpack_module, exports, __webpack_require__) {
+
+
+var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
+    var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
+    if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
+    else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+    return c > 3 && r && Object.defineProperty(target, key, r), r;
+};
+var __metadata = (this && this.__metadata) || function (k, v) {
+    if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
+};
+var __param = (this && this.__param) || function (paramIndex, decorator) {
+    return function (target, key) { decorator(target, key, paramIndex); }
+};
+var _a, _b, _c, _d, _e, _f;
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.UserInventoryController = void 0;
+const common_1 = __webpack_require__(/*! @nestjs/common */ "@nestjs/common");
+const microservices_1 = __webpack_require__(/*! @nestjs/microservices */ "@nestjs/microservices");
+const user_inventory_service_1 = __webpack_require__(/*! ./user-inventory.service */ "./apps/user/src/user-inventory.service.ts");
+const logger_1 = __webpack_require__(/*! @app/logger */ "./libs/logger/src/index.ts");
+let UserInventoryController = class UserInventoryController {
+    userInventoryService;
+    logger;
+    constructor(userInventoryService, logger) {
+        this.userInventoryService = userInventoryService;
+        this.logger = logger;
+    }
+    async getUserInventory(payload) {
+        this.logger.info('Récupération inventaire utilisateur', {
+            endpoint: 'GET /users/:userId/inventory',
+        });
+        const inventory = await this.userInventoryService.getUserInventory(parseInt(payload.userId.toString()));
+        const result = {
+            totalPacks: inventory.totalPacks,
+            packsByType: inventory.packsByType,
+            allPacks: inventory.allPacks.map(item => ({
+                userPackInventoryId: item.userPackInventoryId,
+                userId: item.userId,
+                packId: item.packId,
+                quantity: item.quantity,
+                acquiredAt: item.acquiredAt,
+                pack: {
+                    packId: item.pack.packId,
+                    name: item.pack.name,
+                    description: item.pack.description,
+                    imageUrl: item.pack.imageUrl,
+                    costCurrencyType: item.pack.costCurrencyType,
+                    costAmount: item.pack.costAmount,
+                    numberOfPranksAwarded: item.pack.numberOfPranksAwarded,
+                    packType: item.pack.packType,
+                    isAvailable: item.pack.isAvailable,
+                    requiredUserLevel: item.pack.requiredUserLevel,
+                },
+            })),
+        };
+        this.logger.info('Inventaire retourné avec succès', {
+            userId: payload.userId?.toString(),
+            totalPacks: result.totalPacks,
+        });
+        return result;
+    }
+    async getUserInventoryStats(payload) {
+        this.logger.info('Récupération stats inventaire utilisateur', {
+            userId: payload.userId?.toString(),
+            endpoint: 'GET /users/:userId/inventory/stats',
+        });
+        const stats = await this.userInventoryService.getUserInventoryStats(parseInt(payload.userId.toString()));
+        const result = {
+            totalPacks: stats.totalPacks,
+            totalValue: stats.totalValue,
+            packsByType: stats.packsByType,
+        };
+        this.logger.info('Stats inventaire retournées avec succès', {
+            userId: payload.userId?.toString(),
+            totalPacks: result.totalPacks,
+            totalValue: result.totalValue,
+        });
+        return result;
+    }
+    async addPackToInventory(payload) {
+        this.logger.info('Ajout pack à inventaire utilisateur', {
+            userId: payload.userId?.toString(),
+            packId: payload.addPackDto?.packId?.toString(),
+            quantity: payload.addPackDto?.quantity?.toString(),
+            endpoint: 'POST /users/:userId/inventory/add',
+        });
+        const result = await this.userInventoryService.addPackToInventory(parseInt(payload.userId.toString()), parseInt(payload.addPackDto.packId.toString()), parseInt(payload.addPackDto.quantity.toString()));
+        const response = {
+            success: result.success,
+            item: result.item
+                ? {
+                    userPackInventoryId: result.item.userPackInventoryId,
+                    userId: result.item.userId,
+                    packId: result.item.packId,
+                    quantity: result.item.quantity,
+                    acquiredAt: result.item.acquiredAt,
+                    pack: {
+                        packId: result.item.pack.packId,
+                        name: result.item.pack.name,
+                        description: result.item.pack.description,
+                        imageUrl: result.item.pack.imageUrl,
+                        costCurrencyType: result.item.pack.costCurrencyType,
+                        costAmount: result.item.pack.costAmount,
+                        numberOfPranksAwarded: result.item.pack.numberOfPranksAwarded,
+                        packType: result.item.pack.packType,
+                        isAvailable: result.item.pack.isAvailable,
+                        requiredUserLevel: result.item.pack.requiredUserLevel,
+                    },
+                }
+                : undefined,
+            error: result.error,
+        };
+        this.logger.info('Résultat ajout pack', {
+            userId: payload.userId?.toString(),
+            success: result.success,
+            error: result.error,
+        });
+        return response;
+    }
+    async removePackFromInventory(payload) {
+        this.logger.info('Retrait pack de inventaire utilisateur', {
+            userId: payload.userId?.toString(),
+            packId: payload.removePackDto?.packId?.toString(),
+            quantity: payload.removePackDto?.quantity?.toString(),
+            endpoint: 'DELETE /users/:userId/inventory/remove',
+        });
+        const result = await this.userInventoryService.removePackFromInventory(parseInt(payload.userId.toString()), parseInt(payload.removePackDto.packId.toString()), parseInt(payload.removePackDto.quantity.toString()));
+        const response = {
+            success: result.success,
+            remainingQuantity: result.remainingQuantity,
+            error: result.error,
+        };
+        this.logger.info('Résultat retrait pack', {
+            userId: payload.userId?.toString(),
+            success: result.success,
+            remainingQuantity: result.remainingQuantity,
+            error: result.error,
+        });
+        return response;
+    }
+};
+exports.UserInventoryController = UserInventoryController;
+__decorate([
+    (0, microservices_1.MessagePattern)({ cmd: 'get_user_inventory' }),
+    __param(0, (0, microservices_1.Payload)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object]),
+    __metadata("design:returntype", typeof (_c = typeof Promise !== "undefined" && Promise) === "function" ? _c : Object)
+], UserInventoryController.prototype, "getUserInventory", null);
+__decorate([
+    (0, microservices_1.MessagePattern)({ cmd: 'get_user_inventory_stats' }),
+    __param(0, (0, microservices_1.Payload)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object]),
+    __metadata("design:returntype", typeof (_d = typeof Promise !== "undefined" && Promise) === "function" ? _d : Object)
+], UserInventoryController.prototype, "getUserInventoryStats", null);
+__decorate([
+    (0, microservices_1.MessagePattern)({ cmd: 'add_pack_to_inventory' }),
+    __param(0, (0, microservices_1.Payload)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object]),
+    __metadata("design:returntype", typeof (_e = typeof Promise !== "undefined" && Promise) === "function" ? _e : Object)
+], UserInventoryController.prototype, "addPackToInventory", null);
+__decorate([
+    (0, microservices_1.MessagePattern)({ cmd: 'remove_pack_from_inventory' }),
+    __param(0, (0, microservices_1.Payload)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object]),
+    __metadata("design:returntype", typeof (_f = typeof Promise !== "undefined" && Promise) === "function" ? _f : Object)
+], UserInventoryController.prototype, "removePackFromInventory", null);
+exports.UserInventoryController = UserInventoryController = __decorate([
+    (0, common_1.Controller)(),
+    __metadata("design:paramtypes", [typeof (_a = typeof user_inventory_service_1.UserInventoryService !== "undefined" && user_inventory_service_1.UserInventoryService) === "function" ? _a : Object, typeof (_b = typeof logger_1.LoggerService !== "undefined" && logger_1.LoggerService) === "function" ? _b : Object])
+], UserInventoryController);
+
+
+/***/ }),
+
+/***/ "./apps/user/src/user-inventory.service.ts":
+/*!*************************************************!*\
+  !*** ./apps/user/src/user-inventory.service.ts ***!
+  \*************************************************/
+/***/ (function(__unused_webpack_module, exports, __webpack_require__) {
+
+
+var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
+    var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
+    if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
+    else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+    return c > 3 && r && Object.defineProperty(target, key, r), r;
+};
+var __metadata = (this && this.__metadata) || function (k, v) {
+    if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
+};
+var _a, _b;
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.UserInventoryService = void 0;
+const common_1 = __webpack_require__(/*! @nestjs/common */ "@nestjs/common");
+const prisma_service_1 = __webpack_require__(/*! ./prisma/prisma.service */ "./apps/user/src/prisma/prisma.service.ts");
+const logger_1 = __webpack_require__(/*! @app/logger */ "./libs/logger/src/index.ts");
+const exceptions_1 = __webpack_require__(/*! @app/exceptions */ "./libs/exceptions/src/index.ts");
+let UserInventoryService = class UserInventoryService {
+    prisma;
+    logger;
+    constructor(prisma, logger) {
+        this.prisma = prisma;
+        this.logger = logger;
+    }
+    async getUserInventory(userId) {
+        this.logger.info('Récupération inventaire utilisateur', {
+            userId: userId.toString(),
+        });
+        try {
+            await this.validateUserExists(userId);
+            const inventoryItems = await this.prisma.user_pack_inventory.findMany({
+                where: { user_id: userId },
+                include: {
+                    prank_packs: true,
+                },
+                orderBy: [
+                    { prank_packs: { pack_type: 'asc' } },
+                    { prank_packs: { required_user_level: 'asc' } },
+                    { acquired_at: 'desc' },
+                ],
+            });
+            const mappedItems = inventoryItems.map(item => ({
+                userPackInventoryId: item.user_pack_inventory_id,
+                userId: item.user_id,
+                packId: item.pack_id,
+                quantity: item.quantity,
+                acquiredAt: item.acquired_at,
+                pack: {
+                    packId: item.prank_packs.pack_id,
+                    name: item.prank_packs.name,
+                    description: item.prank_packs.description ?? '',
+                    imageUrl: item.prank_packs.image_url ?? '',
+                    costCurrencyType: item.prank_packs.cost_currency_type,
+                    costAmount: item.prank_packs.cost_amount,
+                    numberOfPranksAwarded: item.prank_packs.number_of_pranks_awarded,
+                    packType: item.prank_packs.pack_type,
+                    isAvailable: item.prank_packs.is_available ?? true,
+                    requiredUserLevel: item.prank_packs.required_user_level ?? 0,
+                },
+            }));
+            const packsByType = {
+                basic: [],
+                event: [],
+                limited: [],
+                gift: [],
+                promotional: [],
+            };
+            mappedItems.forEach(item => {
+                packsByType[item.pack.packType].push(item);
+            });
+            const result = {
+                totalPacks: mappedItems.length,
+                packsByType,
+                allPacks: mappedItems,
+            };
+            this.logger.info('Inventaire récupéré avec succès', {
+                userId: userId.toString(),
+                totalPacks: result.totalPacks,
+            });
+            return result;
+        }
+        catch (error) {
+            this.logger.error("Erreur lors de la récupération de l'inventaire", error, {
+                userId: userId.toString(),
+            });
+            throw new exceptions_1.DatabaseException("Impossible de récupérer l'inventaire utilisateur", error, 'getUserInventory');
+        }
+    }
+    async getUserInventoryStats(userId) {
+        this.logger.info('Récupération stats inventaire utilisateur', {
+            userId: userId.toString(),
+        });
+        try {
+            await this.validateUserExists(userId);
+            const inventoryItems = await this.prisma.user_pack_inventory.findMany({
+                where: { user_id: userId },
+                include: {
+                    prank_packs: true,
+                },
+            });
+            let totalValue = 0;
+            const packsByType = {
+                basic: { count: 0, totalQuantity: 0 },
+                event: { count: 0, totalQuantity: 0 },
+                limited: { count: 0, totalQuantity: 0 },
+                gift: { count: 0, totalQuantity: 0 },
+                promotional: { count: 0, totalQuantity: 0 },
+            };
+            inventoryItems.forEach(item => {
+                totalValue += item.prank_packs.cost_amount * item.quantity;
+                packsByType[item.prank_packs.pack_type].count += 1;
+                packsByType[item.prank_packs.pack_type].totalQuantity += item.quantity;
+            });
+            const stats = {
+                totalPacks: inventoryItems.length,
+                totalValue,
+                packsByType,
+            };
+            this.logger.info('Stats inventaire calculées', {
+                userId: userId.toString(),
+                totalPacks: stats.totalPacks,
+                totalValue: stats.totalValue,
+            });
+            return stats;
+        }
+        catch (error) {
+            this.logger.error('Erreur lors du calcul des stats inventaire', error, {
+                userId: userId.toString(),
+            });
+            throw new exceptions_1.DatabaseException("Impossible de calculer les statistiques d'inventaire", error, 'getUserInventoryStats');
+        }
+    }
+    async addPackToInventory(userId, packId, quantity = 1) {
+        this.logger.info("Ajout pack à l'inventaire", {
+            userId: userId.toString(),
+            packId: packId.toString(),
+            quantity: quantity.toString(),
+        });
+        try {
+            await this.validateUserExists(userId);
+            await this.validatePackExists(packId);
+            const result = await this.prisma.$transaction(async (tx) => {
+                const existingItem = await tx.user_pack_inventory.findUnique({
+                    where: {
+                        user_id_pack_id: {
+                            user_id: userId,
+                            pack_id: packId,
+                        },
+                    },
+                    include: {
+                        prank_packs: true,
+                    },
+                });
+                let inventoryItem;
+                if (existingItem) {
+                    inventoryItem = await tx.user_pack_inventory.update({
+                        where: {
+                            user_pack_inventory_id: existingItem.user_pack_inventory_id,
+                        },
+                        data: {
+                            quantity: existingItem.quantity + quantity,
+                        },
+                        include: {
+                            prank_packs: true,
+                        },
+                    });
+                }
+                else {
+                    inventoryItem = await tx.user_pack_inventory.create({
+                        data: {
+                            user_id: userId,
+                            pack_id: packId,
+                            quantity,
+                        },
+                        include: {
+                            prank_packs: true,
+                        },
+                    });
+                }
+                return inventoryItem;
+            });
+            const mappedResult = {
+                userPackInventoryId: result.user_pack_inventory_id,
+                userId: result.user_id,
+                packId: result.pack_id,
+                quantity: result.quantity,
+                acquiredAt: result.acquired_at,
+                pack: {
+                    packId: result.prank_packs.pack_id,
+                    name: result.prank_packs.name,
+                    description: result.prank_packs.description,
+                    imageUrl: result.prank_packs.image_url,
+                    costCurrencyType: result.prank_packs.cost_currency_type,
+                    costAmount: result.prank_packs.cost_amount,
+                    numberOfPranksAwarded: result.prank_packs.number_of_pranks_awarded,
+                    packType: result.prank_packs.pack_type,
+                    isAvailable: result.prank_packs.is_available ?? true,
+                    requiredUserLevel: result.prank_packs.required_user_level,
+                },
+            };
+            this.logger.info("Pack ajouté avec succès à l'inventaire", {
+                userId: userId.toString(),
+                packId: packId.toString(),
+                newQuantity: result.quantity,
+            });
+            return {
+                success: true,
+                item: mappedResult,
+            };
+        }
+        catch (error) {
+            this.logger.error("Erreur lors de l'ajout du pack", error, {
+                userId: userId.toString(),
+                packId: packId.toString(),
+            });
+            return {
+                success: false,
+                error: "Impossible d'ajouter le pack à l'inventaire",
+            };
+        }
+    }
+    async removePackFromInventory(userId, packId, quantity = 1) {
+        this.logger.info("Retrait pack de l'inventaire", {
+            userId: userId.toString(),
+            packId: packId.toString(),
+            quantity: quantity.toString(),
+        });
+        try {
+            await this.validateUserExists(userId);
+            const result = await this.prisma.$transaction(async (tx) => {
+                const existingItem = await tx.user_pack_inventory.findUnique({
+                    where: {
+                        user_id_pack_id: {
+                            user_id: userId,
+                            pack_id: packId,
+                        },
+                    },
+                });
+                if (!existingItem) {
+                    throw new exceptions_1.InsufficientQuantityException("Pack non trouvé dans l'inventaire");
+                }
+                if (existingItem.quantity < quantity) {
+                    throw new exceptions_1.InsufficientQuantityException("Quantité insuffisante dans l'inventaire");
+                }
+                const newQuantity = existingItem.quantity - quantity;
+                if (newQuantity === 0) {
+                    await tx.user_pack_inventory.delete({
+                        where: {
+                            user_pack_inventory_id: existingItem.user_pack_inventory_id,
+                        },
+                    });
+                    return 0;
+                }
+                else {
+                    const updated = await tx.user_pack_inventory.update({
+                        where: {
+                            user_pack_inventory_id: existingItem.user_pack_inventory_id,
+                        },
+                        data: {
+                            quantity: newQuantity,
+                        },
+                    });
+                    return updated.quantity;
+                }
+            });
+            this.logger.info("Pack retiré avec succès de l'inventaire", {
+                userId: userId.toString(),
+                packId: packId.toString(),
+                remainingQuantity: result,
+            });
+            return {
+                success: true,
+                remainingQuantity: result,
+            };
+        }
+        catch (error) {
+            this.logger.error('Erreur lors du retrait du pack', error, {
+                userId: userId.toString(),
+                packId: packId.toString(),
+            });
+            if (error instanceof exceptions_1.InsufficientQuantityException) {
+                return {
+                    success: false,
+                    remainingQuantity: 0,
+                    error: error.message,
+                };
+            }
+            return {
+                success: false,
+                remainingQuantity: 0,
+                error: "Impossible de retirer le pack de l'inventaire",
+            };
+        }
+    }
+    async validateUserExists(userId) {
+        const user = await this.prisma.users.findUnique({
+            where: { user_id: userId },
+        });
+        if (!user) {
+            throw new exceptions_1.UserNotFoundException(`Utilisateur ${userId} non trouvé`);
+        }
+    }
+    async validatePackExists(packId) {
+        const pack = await this.prisma.prank_packs.findUnique({
+            where: { pack_id: packId },
+        });
+        if (!pack) {
+            throw new exceptions_1.PackNotFoundException(`Pack ${packId} non trouvé`);
+        }
+    }
+};
+exports.UserInventoryService = UserInventoryService;
+exports.UserInventoryService = UserInventoryService = __decorate([
+    (0, common_1.Injectable)(),
+    __metadata("design:paramtypes", [typeof (_a = typeof prisma_service_1.PrismaService !== "undefined" && prisma_service_1.PrismaService) === "function" ? _a : Object, typeof (_b = typeof logger_1.LoggerService !== "undefined" && logger_1.LoggerService) === "function" ? _b : Object])
+], UserInventoryService);
+
+
+/***/ }),
+
+/***/ "./apps/user/src/user-pranks.controller.ts":
+/*!*************************************************!*\
+  !*** ./apps/user/src/user-pranks.controller.ts ***!
+  \*************************************************/
+/***/ (function(__unused_webpack_module, exports, __webpack_require__) {
+
+
+var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
+    var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
+    if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
+    else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+    return c > 3 && r && Object.defineProperty(target, key, r), r;
+};
+var __metadata = (this && this.__metadata) || function (k, v) {
+    if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
+};
+var __param = (this && this.__param) || function (paramIndex, decorator) {
+    return function (target, key) { decorator(target, key, paramIndex); }
+};
+var _a, _b, _c, _d, _e, _f;
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.UserPranksController = void 0;
+const common_1 = __webpack_require__(/*! @nestjs/common */ "@nestjs/common");
+const microservices_1 = __webpack_require__(/*! @nestjs/microservices */ "@nestjs/microservices");
+const user_pranks_service_1 = __webpack_require__(/*! ./user-pranks.service */ "./apps/user/src/user-pranks.service.ts");
+const logger_1 = __webpack_require__(/*! @app/logger */ "./libs/logger/src/index.ts");
+let UserPranksController = class UserPranksController {
+    userPranksService;
+    logger;
+    constructor(userPranksService, logger) {
+        this.userPranksService = userPranksService;
+        this.logger = logger;
+    }
+    async getUserPranksCollection(payload) {
+        this.logger.info('Récupération collection pranks utilisateur', {
+            userId: payload.userId?.toString(),
+            filters: JSON.stringify(payload.filters),
+        });
+        const collection = await this.userPranksService.getUserPranksCollection(parseInt(payload.userId.toString()), payload.filters);
+        return collection;
+    }
+    async getUserPranksStats(payload) {
+        this.logger.info('Récupération stats pranks utilisateur', {
+            userId: payload.userId?.toString(),
+        });
+        return await this.userPranksService.getUserPranksStats(parseInt(payload.userId.toString()));
+    }
+    async addPrankToCollection(payload) {
+        this.logger.info('Ajout prank à collection utilisateur', {
+            userId: payload.userId?.toString(),
+            prankId: payload.addPrankDto?.prankId?.toString(),
+            quantity: payload.addPrankDto?.quantity?.toString(),
+        });
+        return await this.userPranksService.addPrankToCollection(parseInt(payload.userId.toString()), parseInt(payload.addPrankDto.prankId.toString()), parseInt(payload.addPrankDto.quantity.toString()));
+    }
+    async removePrankFromCollection(payload) {
+        this.logger.info('Retrait prank de collection utilisateur', {
+            userId: payload.userId?.toString(),
+            prankId: payload.removePrankDto?.prankId?.toString(),
+            quantity: payload.removePrankDto?.quantity?.toString(),
+        });
+        return await this.userPranksService.removePrankFromCollection(parseInt(payload.userId.toString()), parseInt(payload.removePrankDto.prankId.toString()), parseInt(payload.removePrankDto.quantity.toString()));
+    }
+};
+exports.UserPranksController = UserPranksController;
+__decorate([
+    (0, microservices_1.MessagePattern)({ cmd: 'get_user_pranks_collection' }),
+    __param(0, (0, microservices_1.Payload)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object]),
+    __metadata("design:returntype", typeof (_c = typeof Promise !== "undefined" && Promise) === "function" ? _c : Object)
+], UserPranksController.prototype, "getUserPranksCollection", null);
+__decorate([
+    (0, microservices_1.MessagePattern)({ cmd: 'get_user_pranks_stats' }),
+    __param(0, (0, microservices_1.Payload)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object]),
+    __metadata("design:returntype", typeof (_d = typeof Promise !== "undefined" && Promise) === "function" ? _d : Object)
+], UserPranksController.prototype, "getUserPranksStats", null);
+__decorate([
+    (0, microservices_1.MessagePattern)({ cmd: 'add_prank_to_collection' }),
+    __param(0, (0, microservices_1.Payload)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object]),
+    __metadata("design:returntype", typeof (_e = typeof Promise !== "undefined" && Promise) === "function" ? _e : Object)
+], UserPranksController.prototype, "addPrankToCollection", null);
+__decorate([
+    (0, microservices_1.MessagePattern)({ cmd: 'remove_prank_from_collection' }),
+    __param(0, (0, microservices_1.Payload)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object]),
+    __metadata("design:returntype", typeof (_f = typeof Promise !== "undefined" && Promise) === "function" ? _f : Object)
+], UserPranksController.prototype, "removePrankFromCollection", null);
+exports.UserPranksController = UserPranksController = __decorate([
+    (0, common_1.Controller)(),
+    __metadata("design:paramtypes", [typeof (_a = typeof user_pranks_service_1.UserPranksService !== "undefined" && user_pranks_service_1.UserPranksService) === "function" ? _a : Object, typeof (_b = typeof logger_1.LoggerService !== "undefined" && logger_1.LoggerService) === "function" ? _b : Object])
+], UserPranksController);
+
+
+/***/ }),
+
+/***/ "./apps/user/src/user-pranks.service.ts":
+/*!**********************************************!*\
+  !*** ./apps/user/src/user-pranks.service.ts ***!
+  \**********************************************/
+/***/ (function(__unused_webpack_module, exports, __webpack_require__) {
+
+
+var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
+    var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
+    if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
+    else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+    return c > 3 && r && Object.defineProperty(target, key, r), r;
+};
+var __metadata = (this && this.__metadata) || function (k, v) {
+    if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
+};
+var _a, _b;
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.UserPranksService = void 0;
+const common_1 = __webpack_require__(/*! @nestjs/common */ "@nestjs/common");
+const prisma_service_1 = __webpack_require__(/*! ./prisma/prisma.service */ "./apps/user/src/prisma/prisma.service.ts");
+const logger_1 = __webpack_require__(/*! @app/logger */ "./libs/logger/src/index.ts");
+const exceptions_1 = __webpack_require__(/*! @app/exceptions */ "./libs/exceptions/src/index.ts");
+let UserPranksService = class UserPranksService {
+    prisma;
+    logger;
+    constructor(prisma, logger) {
+        this.prisma = prisma;
+        this.logger = logger;
+    }
+    async getUserPranksCollection(userId, filters) {
+        this.logger.info('Récupération collection pranks utilisateur', {
+            userId: userId.toString(),
+            filters: JSON.stringify(filters),
+        });
+        try {
+            await this.validateUserExists(userId);
+            const where = {
+                user_id: userId,
+                ...(filters?.rarity && { pranks: { rarity: { in: filters.rarity } } }),
+                ...(filters?.type && { pranks: { type: { in: filters.type } } }),
+            };
+            let orderBy = { obtained_at: 'desc' };
+            if (filters?.sortBy) {
+                switch (filters.sortBy) {
+                    case 'rarity':
+                        orderBy = { pranks: { rarity: filters.sortOrder ?? 'desc' } };
+                        break;
+                    case 'type':
+                        orderBy = { pranks: { type: filters.sortOrder ?? 'asc' } };
+                        break;
+                    case 'quantity':
+                        orderBy = { quantity: filters.sortOrder ?? 'desc' };
+                        break;
+                    case 'name':
+                        orderBy = { pranks: { name: filters.sortOrder ?? 'asc' } };
+                        break;
+                    case 'obtainedAt':
+                        orderBy = { obtained_at: filters.sortOrder ?? 'desc' };
+                        break;
+                }
+            }
+            const userPranks = await this.prisma.user_pranks.findMany({
+                where,
+                include: {
+                    pranks: true,
+                },
+                orderBy,
+                ...(filters?.limit && { take: filters.limit }),
+                ...(filters?.offset && { skip: filters.offset }),
+            });
+            const mappedItems = userPranks.map(item => ({
+                userPrankId: item.user_prank_id,
+                userId: item.user_id,
+                prankId: item.prank_id,
+                quantity: item.quantity,
+                obtainedAt: item.obtained_at,
+                prank: {
+                    prankId: item.pranks.prank_id,
+                    name: item.pranks.name,
+                    description: item.pranks.description,
+                    imageUrl: item.pranks.image_url ?? '',
+                    type: item.pranks.type,
+                    rarity: item.pranks.rarity,
+                    defaultJetonCostEquivalent: item.pranks.default_jeton_cost_equivalent,
+                    xpRewardExecutor: item.pranks.xp_reward_executor ?? 0,
+                    xpRewardTarget: item.pranks.xp_reward_target ?? 0,
+                    coinsRewardExecutor: item.pranks.coins_reward_executor ?? 0,
+                    coinsRewardTarget: item.pranks.coins_reward_target ?? 0,
+                    requiresProof: item.pranks.requires_proof,
+                    isActive: item.pranks.is_active,
+                },
+            }));
+            const pranksByRarity = {
+                common: [],
+                rare: [],
+                extreme: [],
+            };
+            const pranksByType = {
+                declarative: [],
+                in_app_cosmetic: [],
+                in_app_lock: [],
+                notification_spam: [],
+                external_action: [],
+            };
+            mappedItems.forEach(item => {
+                pranksByRarity[item.prank.rarity].push(item);
+                pranksByType[item.prank.type].push(item);
+            });
+            const result = {
+                totalPranks: mappedItems.length,
+                pranksByRarity,
+                pranksByType,
+                allPranks: mappedItems,
+            };
+            this.logger.info('Collection pranks récupérée avec succès', {
+                userId: userId.toString(),
+                totalPranks: result.totalPranks,
+            });
+            return result;
+        }
+        catch (error) {
+            this.logger.error('Erreur lors de la récupération de la collection', error, {
+                userId: userId.toString(),
+            });
+            throw new exceptions_1.DatabaseException('Impossible de récupérer la collection de pranks', error, 'getUserPranksCollection');
+        }
+    }
+    async getUserPranksStats(userId) {
+        this.logger.info('Récupération stats pranks utilisateur', {
+            userId: userId.toString(),
+        });
+        try {
+            await this.validateUserExists(userId);
+            const [userPranks, totalAvailablePranks] = await Promise.all([
+                this.prisma.user_pranks.findMany({
+                    where: { user_id: userId },
+                    include: { pranks: true },
+                }),
+                this.prisma.pranks.count({
+                    where: { is_active: true },
+                }),
+            ]);
+            let totalQuantity = 0;
+            let totalValue = 0;
+            const pranksByRarity = {
+                common: { count: 0, totalQuantity: 0 },
+                rare: { count: 0, totalQuantity: 0 },
+                extreme: { count: 0, totalQuantity: 0 },
+            };
+            const pranksByType = {
+                declarative: { count: 0, totalQuantity: 0 },
+                in_app_cosmetic: { count: 0, totalQuantity: 0 },
+                in_app_lock: { count: 0, totalQuantity: 0 },
+                notification_spam: { count: 0, totalQuantity: 0 },
+                external_action: { count: 0, totalQuantity: 0 },
+            };
+            userPranks.forEach(item => {
+                totalQuantity += item.quantity;
+                totalValue += item.pranks.default_jeton_cost_equivalent * item.quantity;
+                pranksByRarity[item.pranks.rarity].count += 1;
+                pranksByRarity[item.pranks.rarity].totalQuantity += item.quantity;
+                pranksByType[item.pranks.type].count += 1;
+                pranksByType[item.pranks.type].totalQuantity += item.quantity;
+            });
+            const completionPercentage = totalAvailablePranks > 0 ? Math.round((userPranks.length / totalAvailablePranks) * 100) : 0;
+            const stats = {
+                totalPranks: userPranks.length,
+                totalQuantity,
+                totalValue,
+                pranksByRarity,
+                pranksByType,
+                completionPercentage,
+            };
+            this.logger.info('Stats pranks calculées', {
+                userId: userId.toString(),
+                totalPranks: stats.totalPranks,
+                completionPercentage: stats.completionPercentage,
+            });
+            return stats;
+        }
+        catch (error) {
+            this.logger.error('Erreur lors du calcul des stats pranks', error, {
+                userId: userId.toString(),
+            });
+            throw new exceptions_1.DatabaseException('Impossible de calculer les statistiques de pranks', error, 'getUserPranksStats');
+        }
+    }
+    async addPrankToCollection(userId, prankId, quantity = 1) {
+        this.logger.info('Ajout prank à la collection', {
+            userId: userId.toString(),
+            prankId: prankId.toString(),
+            quantity: quantity.toString(),
+        });
+        try {
+            await this.validateUserExists(userId);
+            await this.validatePrankExists(prankId);
+            const result = await this.prisma.$transaction(async (tx) => {
+                const existingItem = await tx.user_pranks.findUnique({
+                    where: {
+                        user_id_prank_id: {
+                            user_id: userId,
+                            prank_id: prankId,
+                        },
+                    },
+                    include: {
+                        pranks: true,
+                    },
+                });
+                let prankItem;
+                let isNew = false;
+                if (existingItem) {
+                    prankItem = await tx.user_pranks.update({
+                        where: {
+                            user_prank_id: existingItem.user_prank_id,
+                        },
+                        data: {
+                            quantity: existingItem.quantity + quantity,
+                        },
+                        include: {
+                            pranks: true,
+                        },
+                    });
+                }
+                else {
+                    isNew = true;
+                    prankItem = await tx.user_pranks.create({
+                        data: {
+                            user_id: userId,
+                            prank_id: prankId,
+                            quantity,
+                        },
+                        include: {
+                            pranks: true,
+                        },
+                    });
+                }
+                return { prankItem, isNew };
+            });
+            const mappedResult = {
+                userPrankId: result.prankItem.user_prank_id,
+                userId: result.prankItem.user_id,
+                prankId: result.prankItem.prank_id,
+                quantity: result.prankItem.quantity,
+                obtainedAt: result.prankItem.obtained_at,
+                prank: {
+                    prankId: result.prankItem.pranks.prank_id,
+                    name: result.prankItem.pranks.name,
+                    description: result.prankItem.pranks.description,
+                    imageUrl: result.prankItem.pranks.image_url ?? '',
+                    type: result.prankItem.pranks.type,
+                    rarity: result.prankItem.pranks.rarity,
+                    defaultJetonCostEquivalent: result.prankItem.pranks.default_jeton_cost_equivalent,
+                    xpRewardExecutor: result.prankItem.pranks.xp_reward_executor,
+                    xpRewardTarget: result.prankItem.pranks.xp_reward_target,
+                    coinsRewardExecutor: result.prankItem.pranks.coins_reward_executor,
+                    coinsRewardTarget: result.prankItem.pranks.coins_reward_target,
+                    requiresProof: result.prankItem.pranks.requires_proof,
+                    isActive: result.prankItem.pranks.is_active,
+                },
+            };
+            this.logger.info('Prank ajouté avec succès à la collection', {
+                userId: userId.toString(),
+                prankId: prankId.toString(),
+                newQuantity: result.prankItem.quantity,
+                isNew: result.isNew,
+            });
+            return {
+                success: true,
+                item: mappedResult,
+                isNew: result.isNew,
+            };
+        }
+        catch (error) {
+            this.logger.error("Erreur lors de l'ajout du prank", error, {
+                userId: userId.toString(),
+                prankId: prankId.toString(),
+            });
+            return {
+                success: false,
+                isNew: false,
+                error: "Impossible d'ajouter le prank à la collection",
+            };
+        }
+    }
+    async removePrankFromCollection(userId, prankId, quantity = 1) {
+        this.logger.info('Retrait prank de la collection', {
+            userId: userId.toString(),
+            prankId: prankId.toString(),
+            quantity: quantity.toString(),
+        });
+        try {
+            await this.validateUserExists(userId);
+            const result = await this.prisma.$transaction(async (tx) => {
+                const existingItem = await tx.user_pranks.findUnique({
+                    where: {
+                        user_id_prank_id: {
+                            user_id: userId,
+                            prank_id: prankId,
+                        },
+                    },
+                });
+                if (!existingItem) {
+                    throw new exceptions_1.InsufficientQuantityException('Prank non trouvé dans la collection');
+                }
+                if (existingItem.quantity < quantity) {
+                    throw new exceptions_1.InsufficientQuantityException('Quantité insuffisante dans la collection');
+                }
+                const newQuantity = existingItem.quantity - quantity;
+                if (newQuantity === 0) {
+                    await tx.user_pranks.delete({
+                        where: {
+                            user_prank_id: existingItem.user_prank_id,
+                        },
+                    });
+                    return 0;
+                }
+                else {
+                    const updated = await tx.user_pranks.update({
+                        where: {
+                            user_prank_id: existingItem.user_prank_id,
+                        },
+                        data: {
+                            quantity: newQuantity,
+                        },
+                    });
+                    return updated.quantity;
+                }
+            });
+            this.logger.info('Prank retiré avec succès de la collection', {
+                userId: userId.toString(),
+                prankId: prankId.toString(),
+                remainingQuantity: result,
+            });
+            return {
+                success: true,
+                remainingQuantity: result,
+            };
+        }
+        catch (error) {
+            this.logger.error('Erreur lors du retrait du prank', error, {
+                userId: userId.toString(),
+                prankId: prankId.toString(),
+            });
+            if (error instanceof exceptions_1.InsufficientQuantityException) {
+                return {
+                    success: false,
+                    remainingQuantity: 0,
+                    error: error.message,
+                };
+            }
+            return {
+                success: false,
+                remainingQuantity: 0,
+                error: 'Impossible de retirer le prank de la collection',
+            };
+        }
+    }
+    async validateUserExists(userId) {
+        const user = await this.prisma.users.findUnique({
+            where: { user_id: userId },
+        });
+        if (!user) {
+            throw new exceptions_1.UserNotFoundException(`Utilisateur ${userId} non trouvé`);
+        }
+    }
+    async validatePrankExists(prankId) {
+        const prank = await this.prisma.pranks.findUnique({
+            where: { prank_id: prankId },
+        });
+        if (!prank) {
+            throw new exceptions_1.PrankNotFoundException(`Prank ${prankId} non trouvé`);
+        }
+    }
+};
+exports.UserPranksService = UserPranksService;
+exports.UserPranksService = UserPranksService = __decorate([
+    (0, common_1.Injectable)(),
+    __metadata("design:paramtypes", [typeof (_a = typeof prisma_service_1.PrismaService !== "undefined" && prisma_service_1.PrismaService) === "function" ? _a : Object, typeof (_b = typeof logger_1.LoggerService !== "undefined" && logger_1.LoggerService) === "function" ? _b : Object])
+], UserPranksService);
+
+
+/***/ }),
+
 /***/ "./apps/user/src/user.controller.ts":
 /*!******************************************!*\
   !*** ./apps/user/src/user.controller.ts ***!
@@ -1315,6 +2310,10 @@ const user_controller_1 = __webpack_require__(/*! ./user.controller */ "./apps/u
 const user_service_1 = __webpack_require__(/*! ./user.service */ "./apps/user/src/user.service.ts");
 const friendship_controller_1 = __webpack_require__(/*! ./friendship.controller */ "./apps/user/src/friendship.controller.ts");
 const friendship_service_1 = __webpack_require__(/*! ./friendship.service */ "./apps/user/src/friendship.service.ts");
+const user_inventory_controller_1 = __webpack_require__(/*! ./user-inventory.controller */ "./apps/user/src/user-inventory.controller.ts");
+const user_inventory_service_1 = __webpack_require__(/*! ./user-inventory.service */ "./apps/user/src/user-inventory.service.ts");
+const user_pranks_controller_1 = __webpack_require__(/*! ./user-pranks.controller */ "./apps/user/src/user-pranks.controller.ts");
+const user_pranks_service_1 = __webpack_require__(/*! ./user-pranks.service */ "./apps/user/src/user-pranks.service.ts");
 const health_controller_1 = __webpack_require__(/*! ./health/health.controller */ "./apps/user/src/health/health.controller.ts");
 const prisma_module_1 = __webpack_require__(/*! ./prisma/prisma.module */ "./apps/user/src/prisma/prisma.module.ts");
 const src_1 = __webpack_require__(/*! libs/logger/src */ "./libs/logger/src/index.ts");
@@ -1326,9 +2325,15 @@ exports.UserModule = UserModule;
 exports.UserModule = UserModule = __decorate([
     (0, common_1.Module)({
         imports: [config_1.GlobalConfigModule, src_1.LoggerModule, prisma_module_1.PrismaModule, exceptions_1.ExceptionsModule],
-        controllers: [user_controller_1.UserController, friendship_controller_1.FriendshipController, health_controller_1.HealthController],
-        providers: [user_service_1.UserService, friendship_service_1.FriendshipService],
-        exports: [user_service_1.UserService, friendship_service_1.FriendshipService],
+        controllers: [
+            user_controller_1.UserController,
+            friendship_controller_1.FriendshipController,
+            user_inventory_controller_1.UserInventoryController,
+            user_pranks_controller_1.UserPranksController,
+            health_controller_1.HealthController,
+        ],
+        providers: [user_service_1.UserService, friendship_service_1.FriendshipService, user_inventory_service_1.UserInventoryService, user_pranks_service_1.UserPranksService],
+        exports: [user_service_1.UserService, friendship_service_1.FriendshipService, user_inventory_service_1.UserInventoryService, user_pranks_service_1.UserPranksService],
     })
 ], UserModule);
 
@@ -1588,6 +2593,10 @@ let UserService = class UserService {
         try {
             const user = await this.prisma.users.findUnique({
                 where: { user_id: parseInt(userId) },
+                omit: {
+                    password_hash: true,
+                    email: true,
+                },
             });
             return user;
         }
@@ -2178,7 +3187,7 @@ __decorate([
 
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.UserMissionStatusEnum = exports.ServiceTypeEnum = exports.ServiceStatusEnum = exports.PrankTypeEnum = exports.MissionTypeEnum = exports.FriendshipStatusEnum = exports.ExecutedPrankStatusEnum = void 0;
+exports.UserMissionStatusEnum = exports.ServiceTypeEnum = exports.ServiceStatusEnum = exports.PrankRarityEnum = exports.PrankTypeEnum = exports.MissionTypeEnum = exports.FriendshipStatusEnum = exports.ExecutedPrankStatusEnum = void 0;
 var ExecutedPrankStatusEnum;
 (function (ExecutedPrankStatusEnum) {
     ExecutedPrankStatusEnum["PROPOSED_BY_DEBTOR"] = "proposed_by_debtor";
@@ -2214,6 +3223,12 @@ var PrankTypeEnum;
     PrankTypeEnum["NOTIFICATION_SPAM"] = "notification_spam";
     PrankTypeEnum["EXTERNAL_ACTION"] = "external_action";
 })(PrankTypeEnum || (exports.PrankTypeEnum = PrankTypeEnum = {}));
+var PrankRarityEnum;
+(function (PrankRarityEnum) {
+    PrankRarityEnum["COMMON"] = "common";
+    PrankRarityEnum["RARE"] = "rare";
+    PrankRarityEnum["EXTREME"] = "extreme";
+})(PrankRarityEnum || (exports.PrankRarityEnum = PrankRarityEnum = {}));
 var ServiceStatusEnum;
 (function (ServiceStatusEnum) {
     ServiceStatusEnum["PENDING_CONFIRMATION"] = "pending_confirmation";
@@ -2258,6 +3273,9 @@ exports.EXCEPTION_CODES = {
     AUTH_USER_NOT_FOUND: 'AUTH_USER_NOT_FOUND',
     AUTH_EMAIL_ALREADY_EXISTS: 'AUTH_EMAIL_ALREADY_EXISTS',
     AUTH_GOOGLE_TOKEN_INVALID: 'AUTH_GOOGLE_TOKEN_INVALID',
+    APP_PACK_NOT_FOUND: 'APP_PACK_NOT_FOUND',
+    APP_INSUFFICIENT_QUANTITY: 'APP_INSUFFICIENT_QUANTITY',
+    APP_PRANK_NOT_FOUND: 'APP_PRANK_NOT_FOUND',
     DB_CONNECTION_ERROR: 'DB_CONNECTION_ERROR',
     DB_QUERY_ERROR: 'DB_QUERY_ERROR',
     DB_RECORD_NOT_FOUND: 'DB_RECORD_NOT_FOUND',
@@ -2438,7 +3456,7 @@ exports.BaseException = BaseException;
 
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.ResourceNotAvailableException = exports.InsufficientPermissionsException = exports.BusinessException = void 0;
+exports.PrankNotFoundException = exports.InsufficientQuantityException = exports.PackNotFoundException = exports.ResourceNotAvailableException = exports.InsufficientPermissionsException = exports.BusinessException = void 0;
 const base_exception_1 = __webpack_require__(/*! ./base.exception */ "./libs/exceptions/src/exceptions/base.exception.ts");
 const exception_constants_1 = __webpack_require__(/*! ../constants/exception.constants */ "./libs/exceptions/src/constants/exception.constants.ts");
 class BusinessException extends base_exception_1.BaseException {
@@ -2463,6 +3481,24 @@ class ResourceNotAvailableException extends base_exception_1.BaseException {
     }
 }
 exports.ResourceNotAvailableException = ResourceNotAvailableException;
+class PackNotFoundException extends base_exception_1.BaseException {
+    constructor(details, path) {
+        super('Pack introuvable', exception_constants_1.HTTP_STATUS_CODES.NOT_FOUND, exception_constants_1.EXCEPTION_CODES.APP_PACK_NOT_FOUND, details, path);
+    }
+}
+exports.PackNotFoundException = PackNotFoundException;
+class InsufficientQuantityException extends base_exception_1.BaseException {
+    constructor(details, path) {
+        super('Quantité insuffisante', exception_constants_1.HTTP_STATUS_CODES.NOT_FOUND, exception_constants_1.EXCEPTION_CODES.APP_INSUFFICIENT_QUANTITY, details, path);
+    }
+}
+exports.InsufficientQuantityException = InsufficientQuantityException;
+class PrankNotFoundException extends base_exception_1.BaseException {
+    constructor(details, path) {
+        super('Prank introuvable', exception_constants_1.HTTP_STATUS_CODES.NOT_FOUND, exception_constants_1.EXCEPTION_CODES.APP_PRANK_NOT_FOUND, details, path);
+    }
+}
+exports.PrankNotFoundException = PrankNotFoundException;
 
 
 /***/ }),

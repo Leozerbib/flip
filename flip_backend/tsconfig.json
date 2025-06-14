@@ -23,7 +23,9 @@
       "@app/contracts": ["libs/contracts/src"],
       "@app/contracts/*": ["libs/contracts/src/*"],
       "@app/exceptions": ["libs/exceptions/src"],
-      "@app/exceptions/*": ["libs/exceptions/src/*"]
+      "@app/exceptions/*": ["libs/exceptions/src/*"],
+      "@app/logger": ["libs/logger/src"],
+      "@app/logger/*": ["libs/logger/src/*"]
     }
   }
 }

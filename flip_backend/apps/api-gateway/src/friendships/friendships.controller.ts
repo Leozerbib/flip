@@ -71,7 +71,7 @@ export class FriendshipsController {
     @Body(ValidationPipe) createFriendshipDto: CreateFriendshipDto
   ) {
     this.logger.info('Envoi demande amitié', {
-      userId: user.id,
+      userId: user.id.toString(),
       targetId: createFriendshipDto.user_two_id,
     });
 
@@ -88,7 +88,7 @@ export class FriendshipsController {
         .toPromise();
 
       this.logger.info('Demande amitié envoyée avec succès', {
-        userId: user.id,
+        userId: user.id.toString(),
         friendshipId: result.friendship_id,
       });
 
@@ -114,7 +114,7 @@ export class FriendshipsController {
     @Body(ValidationPipe) acceptFriendshipDto: AcceptFriendshipDto
   ) {
     this.logger.info('Acceptation demande amitié', {
-      userId: user.id,
+      userId: user.id.toString(),
       friendshipId: acceptFriendshipDto.friendship_id,
     });
 
@@ -131,7 +131,7 @@ export class FriendshipsController {
         .toPromise();
 
       this.logger.info('Demande acceptée avec succès', {
-        userId: user.id,
+        userId: user.id.toString(),
         friendshipId: acceptFriendshipDto.friendship_id,
       });
 
@@ -153,7 +153,7 @@ export class FriendshipsController {
     @Body(ValidationPipe) declineFriendshipDto: DeclineFriendshipDto
   ) {
     this.logger.info('Refus demande amitié', {
-      userId: user.id,
+      userId: user.id.toString(),
       friendshipId: declineFriendshipDto.friendship_id,
     });
 
@@ -170,7 +170,7 @@ export class FriendshipsController {
         .toPromise();
 
       this.logger.info('Demande refusée avec succès', {
-        userId: user.id,
+        userId: user.id.toString(),
         friendshipId: declineFriendshipDto.friendship_id,
       });
 
@@ -198,14 +198,14 @@ export class FriendshipsController {
     @Query('limit', new ParseIntPipe({ optional: true })) limit = 20
   ) {
     this.logger.info('Récupération amis utilisateur', {
-      userId: user.id,
+      userId: user.id.toString(),
       page,
       limit,
     });
 
     try {
       const result = await this.userService
-        .send({ cmd: 'get_user_friends' }, { userId: user.id, page, limit })
+        .send({ cmd: 'get_user_friends' }, { userId: user.id.toString(), page, limit })
         .pipe(
           timeout(5000),
           catchError(error => {
@@ -216,7 +216,7 @@ export class FriendshipsController {
         .toPromise();
 
       this.logger.info('Amis récupérés avec succès', {
-        userId: user.id,
+        userId: user.id.toString(),
         friendsCount: result.length,
       });
 
@@ -238,13 +238,13 @@ export class FriendshipsController {
     @Param('friendId', ParseIntPipe) friendId: number
   ) {
     this.logger.info('Suppression ami', {
-      userId: user.id,
+      userId: user.id.toString(),
       friendId,
     });
 
     try {
       const result = await this.userService
-        .send({ cmd: 'remove_friend' }, { userId: user.id, friendId })
+        .send({ cmd: 'remove_friend' }, { userId: user.id.toString(), friendId })
         .pipe(
           timeout(5000),
           catchError(error => {
@@ -255,7 +255,7 @@ export class FriendshipsController {
         .toPromise();
 
       this.logger.info('Ami supprimé avec succès', {
-        userId: user.id,
+        userId: user.id.toString(),
         friendId,
       });
 
@@ -283,7 +283,7 @@ export class FriendshipsController {
     @Query('limit', new ParseIntPipe({ optional: true })) limit = 20
   ) {
     this.logger.info('Récupération demandes reçues', {
-      userId: user.id,
+      userId: user.id.toString().toString(),
       page,
       limit,
     });
@@ -301,7 +301,7 @@ export class FriendshipsController {
         .toPromise();
 
       this.logger.info('Demandes reçues récupérées avec succès', {
-        userId: user.id,
+        userId: user.id.toString().toString(),
         requestsCount: result.length,
       });
 
@@ -327,14 +327,14 @@ export class FriendshipsController {
     @Query('limit', new ParseIntPipe({ optional: true })) limit = 20
   ) {
     this.logger.info('Récupération demandes envoyées', {
-      userId: user.id,
+      userId: user.id.toString().toString(),
       page,
       limit,
     });
 
     try {
       const result = await this.userService
-        .send({ cmd: 'get_sent_friendship_requests' }, { userId: user.id, page, limit })
+        .send({ cmd: 'get_sent_friendship_requests' }, { userId: user.id.toString(), page, limit })
         .pipe(
           timeout(5000),
           catchError(error => {
@@ -345,7 +345,7 @@ export class FriendshipsController {
         .toPromise();
 
       this.logger.info('Demandes envoyées récupérées avec succès', {
-        userId: user.id,
+        userId: user.id.toString().toString(),
         requestsCount: result.length,
       });
 
@@ -368,13 +368,13 @@ export class FriendshipsController {
     @Body(ValidationPipe) blockUserDto: BlockUserDto
   ) {
     this.logger.info('Blocage utilisateur', {
-      userId: user.id,
+      userId: user.id.toString().toString(),
       targetId: blockUserDto.user_id,
     });
 
     try {
       const result = await this.userService
-        .send({ cmd: 'block_user' }, { userId: user.id, blockUserDto })
+        .send({ cmd: 'block_user' }, { userId: user.id.toString(), blockUserDto })
         .pipe(
           timeout(5000),
           catchError(error => {
@@ -385,7 +385,7 @@ export class FriendshipsController {
         .toPromise();
 
       this.logger.info('Utilisateur bloqué avec succès', {
-        userId: user.id,
+        userId: user.id.toString().toString(),
         targetId: blockUserDto.user_id,
       });
 
@@ -406,13 +406,13 @@ export class FriendshipsController {
     @Body(ValidationPipe) unblockUserDto: UnblockUserDto
   ) {
     this.logger.info('Déblocage utilisateur', {
-      userId: user.id,
+      userId: user.id.toString().toString(),
       targetId: unblockUserDto.user_id,
     });
 
     try {
       const result = await this.userService
-        .send({ cmd: 'unblock_user' }, { userId: user.id, unblockUserDto })
+        .send({ cmd: 'unblock_user' }, { userId: user.id.toString(), unblockUserDto })
         .pipe(
           timeout(5000),
           catchError(error => {
@@ -423,7 +423,7 @@ export class FriendshipsController {
         .toPromise();
 
       this.logger.info('Utilisateur débloqué avec succès', {
-        userId: user.id,
+        userId: user.id.toString().toString(),
         targetId: unblockUserDto.user_id,
       });
 
@@ -445,7 +445,7 @@ export class FriendshipsController {
   })
   public async getFriendshipStats(@CurrentUser() user: ICurrentUser) {
     this.logger.info('Récupération stats amitié', {
-      userId: user.id,
+      userId: user.id.toString().toString(),
     });
 
     try {
@@ -461,7 +461,7 @@ export class FriendshipsController {
         .toPromise();
 
       this.logger.info('Stats récupérées avec succès', {
-        userId: user.id,
+        userId: user.id.toString().toString(),
         totalFriends: result.total_friends,
       });
 
@@ -485,13 +485,13 @@ export class FriendshipsController {
     @Param('otherUserId', ParseIntPipe) otherUserId: number
   ) {
     this.logger.info('Récupération amis en commun', {
-      userId: user.id,
+      userId: user.id.toString().toString(),
       otherUserId,
     });
 
     try {
       const result = await this.userService
-        .send({ cmd: 'get_mutual_friends' }, { userId: user.id, otherUserId })
+        .send({ cmd: 'get_mutual_friends' }, { userId: user.id.toString(), otherUserId })
         .pipe(
           timeout(5000),
           catchError(error => {
@@ -502,7 +502,7 @@ export class FriendshipsController {
         .toPromise();
 
       this.logger.info('Amis en commun récupérés avec succès', {
-        userId: user.id,
+        userId: user.id.toString().toString(),
         otherUserId,
         mutualCount: result.length,
       });
@@ -527,13 +527,13 @@ export class FriendshipsController {
     @Query('limit', new ParseIntPipe({ optional: true })) limit = 10
   ) {
     this.logger.info('Récupération suggestions amitié', {
-      userId: user.id,
+      userId: user.id.toString().toString(),
       limit,
     });
 
     try {
       const result = await this.userService
-        .send({ cmd: 'get_friendship_suggestions' }, { userId: user.id, limit })
+        .send({ cmd: 'get_friendship_suggestions' }, { userId: user.id.toString(), limit })
         .pipe(
           timeout(5000),
           catchError(error => {
@@ -544,7 +544,7 @@ export class FriendshipsController {
         .toPromise();
 
       this.logger.info('Suggestions récupérées avec succès', {
-        userId: user.id,
+        userId: user.id.toString().toString(),
         suggestionsCount: result.length,
       });
 
@@ -578,13 +578,13 @@ export class FriendshipsController {
     @Param('otherUserId', ParseIntPipe) otherUserId: number
   ) {
     this.logger.info('Vérification statut amitié', {
-      userId: user.id,
+      userId: user.id.toString(),
       otherUserId,
     });
 
     try {
       const result = await this.userService
-        .send({ cmd: 'get_friendship_status' }, { userId: user.id, otherUserId })
+        .send({ cmd: 'get_friendship_status' }, { userId: user.id.toString(), otherUserId })
         .pipe(
           timeout(5000),
           catchError(error => {
@@ -595,7 +595,7 @@ export class FriendshipsController {
         .toPromise();
 
       this.logger.info('Statut vérifié avec succès', {
-        userId: user.id,
+        userId: user.id.toString(),
         otherUserId,
         status: result.status,
       });

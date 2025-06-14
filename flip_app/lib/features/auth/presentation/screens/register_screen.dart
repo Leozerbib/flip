@@ -61,7 +61,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                       // Logo et titre
                       Center(
                         child: Image.asset(
-                          'asset/logo/logo.png',
+                          'assets/logo/logo.png',
                           width: 180,
                           height: 180,
                           fit: BoxFit.contain,

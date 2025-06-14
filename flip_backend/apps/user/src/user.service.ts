@@ -328,6 +328,10 @@ export class UserService {
     try {
       const user = await this.prisma.users.findUnique({
         where: { user_id: parseInt(userId) },
+        omit: {
+          password_hash: true,
+          email: true,
+        },
       });
       return user as IUser | null;
     } catch (error: any) {

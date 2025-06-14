@@ -90,7 +90,6 @@ export class LoggerService {
 
   private output(logEntry: LogEntry): void {
     const { level, message, context, timestamp, trace } = logEntry;
-
     if (this.isProduction) {
       // Format JSON pour la production (facilite l'ingestion par des outils de monitoring)
       console.log(JSON.stringify(logEntry));

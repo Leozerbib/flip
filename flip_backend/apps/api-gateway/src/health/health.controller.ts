@@ -9,7 +9,8 @@ export class HealthController {
   constructor(
     @Inject('AUTH_SERVICE') private readonly authClient: ClientProxy,
     @Inject('USER_SERVICE') private readonly userClient: ClientProxy,
-    @Inject('BANQUE_SERVICE') private readonly bankClient: ClientProxy
+    @Inject('BANQUE_SERVICE') private readonly bankClient: ClientProxy,
+    @Inject('SHOP_SERVICE') private readonly shopClient: ClientProxy
   ) {}
 
   @Get()
@@ -75,6 +76,20 @@ export class HealthController {
       services.bankService = bankHealth.status ?? 'unavailable';
     } catch {
       services.bankService = 'unavailable';
+    }
+
+    // Vérifier le service shop de manière optionnelle
+    try {
+      console.log('🔍 Shop Health', this.shopClient);
+      const shopHealth = await firstValueFrom(
+        this.shopClient.send<any>({ cmd: 'health' }, {}).pipe(
+          timeout(2000), // Timeout de 2 secondes
+          catchError(() => of({ status: 'unavailable' }))
+        )
+      );
+      services.shopService = shopHealth.status ?? 'unavailable';
+    } catch {
+      services.shopService = 'unavailable';
     }
 
     return {

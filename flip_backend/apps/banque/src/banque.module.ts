@@ -7,6 +7,10 @@ import { PrismaModule } from './prisma/prisma.module';
 import { LoggerModule } from 'libs/logger/src';
 import { GlobalConfigModule } from '@app/config';
 import { ExceptionsModule } from '@app/exceptions';
+import { PrankController } from './prank/prank.controller';
+import { ServiceController } from './service/service.controller';
+import { PrankService } from './prank/prank.service';
+import { ServiceService } from './service/service.service';
 
 @Module({
   imports: [
@@ -25,8 +29,8 @@ import { ExceptionsModule } from '@app/exceptions';
       },
     ]),
   ],
-  controllers: [BanqueController, HealthController],
-  providers: [BanqueService],
-  exports: [BanqueService],
+  controllers: [BanqueController, HealthController, PrankController, ServiceController],
+  providers: [BanqueService, PrankService, ServiceService],
+  exports: [BanqueService, PrankService, ServiceService],
 })
 export class BanqueModule {}

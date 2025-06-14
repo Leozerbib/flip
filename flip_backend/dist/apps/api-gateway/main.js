@@ -21,6 +21,7 @@ const common_1 = __webpack_require__(/*! @nestjs/common */ "@nestjs/common");
 const config_1 = __webpack_require__(/*! @app/config */ "./libs/config/src/index.ts");
 const auth_module_1 = __webpack_require__(/*! ./auth/auth.module */ "./apps/api-gateway/src/auth/auth.module.ts");
 const friendships_module_1 = __webpack_require__(/*! ./friendships/friendships.module */ "./apps/api-gateway/src/friendships/friendships.module.ts");
+const prank_packs_module_1 = __webpack_require__(/*! ./prank-packs/prank-packs.module */ "./apps/api-gateway/src/prank-packs/prank-packs.module.ts");
 const microservices_module_1 = __webpack_require__(/*! ./microservices/microservices.module */ "./apps/api-gateway/src/microservices/microservices.module.ts");
 const src_1 = __webpack_require__(/*! libs/logger/src */ "./libs/logger/src/index.ts");
 const exceptions_1 = __webpack_require__(/*! @app/exceptions */ "./libs/exceptions/src/index.ts");
@@ -35,6 +36,7 @@ exports.ApiGatewayModule = ApiGatewayModule = __decorate([
             microservices_module_1.MicroservicesModule,
             auth_module_1.AuthModule,
             friendships_module_1.FriendshipsModule,
+            prank_packs_module_1.PrankPacksModule,
             exceptions_1.ExceptionsModule,
         ],
         controllers: [],
@@ -713,6 +715,819 @@ exports.GoogleStrategy = GoogleStrategy = __decorate([
 
 /***/ }),
 
+/***/ "./apps/api-gateway/src/banque/banque.controller.ts":
+/*!**********************************************************!*\
+  !*** ./apps/api-gateway/src/banque/banque.controller.ts ***!
+  \**********************************************************/
+/***/ (function(__unused_webpack_module, exports, __webpack_require__) {
+
+
+var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
+    var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
+    if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
+    else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+    return c > 3 && r && Object.defineProperty(target, key, r), r;
+};
+var __metadata = (this && this.__metadata) || function (k, v) {
+    if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
+};
+var __param = (this && this.__param) || function (paramIndex, decorator) {
+    return function (target, key) { decorator(target, key, paramIndex); }
+};
+var _a, _b, _c, _d, _e, _f, _g, _h;
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.BanqueController = void 0;
+const common_1 = __webpack_require__(/*! @nestjs/common */ "@nestjs/common");
+const microservices_1 = __webpack_require__(/*! @nestjs/microservices */ "@nestjs/microservices");
+const swagger_1 = __webpack_require__(/*! @nestjs/swagger */ "@nestjs/swagger");
+const rxjs_1 = __webpack_require__(/*! rxjs */ "rxjs");
+const service_dto_1 = __webpack_require__(/*! @app/contracts/Service/dtos/service.dto */ "./libs/contracts/src/Service/dtos/service.dto.ts");
+const auth_decorator_1 = __webpack_require__(/*! ../auth/decorators/auth.decorator */ "./apps/api-gateway/src/auth/decorators/auth.decorator.ts");
+const current_user_decorator_1 = __webpack_require__(/*! ../auth/decorators/current-user.decorator */ "./apps/api-gateway/src/auth/decorators/current-user.decorator.ts");
+const src_1 = __webpack_require__(/*! libs/logger/src */ "./libs/logger/src/index.ts");
+const auth_interface_1 = __webpack_require__(/*! @app/contracts/Auth/interfaces/auth.interface */ "./libs/contracts/src/Auth/interfaces/auth.interface.ts");
+let BanqueController = class BanqueController {
+    banqueClient;
+    constructor(banqueClient) {
+        this.banqueClient = banqueClient;
+    }
+    async getUserServices(user, page = 1, limit = 10) {
+        return (0, rxjs_1.firstValueFrom)(this.banqueClient.send({ cmd: 'get_user_services' }, { userId: user.id, page, limit }));
+    }
+    async getUserPranks(user, page = 1, limit = 10) {
+        return (0, rxjs_1.firstValueFrom)(this.banqueClient.send({ cmd: 'get_user_pranks' }, { userId: user.id, page, limit }));
+    }
+    async repayServiceWithPrank(serviceId, executedPrankId) {
+        return (0, rxjs_1.firstValueFrom)(this.banqueClient.send({ cmd: 'repay_service_with_prank' }, { serviceId: parseInt(serviceId), executedPrankId: parseInt(executedPrankId) }));
+    }
+    async getDashboardStats() {
+        return (0, rxjs_1.firstValueFrom)(this.banqueClient.send({ cmd: 'get_dashboard_stats' }, {}));
+    }
+    async healthCheck() {
+        try {
+            const result = await (0, rxjs_1.firstValueFrom)(this.banqueClient.send({ cmd: 'health_check' }, {}));
+            return {
+                ...result,
+                service: 'banque-microservice',
+            };
+        }
+        catch (error) {
+            return {
+                status: 'unhealthy',
+                timestamp: new Date().toISOString(),
+                service: 'banque-microservice',
+            };
+        }
+    }
+};
+exports.BanqueController = BanqueController;
+__decorate([
+    (0, common_1.Get)('users/services'),
+    (0, src_1.Log)('Récupération services utilisateur (Banque)', 'info'),
+    (0, auth_decorator_1.Auth)(),
+    (0, swagger_1.ApiOperation)({
+        summary: "Récupérer les services de l'utilisateur actuel via microservice Banque",
+    }),
+    (0, swagger_1.ApiQuery)({ name: 'page', required: false, description: 'Numéro de page' }),
+    (0, swagger_1.ApiQuery)({ name: 'limit', required: false, description: "Nombre d'éléments par page" }),
+    (0, swagger_1.ApiResponse)({
+        status: common_1.HttpStatus.OK,
+        description: "Services de l'utilisateur récupérés avec succès",
+        type: [service_dto_1.ServiceWithDetailsDto],
+    }),
+    __param(0, (0, current_user_decorator_1.CurrentUser)()),
+    __param(1, (0, common_1.Query)('page')),
+    __param(2, (0, common_1.Query)('limit')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [typeof (_b = typeof auth_interface_1.ICurrentUser !== "undefined" && auth_interface_1.ICurrentUser) === "function" ? _b : Object, Object, Object]),
+    __metadata("design:returntype", typeof (_c = typeof Promise !== "undefined" && Promise) === "function" ? _c : Object)
+], BanqueController.prototype, "getUserServices", null);
+__decorate([
+    (0, common_1.Get)('users/pranks'),
+    (0, src_1.Log)('Récupération pranks utilisateur (Banque)', 'info'),
+    (0, auth_decorator_1.Auth)(),
+    (0, swagger_1.ApiOperation)({ summary: "Récupérer les pranks de l'utilisateur actuel via microservice Banque" }),
+    (0, swagger_1.ApiQuery)({ name: 'page', required: false, description: 'Numéro de page' }),
+    (0, swagger_1.ApiQuery)({ name: 'limit', required: false, description: "Nombre d'éléments par page" }),
+    (0, swagger_1.ApiResponse)({
+        status: common_1.HttpStatus.OK,
+        description: "Pranks de l'utilisateur récupérés avec succès",
+        type: [service_dto_1.ServiceWithDetailsDto],
+    }),
+    __param(0, (0, current_user_decorator_1.CurrentUser)()),
+    __param(1, (0, common_1.Query)('page')),
+    __param(2, (0, common_1.Query)('limit')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [typeof (_d = typeof auth_interface_1.ICurrentUser !== "undefined" && auth_interface_1.ICurrentUser) === "function" ? _d : Object, Object, Object]),
+    __metadata("design:returntype", typeof (_e = typeof Promise !== "undefined" && Promise) === "function" ? _e : Object)
+], BanqueController.prototype, "getUserPranks", null);
+__decorate([
+    (0, common_1.Post)('services/:serviceId/repay/prank/:executedPrankId'),
+    (0, src_1.Log)('Remboursement service par prank (Banque)', 'info'),
+    (0, auth_decorator_1.Auth)(),
+    (0, swagger_1.ApiOperation)({ summary: 'Rembourser un service avec un prank exécuté via microservice Banque' }),
+    (0, swagger_1.ApiParam)({ name: 'serviceId', description: 'ID du service à rembourser' }),
+    (0, swagger_1.ApiParam)({
+        name: 'executedPrankId',
+        description: "ID de l'exécution de prank utilisée pour le remboursement",
+    }),
+    (0, swagger_1.ApiResponse)({
+        status: common_1.HttpStatus.OK,
+        description: 'Service remboursé avec succès par le prank',
+        type: service_dto_1.ServiceWithDetailsDto,
+    }),
+    (0, swagger_1.ApiResponse)({ status: common_1.HttpStatus.NOT_FOUND, description: 'Service ou prank exécuté non trouvé' }),
+    (0, swagger_1.ApiResponse)({ status: common_1.HttpStatus.BAD_REQUEST, description: 'Remboursement invalide' }),
+    (0, swagger_1.ApiResponse)({
+        status: common_1.HttpStatus.FORBIDDEN,
+        description: 'Non autorisé à effectuer ce remboursement',
+    }),
+    __param(0, (0, common_1.Param)('serviceId')),
+    __param(1, (0, common_1.Param)('executedPrankId')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, String]),
+    __metadata("design:returntype", typeof (_f = typeof Promise !== "undefined" && Promise) === "function" ? _f : Object)
+], BanqueController.prototype, "repayServiceWithPrank", null);
+__decorate([
+    (0, common_1.Get)('dashboard/stats'),
+    (0, src_1.Log)('Récupération statistiques dashboard (Banque)', 'info'),
+    (0, auth_decorator_1.Auth)(),
+    (0, swagger_1.ApiOperation)({ summary: 'Récupérer les statistiques du dashboard via microservice Banque' }),
+    (0, swagger_1.ApiResponse)({
+        status: common_1.HttpStatus.OK,
+        description: 'Statistiques du dashboard récupérées avec succès',
+        schema: {
+            type: 'object',
+            properties: {
+                services: {
+                    type: 'object',
+                    description: 'Statistiques des services',
+                },
+                pranks: {
+                    type: 'object',
+                    description: 'Statistiques des pranks',
+                },
+                combined: {
+                    type: 'object',
+                    properties: {
+                        total_repayments: {
+                            type: 'number',
+                            description: 'Nombre total de remboursements',
+                        },
+                        services_repayments: {
+                            type: 'number',
+                            description: 'Nombre de remboursements par services',
+                        },
+                        pranks_repayments: {
+                            type: 'number',
+                            description: 'Nombre de remboursements par pranks',
+                        },
+                        pending_actions: {
+                            type: 'number',
+                            description: "Nombre d'actions en attente",
+                        },
+                    },
+                },
+            },
+        },
+    }),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", []),
+    __metadata("design:returntype", typeof (_g = typeof Promise !== "undefined" && Promise) === "function" ? _g : Object)
+], BanqueController.prototype, "getDashboardStats", null);
+__decorate([
+    (0, common_1.Get)('health'),
+    (0, swagger_1.ApiOperation)({ summary: 'Vérifier la santé du microservice Banque' }),
+    (0, swagger_1.ApiResponse)({
+        status: common_1.HttpStatus.OK,
+        description: 'Microservice Banque opérationnel',
+        schema: {
+            type: 'object',
+            properties: {
+                status: { type: 'string', example: 'healthy' },
+                timestamp: { type: 'string', example: '2024-01-01T00:00:00.000Z' },
+                service: { type: 'string', example: 'banque-microservice' },
+            },
+        },
+    }),
+    (0, swagger_1.ApiResponse)({
+        status: common_1.HttpStatus.SERVICE_UNAVAILABLE,
+        description: 'Microservice Banque indisponible',
+    }),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", []),
+    __metadata("design:returntype", typeof (_h = typeof Promise !== "undefined" && Promise) === "function" ? _h : Object)
+], BanqueController.prototype, "healthCheck", null);
+exports.BanqueController = BanqueController = __decorate([
+    (0, swagger_1.ApiTags)('banque'),
+    (0, common_1.Controller)('banque'),
+    __param(0, (0, common_1.Inject)('BANQUE_SERVICE')),
+    __metadata("design:paramtypes", [typeof (_a = typeof microservices_1.ClientProxy !== "undefined" && microservices_1.ClientProxy) === "function" ? _a : Object])
+], BanqueController);
+
+
+/***/ }),
+
+/***/ "./apps/api-gateway/src/banque/prank.controller.ts":
+/*!*********************************************************!*\
+  !*** ./apps/api-gateway/src/banque/prank.controller.ts ***!
+  \*********************************************************/
+/***/ (function(__unused_webpack_module, exports, __webpack_require__) {
+
+
+var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
+    var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
+    if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
+    else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+    return c > 3 && r && Object.defineProperty(target, key, r), r;
+};
+var __metadata = (this && this.__metadata) || function (k, v) {
+    if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
+};
+var __param = (this && this.__param) || function (paramIndex, decorator) {
+    return function (target, key) { decorator(target, key, paramIndex); }
+};
+var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l, _m, _o, _p, _q, _r;
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.BanquePrankController = void 0;
+const common_1 = __webpack_require__(/*! @nestjs/common */ "@nestjs/common");
+const microservices_1 = __webpack_require__(/*! @nestjs/microservices */ "@nestjs/microservices");
+const swagger_1 = __webpack_require__(/*! @nestjs/swagger */ "@nestjs/swagger");
+const rxjs_1 = __webpack_require__(/*! rxjs */ "rxjs");
+const prank_dto_1 = __webpack_require__(/*! @app/contracts/Prank/dtos/prank.dto */ "./libs/contracts/src/Prank/dtos/prank.dto.ts");
+const auth_decorator_1 = __webpack_require__(/*! ../auth/decorators/auth.decorator */ "./apps/api-gateway/src/auth/decorators/auth.decorator.ts");
+const current_user_decorator_1 = __webpack_require__(/*! ../auth/decorators/current-user.decorator */ "./apps/api-gateway/src/auth/decorators/current-user.decorator.ts");
+const src_1 = __webpack_require__(/*! libs/logger/src */ "./libs/logger/src/index.ts");
+let BanquePrankController = class BanquePrankController {
+    banqueClient;
+    constructor(banqueClient) {
+        this.banqueClient = banqueClient;
+    }
+    async updatePrank(id, updatePrankDto) {
+        const result = await (0, rxjs_1.firstValueFrom)(this.banqueClient.send({ cmd: 'update_prank' }, { prankId: parseInt(id), updatePrankDto }));
+        return result;
+    }
+    async deletePrank(id) {
+        const result = await (0, rxjs_1.firstValueFrom)(this.banqueClient.send({ cmd: 'delete_prank' }, parseInt(id)));
+        return result;
+    }
+    async findPrankById(id) {
+        return (0, rxjs_1.firstValueFrom)(this.banqueClient.send({ cmd: 'find_prank_by_id' }, parseInt(id)));
+    }
+    async findPranksWithFilters(filters) {
+        const prankFilters = {
+            type: filters.type,
+            is_active: filters.is_active,
+            requires_proof: filters.requires_proof,
+            jeton_cost_min: filters.jeton_cost_min
+                ? parseInt(filters.jeton_cost_min.toString())
+                : undefined,
+            jeton_cost_max: filters.jeton_cost_max
+                ? parseInt(filters.jeton_cost_max.toString())
+                : undefined,
+            rarity: filters.rarity,
+        };
+        return (0, rxjs_1.firstValueFrom)(this.banqueClient.send({ cmd: 'find_pranks_with_filters' }, prankFilters));
+    }
+    async getPrankStats() {
+        return (0, rxjs_1.firstValueFrom)(this.banqueClient.send({ cmd: 'get_prank_stats' }, {}));
+    }
+    async createExecutedPrank(executorId, createExecutedPrankDto) {
+        const result = await (0, rxjs_1.firstValueFrom)(this.banqueClient.send({ cmd: 'create_executed_prank' }, { executorId: parseInt(executorId), createExecutedPrankDto }));
+        return result;
+    }
+    async updateExecutedPrank(id, updateExecutedPrankDto) {
+        const result = await (0, rxjs_1.firstValueFrom)(this.banqueClient.send({ cmd: 'update_executed_prank' }, { executedPrankId: parseInt(id), updateExecutedPrankDto }));
+        return result;
+    }
+    async findExecutedPrankById(id) {
+        return (0, rxjs_1.firstValueFrom)(this.banqueClient.send({ cmd: 'find_executed_prank_by_id' }, parseInt(id)));
+    }
+    async getExecutedPrankWithDetails(id) {
+        return (0, rxjs_1.firstValueFrom)(this.banqueClient.send({ cmd: 'get_executed_prank_with_details' }, parseInt(id)));
+    }
+    async findExecutedPranksWithFilters(filters) {
+        const executedPrankFilters = {
+            status: filters.status,
+            executor_id: filters.executor_id ? parseInt(filters.executor_id.toString()) : undefined,
+            target_id: filters.target_id ? parseInt(filters.target_id.toString()) : undefined,
+            chosen_prank_id: filters.chosen_prank_id
+                ? parseInt(filters.chosen_prank_id.toString())
+                : undefined,
+            service_being_repaid_id: filters.service_being_repaid_id
+                ? parseInt(filters.service_being_repaid_id.toString())
+                : undefined,
+            executed_after: filters.executed_after ? new Date(filters.executed_after) : undefined,
+            executed_before: filters.executed_before ? new Date(filters.executed_before) : undefined,
+        };
+        return (0, rxjs_1.firstValueFrom)(this.banqueClient.send({ cmd: 'find_executed_pranks_with_filters' }, executedPrankFilters));
+    }
+};
+exports.BanquePrankController = BanquePrankController;
+__decorate([
+    (0, common_1.Put)(':id'),
+    (0, src_1.Log)('Mise à jour prank (Banque)', 'info'),
+    (0, auth_decorator_1.Auth)(),
+    (0, swagger_1.ApiOperation)({ summary: 'Mettre à jour un prank via microservice Banque' }),
+    (0, swagger_1.ApiParam)({ name: 'id', description: 'ID du prank' }),
+    (0, swagger_1.ApiBody)({ type: prank_dto_1.UpdatePrankDto }),
+    (0, swagger_1.ApiResponse)({
+        status: common_1.HttpStatus.OK,
+        description: 'Prank mis à jour avec succès',
+        type: prank_dto_1.PrankResponseDto,
+    }),
+    (0, swagger_1.ApiResponse)({ status: common_1.HttpStatus.NOT_FOUND, description: 'Prank non trouvé' }),
+    (0, swagger_1.ApiResponse)({ status: common_1.HttpStatus.FORBIDDEN, description: 'Prank non modifiable' }),
+    __param(0, (0, common_1.Param)('id')),
+    __param(1, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, typeof (_b = typeof prank_dto_1.UpdatePrankDto !== "undefined" && prank_dto_1.UpdatePrankDto) === "function" ? _b : Object]),
+    __metadata("design:returntype", typeof (_c = typeof Promise !== "undefined" && Promise) === "function" ? _c : Object)
+], BanquePrankController.prototype, "updatePrank", null);
+__decorate([
+    (0, common_1.Delete)(':id'),
+    (0, src_1.Log)('Suppression prank (Banque)', 'info'),
+    (0, auth_decorator_1.Auth)(),
+    (0, swagger_1.ApiOperation)({ summary: 'Supprimer un prank via microservice Banque' }),
+    (0, swagger_1.ApiParam)({ name: 'id', description: 'ID du prank' }),
+    (0, swagger_1.ApiResponse)({ status: common_1.HttpStatus.OK, description: 'Prank supprimé avec succès' }),
+    (0, swagger_1.ApiResponse)({ status: common_1.HttpStatus.NOT_FOUND, description: 'Prank non trouvé' }),
+    (0, swagger_1.ApiResponse)({ status: common_1.HttpStatus.FORBIDDEN, description: 'Prank non supprimable' }),
+    __param(0, (0, common_1.Param)('id')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", typeof (_d = typeof Promise !== "undefined" && Promise) === "function" ? _d : Object)
+], BanquePrankController.prototype, "deletePrank", null);
+__decorate([
+    (0, common_1.Get)(':id'),
+    (0, auth_decorator_1.Auth)(),
+    (0, swagger_1.ApiOperation)({ summary: 'Récupérer un prank par ID via microservice Banque' }),
+    (0, swagger_1.ApiParam)({ name: 'id', description: 'ID du prank' }),
+    (0, swagger_1.ApiResponse)({
+        status: common_1.HttpStatus.OK,
+        description: 'Prank trouvé',
+        type: prank_dto_1.PrankResponseDto,
+    }),
+    (0, swagger_1.ApiResponse)({ status: common_1.HttpStatus.NOT_FOUND, description: 'Prank non trouvé' }),
+    __param(0, (0, common_1.Param)('id')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", typeof (_e = typeof Promise !== "undefined" && Promise) === "function" ? _e : Object)
+], BanquePrankController.prototype, "findPrankById", null);
+__decorate([
+    (0, common_1.Get)(),
+    (0, auth_decorator_1.Auth)(),
+    (0, swagger_1.ApiOperation)({ summary: 'Rechercher des pranks avec filtres via microservice Banque' }),
+    (0, swagger_1.ApiQuery)({ name: 'type', required: false, description: 'Filtrer par type de prank' }),
+    (0, swagger_1.ApiQuery)({ name: 'is_active', required: false, description: 'Filtrer par statut actif' }),
+    (0, swagger_1.ApiQuery)({
+        name: 'requires_proof',
+        required: false,
+        description: 'Filtrer par obligation de preuve',
+    }),
+    (0, swagger_1.ApiQuery)({ name: 'jeton_cost_min', required: false, description: 'Coût minimum en jetons' }),
+    (0, swagger_1.ApiQuery)({ name: 'jeton_cost_max', required: false, description: 'Coût maximum en jetons' }),
+    (0, swagger_1.ApiQuery)({ name: 'rarity', required: false, description: 'Filtrer par rareté' }),
+    (0, swagger_1.ApiResponse)({
+        status: common_1.HttpStatus.OK,
+        description: 'Pranks récupérés avec succès',
+        type: [prank_dto_1.PrankResponseDto],
+    }),
+    __param(0, (0, common_1.Query)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [typeof (_f = typeof prank_dto_1.PrankFiltersDto !== "undefined" && prank_dto_1.PrankFiltersDto) === "function" ? _f : Object]),
+    __metadata("design:returntype", typeof (_g = typeof Promise !== "undefined" && Promise) === "function" ? _g : Object)
+], BanquePrankController.prototype, "findPranksWithFilters", null);
+__decorate([
+    (0, common_1.Get)('stats/overview'),
+    (0, auth_decorator_1.Auth)(),
+    (0, swagger_1.ApiOperation)({ summary: 'Récupérer les statistiques des pranks via microservice Banque' }),
+    (0, swagger_1.ApiResponse)({
+        status: common_1.HttpStatus.OK,
+        description: 'Statistiques récupérées avec succès',
+        type: prank_dto_1.PrankStatsDto,
+    }),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", []),
+    __metadata("design:returntype", typeof (_h = typeof Promise !== "undefined" && Promise) === "function" ? _h : Object)
+], BanquePrankController.prototype, "getPrankStats", null);
+__decorate([
+    (0, common_1.Post)('execute'),
+    (0, src_1.Log)('Création exécution prank (Banque)', 'info'),
+    (0, auth_decorator_1.Auth)(),
+    (0, swagger_1.ApiOperation)({ summary: 'Créer une nouvelle exécution de prank via microservice Banque' }),
+    (0, swagger_1.ApiBody)({ type: prank_dto_1.CreateExecutedPrankDto }),
+    (0, swagger_1.ApiResponse)({
+        status: common_1.HttpStatus.CREATED,
+        description: 'Exécution de prank créée avec succès',
+        type: prank_dto_1.ExecutedPrankResponseDto,
+    }),
+    (0, swagger_1.ApiResponse)({ status: common_1.HttpStatus.BAD_REQUEST, description: 'Données invalides' }),
+    (0, swagger_1.ApiResponse)({ status: common_1.HttpStatus.NOT_FOUND, description: 'Prank ou service non trouvé' }),
+    __param(0, (0, current_user_decorator_1.GetUserId)()),
+    __param(1, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, typeof (_j = typeof prank_dto_1.CreateExecutedPrankDto !== "undefined" && prank_dto_1.CreateExecutedPrankDto) === "function" ? _j : Object]),
+    __metadata("design:returntype", typeof (_k = typeof Promise !== "undefined" && Promise) === "function" ? _k : Object)
+], BanquePrankController.prototype, "createExecutedPrank", null);
+__decorate([
+    (0, common_1.Put)('executions/:id'),
+    (0, src_1.Log)('Mise à jour exécution prank (Banque)', 'info'),
+    (0, auth_decorator_1.Auth)(),
+    (0, swagger_1.ApiOperation)({ summary: 'Mettre à jour une exécution de prank via microservice Banque' }),
+    (0, swagger_1.ApiParam)({ name: 'id', description: "ID de l'exécution de prank" }),
+    (0, swagger_1.ApiBody)({ type: prank_dto_1.UpdateExecutedPrankDto }),
+    (0, swagger_1.ApiResponse)({
+        status: common_1.HttpStatus.OK,
+        description: 'Exécution de prank mise à jour avec succès',
+        type: prank_dto_1.ExecutedPrankResponseDto,
+    }),
+    (0, swagger_1.ApiResponse)({ status: common_1.HttpStatus.NOT_FOUND, description: 'Exécution de prank non trouvée' }),
+    (0, swagger_1.ApiResponse)({ status: common_1.HttpStatus.FORBIDDEN, description: 'Exécution non modifiable' }),
+    __param(0, (0, common_1.Param)('id')),
+    __param(1, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, typeof (_l = typeof prank_dto_1.UpdateExecutedPrankDto !== "undefined" && prank_dto_1.UpdateExecutedPrankDto) === "function" ? _l : Object]),
+    __metadata("design:returntype", typeof (_m = typeof Promise !== "undefined" && Promise) === "function" ? _m : Object)
+], BanquePrankController.prototype, "updateExecutedPrank", null);
+__decorate([
+    (0, common_1.Get)('executions/:id'),
+    (0, auth_decorator_1.Auth)(),
+    (0, swagger_1.ApiOperation)({ summary: 'Récupérer une exécution de prank par ID via microservice Banque' }),
+    (0, swagger_1.ApiParam)({ name: 'id', description: "ID de l'exécution de prank" }),
+    (0, swagger_1.ApiResponse)({
+        status: common_1.HttpStatus.OK,
+        description: 'Exécution de prank trouvée',
+        type: prank_dto_1.ExecutedPrankResponseDto,
+    }),
+    (0, swagger_1.ApiResponse)({ status: common_1.HttpStatus.NOT_FOUND, description: 'Exécution de prank non trouvée' }),
+    __param(0, (0, common_1.Param)('id')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", typeof (_o = typeof Promise !== "undefined" && Promise) === "function" ? _o : Object)
+], BanquePrankController.prototype, "findExecutedPrankById", null);
+__decorate([
+    (0, common_1.Get)('executions/:id/details'),
+    (0, auth_decorator_1.Auth)(),
+    (0, swagger_1.ApiOperation)({
+        summary: "Récupérer les détails complets d'une exécution de prank via microservice Banque",
+    }),
+    (0, swagger_1.ApiParam)({ name: 'id', description: "ID de l'exécution de prank" }),
+    (0, swagger_1.ApiResponse)({
+        status: common_1.HttpStatus.OK,
+        description: "Détails de l'exécution récupérés",
+        type: prank_dto_1.ExecutedPrankWithDetailsDto,
+    }),
+    (0, swagger_1.ApiResponse)({ status: common_1.HttpStatus.NOT_FOUND, description: 'Exécution de prank non trouvée' }),
+    __param(0, (0, common_1.Param)('id')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", typeof (_p = typeof Promise !== "undefined" && Promise) === "function" ? _p : Object)
+], BanquePrankController.prototype, "getExecutedPrankWithDetails", null);
+__decorate([
+    (0, common_1.Get)('executions'),
+    (0, auth_decorator_1.Auth)(),
+    (0, swagger_1.ApiOperation)({
+        summary: 'Rechercher des exécutions de pranks avec filtres via microservice Banque',
+    }),
+    (0, swagger_1.ApiQuery)({ name: 'status', required: false, description: 'Filtrer par statut' }),
+    (0, swagger_1.ApiQuery)({ name: 'executor_id', required: false, description: 'Filtrer par exécuteur' }),
+    (0, swagger_1.ApiQuery)({ name: 'target_id', required: false, description: 'Filtrer par cible' }),
+    (0, swagger_1.ApiQuery)({ name: 'chosen_prank_id', required: false, description: 'Filtrer par prank choisi' }),
+    (0, swagger_1.ApiQuery)({
+        name: 'service_being_repaid_id',
+        required: false,
+        description: 'Filtrer par service remboursé',
+    }),
+    (0, swagger_1.ApiQuery)({ name: 'executed_after', required: false, description: "Date d'exécution après" }),
+    (0, swagger_1.ApiQuery)({ name: 'executed_before', required: false, description: "Date d'exécution avant" }),
+    (0, swagger_1.ApiResponse)({
+        status: common_1.HttpStatus.OK,
+        description: 'Exécutions de pranks récupérées avec succès',
+        type: [prank_dto_1.ExecutedPrankWithDetailsDto],
+    }),
+    __param(0, (0, common_1.Query)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [typeof (_q = typeof prank_dto_1.ExecutedPrankFiltersDto !== "undefined" && prank_dto_1.ExecutedPrankFiltersDto) === "function" ? _q : Object]),
+    __metadata("design:returntype", typeof (_r = typeof Promise !== "undefined" && Promise) === "function" ? _r : Object)
+], BanquePrankController.prototype, "findExecutedPranksWithFilters", null);
+exports.BanquePrankController = BanquePrankController = __decorate([
+    (0, swagger_1.ApiTags)('banque-pranks'),
+    (0, common_1.Controller)('banque/pranks'),
+    __param(0, (0, common_1.Inject)('BANQUE_SERVICE')),
+    __metadata("design:paramtypes", [typeof (_a = typeof microservices_1.ClientProxy !== "undefined" && microservices_1.ClientProxy) === "function" ? _a : Object])
+], BanquePrankController);
+
+
+/***/ }),
+
+/***/ "./apps/api-gateway/src/banque/service.controller.ts":
+/*!***********************************************************!*\
+  !*** ./apps/api-gateway/src/banque/service.controller.ts ***!
+  \***********************************************************/
+/***/ (function(__unused_webpack_module, exports, __webpack_require__) {
+
+
+var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
+    var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
+    if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
+    else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+    return c > 3 && r && Object.defineProperty(target, key, r), r;
+};
+var __metadata = (this && this.__metadata) || function (k, v) {
+    if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
+};
+var __param = (this && this.__param) || function (paramIndex, decorator) {
+    return function (target, key) { decorator(target, key, paramIndex); }
+};
+var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l, _m, _o, _p, _q, _r, _s;
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.BanqueServiceController = void 0;
+const common_1 = __webpack_require__(/*! @nestjs/common */ "@nestjs/common");
+const microservices_1 = __webpack_require__(/*! @nestjs/microservices */ "@nestjs/microservices");
+const swagger_1 = __webpack_require__(/*! @nestjs/swagger */ "@nestjs/swagger");
+const rxjs_1 = __webpack_require__(/*! rxjs */ "rxjs");
+const service_dto_1 = __webpack_require__(/*! @app/contracts/Service/dtos/service.dto */ "./libs/contracts/src/Service/dtos/service.dto.ts");
+const auth_decorator_1 = __webpack_require__(/*! ../auth/decorators/auth.decorator */ "./apps/api-gateway/src/auth/decorators/auth.decorator.ts");
+const current_user_decorator_1 = __webpack_require__(/*! ../auth/decorators/current-user.decorator */ "./apps/api-gateway/src/auth/decorators/current-user.decorator.ts");
+const src_1 = __webpack_require__(/*! libs/logger/src */ "./libs/logger/src/index.ts");
+let BanqueServiceController = class BanqueServiceController {
+    banqueClient;
+    constructor(banqueClient) {
+        this.banqueClient = banqueClient;
+    }
+    async createService(providerId, createServiceDto) {
+        const result = await (0, rxjs_1.firstValueFrom)(this.banqueClient.send({ cmd: 'create_service' }, { providerId: parseInt(providerId), createServiceDto }));
+        return result;
+    }
+    async updateService(id, updateServiceDto) {
+        const result = await (0, rxjs_1.firstValueFrom)(this.banqueClient.send({ cmd: 'update_service' }, { serviceId: parseInt(id), updateServiceDto }));
+        return result;
+    }
+    async deleteService(id) {
+        const result = await (0, rxjs_1.firstValueFrom)(this.banqueClient.send({ cmd: 'delete_service' }, parseInt(id)));
+        return result;
+    }
+    async confirmService(id, beneficiaryId) {
+        const result = await (0, rxjs_1.firstValueFrom)(this.banqueClient.send({ cmd: 'confirm_service' }, { serviceId: parseInt(id), beneficiaryId: parseInt(beneficiaryId) }));
+        return result;
+    }
+    async repayServiceWithService(serviceId, repaymentServiceId) {
+        return (0, rxjs_1.firstValueFrom)(this.banqueClient.send({ cmd: 'repay_service_with_service' }, { serviceId: parseInt(serviceId), repaymentServiceId: parseInt(repaymentServiceId) }));
+    }
+    async findServiceById(id) {
+        return (0, rxjs_1.firstValueFrom)(this.banqueClient.send({ cmd: 'find_service_by_id' }, parseInt(id)));
+    }
+    async getServiceWithDetails(id) {
+        return (0, rxjs_1.firstValueFrom)(this.banqueClient.send({ cmd: 'get_service_with_details' }, parseInt(id)));
+    }
+    async findServicesWithFilters(filters) {
+        const serviceFilters = {
+            status: filters.status,
+            category_id: filters.category_id ? parseInt(filters.category_id.toString()) : undefined,
+            provider_id: filters.provider_id ? parseInt(filters.provider_id.toString()) : undefined,
+            beneficiary_id: filters.beneficiary_id
+                ? parseInt(filters.beneficiary_id.toString())
+                : undefined,
+            jeton_value_min: filters.jeton_value_min
+                ? parseInt(filters.jeton_value_min.toString())
+                : undefined,
+            jeton_value_max: filters.jeton_value_max
+                ? parseInt(filters.jeton_value_max.toString())
+                : undefined,
+            created_after: filters.created_after ? new Date(filters.created_after) : undefined,
+            created_before: filters.created_before ? new Date(filters.created_before) : undefined,
+        };
+        return (0, rxjs_1.firstValueFrom)(this.banqueClient.send({ cmd: 'find_services_with_filters' }, serviceFilters));
+    }
+    async getServiceStats() {
+        return (0, rxjs_1.firstValueFrom)(this.banqueClient.send({ cmd: 'get_service_stats' }, {}));
+    }
+    async createServiceCategory(createCategoryDto) {
+        return (0, rxjs_1.firstValueFrom)(this.banqueClient.send({ cmd: 'create_service_category' }, createCategoryDto));
+    }
+    async getAllServiceCategories() {
+        return (0, rxjs_1.firstValueFrom)(this.banqueClient.send({ cmd: 'get_all_service_categories' }, {}));
+    }
+    async getServiceCategoryById(id) {
+        return (0, rxjs_1.firstValueFrom)(this.banqueClient.send({ cmd: 'get_service_category_by_id' }, parseInt(id)));
+    }
+};
+exports.BanqueServiceController = BanqueServiceController;
+__decorate([
+    (0, common_1.Post)(),
+    (0, src_1.Log)('Création service (Banque)', 'info'),
+    (0, auth_decorator_1.Auth)(),
+    (0, swagger_1.ApiOperation)({ summary: 'Créer un nouveau service via microservice Banque' }),
+    (0, swagger_1.ApiBody)({ type: service_dto_1.CreateServiceDto }),
+    (0, swagger_1.ApiResponse)({
+        status: common_1.HttpStatus.CREATED,
+        description: 'Service créé avec succès',
+        type: service_dto_1.ServiceResponseDto,
+    }),
+    (0, swagger_1.ApiResponse)({ status: common_1.HttpStatus.BAD_REQUEST, description: 'Données invalides' }),
+    (0, swagger_1.ApiResponse)({ status: common_1.HttpStatus.NOT_FOUND, description: 'Utilisateur non trouvé' }),
+    __param(0, (0, current_user_decorator_1.GetUserId)()),
+    __param(1, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, typeof (_b = typeof service_dto_1.CreateServiceDto !== "undefined" && service_dto_1.CreateServiceDto) === "function" ? _b : Object]),
+    __metadata("design:returntype", typeof (_c = typeof Promise !== "undefined" && Promise) === "function" ? _c : Object)
+], BanqueServiceController.prototype, "createService", null);
+__decorate([
+    (0, common_1.Put)(':id'),
+    (0, src_1.Log)('Mise à jour service (Banque)', 'info'),
+    (0, auth_decorator_1.Auth)(),
+    (0, swagger_1.ApiOperation)({ summary: 'Mettre à jour un service via microservice Banque' }),
+    (0, swagger_1.ApiParam)({ name: 'id', description: 'ID du service' }),
+    (0, swagger_1.ApiBody)({ type: service_dto_1.UpdateServiceDto }),
+    (0, swagger_1.ApiResponse)({
+        status: common_1.HttpStatus.OK,
+        description: 'Service mis à jour avec succès',
+        type: service_dto_1.ServiceResponseDto,
+    }),
+    (0, swagger_1.ApiResponse)({ status: common_1.HttpStatus.NOT_FOUND, description: 'Service non trouvé' }),
+    (0, swagger_1.ApiResponse)({ status: common_1.HttpStatus.FORBIDDEN, description: 'Service non modifiable' }),
+    __param(0, (0, common_1.Param)('id')),
+    __param(1, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, typeof (_d = typeof service_dto_1.UpdateServiceDto !== "undefined" && service_dto_1.UpdateServiceDto) === "function" ? _d : Object]),
+    __metadata("design:returntype", typeof (_e = typeof Promise !== "undefined" && Promise) === "function" ? _e : Object)
+], BanqueServiceController.prototype, "updateService", null);
+__decorate([
+    (0, common_1.Delete)(':id'),
+    (0, src_1.Log)('Suppression service (Banque)', 'info'),
+    (0, auth_decorator_1.Auth)(),
+    (0, swagger_1.ApiOperation)({ summary: 'Supprimer un service via microservice Banque' }),
+    (0, swagger_1.ApiParam)({ name: 'id', description: 'ID du service' }),
+    (0, swagger_1.ApiResponse)({ status: common_1.HttpStatus.OK, description: 'Service supprimé avec succès' }),
+    (0, swagger_1.ApiResponse)({ status: common_1.HttpStatus.NOT_FOUND, description: 'Service non trouvé' }),
+    (0, swagger_1.ApiResponse)({ status: common_1.HttpStatus.FORBIDDEN, description: 'Service non supprimable' }),
+    __param(0, (0, common_1.Param)('id')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", typeof (_f = typeof Promise !== "undefined" && Promise) === "function" ? _f : Object)
+], BanqueServiceController.prototype, "deleteService", null);
+__decorate([
+    (0, common_1.Post)(':id/confirm'),
+    (0, src_1.Log)('Confirmation service (Banque)', 'info'),
+    (0, auth_decorator_1.Auth)(),
+    (0, swagger_1.ApiOperation)({ summary: 'Confirmer un service via microservice Banque' }),
+    (0, swagger_1.ApiParam)({ name: 'id', description: 'ID du service' }),
+    (0, swagger_1.ApiResponse)({
+        status: common_1.HttpStatus.OK,
+        description: 'Service confirmé avec succès',
+        type: service_dto_1.ServiceResponseDto,
+    }),
+    (0, swagger_1.ApiResponse)({ status: common_1.HttpStatus.NOT_FOUND, description: 'Service non trouvé' }),
+    (0, swagger_1.ApiResponse)({ status: common_1.HttpStatus.FORBIDDEN, description: 'Seul le bénéficiaire peut confirmer' }),
+    __param(0, (0, common_1.Param)('id')),
+    __param(1, (0, current_user_decorator_1.GetUserId)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, String]),
+    __metadata("design:returntype", typeof (_g = typeof Promise !== "undefined" && Promise) === "function" ? _g : Object)
+], BanqueServiceController.prototype, "confirmService", null);
+__decorate([
+    (0, common_1.Post)(':id/repay/service/:repaymentServiceId'),
+    (0, auth_decorator_1.Auth)(),
+    (0, swagger_1.ApiOperation)({ summary: 'Rembourser un service par un autre service via microservice Banque' }),
+    (0, swagger_1.ApiParam)({ name: 'id', description: 'ID du service à rembourser' }),
+    (0, swagger_1.ApiParam)({ name: 'repaymentServiceId', description: 'ID du service de remboursement' }),
+    (0, swagger_1.ApiResponse)({
+        status: common_1.HttpStatus.OK,
+        description: 'Service remboursé avec succès',
+        type: service_dto_1.ServiceResponseDto,
+    }),
+    (0, swagger_1.ApiResponse)({ status: common_1.HttpStatus.NOT_FOUND, description: 'Service non trouvé' }),
+    (0, swagger_1.ApiResponse)({ status: common_1.HttpStatus.BAD_REQUEST, description: 'Remboursement invalide' }),
+    __param(0, (0, common_1.Param)('id')),
+    __param(1, (0, common_1.Param)('repaymentServiceId')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, String]),
+    __metadata("design:returntype", typeof (_h = typeof Promise !== "undefined" && Promise) === "function" ? _h : Object)
+], BanqueServiceController.prototype, "repayServiceWithService", null);
+__decorate([
+    (0, common_1.Get)(':id'),
+    (0, auth_decorator_1.Auth)(),
+    (0, swagger_1.ApiOperation)({ summary: 'Récupérer un service par ID via microservice Banque' }),
+    (0, swagger_1.ApiParam)({ name: 'id', description: 'ID du service' }),
+    (0, swagger_1.ApiResponse)({
+        status: common_1.HttpStatus.OK,
+        description: 'Service trouvé',
+        type: service_dto_1.ServiceResponseDto,
+    }),
+    (0, swagger_1.ApiResponse)({ status: common_1.HttpStatus.NOT_FOUND, description: 'Service non trouvé' }),
+    __param(0, (0, common_1.Param)('id')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", typeof (_j = typeof Promise !== "undefined" && Promise) === "function" ? _j : Object)
+], BanqueServiceController.prototype, "findServiceById", null);
+__decorate([
+    (0, common_1.Get)(':id/details'),
+    (0, auth_decorator_1.Auth)(),
+    (0, swagger_1.ApiOperation)({ summary: "Récupérer les détails complets d'un service via microservice Banque" }),
+    (0, swagger_1.ApiParam)({ name: 'id', description: 'ID du service' }),
+    (0, swagger_1.ApiResponse)({
+        status: common_1.HttpStatus.OK,
+        description: 'Détails du service récupérés',
+        type: service_dto_1.ServiceWithDetailsDto,
+    }),
+    (0, swagger_1.ApiResponse)({ status: common_1.HttpStatus.NOT_FOUND, description: 'Service non trouvé' }),
+    __param(0, (0, common_1.Param)('id')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", typeof (_k = typeof Promise !== "undefined" && Promise) === "function" ? _k : Object)
+], BanqueServiceController.prototype, "getServiceWithDetails", null);
+__decorate([
+    (0, common_1.Get)(),
+    (0, auth_decorator_1.Auth)(),
+    (0, swagger_1.ApiOperation)({ summary: 'Rechercher des services avec filtres via microservice Banque' }),
+    (0, swagger_1.ApiQuery)({ name: 'status', required: false, description: 'Filtrer par statut' }),
+    (0, swagger_1.ApiQuery)({ name: 'category_id', required: false, description: 'Filtrer par catégorie' }),
+    (0, swagger_1.ApiQuery)({ name: 'provider_id', required: false, description: 'Filtrer par prestataire' }),
+    (0, swagger_1.ApiQuery)({ name: 'beneficiary_id', required: false, description: 'Filtrer par bénéficiaire' }),
+    (0, swagger_1.ApiQuery)({ name: 'jeton_value_min', required: false, description: 'Valeur minimale en jetons' }),
+    (0, swagger_1.ApiQuery)({ name: 'jeton_value_max', required: false, description: 'Valeur maximale en jetons' }),
+    (0, swagger_1.ApiQuery)({ name: 'created_after', required: false, description: 'Date de création après' }),
+    (0, swagger_1.ApiQuery)({ name: 'created_before', required: false, description: 'Date de création avant' }),
+    (0, swagger_1.ApiResponse)({
+        status: common_1.HttpStatus.OK,
+        description: 'Services récupérés avec succès',
+        type: [service_dto_1.ServiceWithDetailsDto],
+    }),
+    __param(0, (0, common_1.Query)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [typeof (_l = typeof service_dto_1.ServiceFiltersDto !== "undefined" && service_dto_1.ServiceFiltersDto) === "function" ? _l : Object]),
+    __metadata("design:returntype", typeof (_m = typeof Promise !== "undefined" && Promise) === "function" ? _m : Object)
+], BanqueServiceController.prototype, "findServicesWithFilters", null);
+__decorate([
+    (0, common_1.Get)('stats/overview'),
+    (0, auth_decorator_1.Auth)(),
+    (0, swagger_1.ApiOperation)({ summary: 'Récupérer les statistiques des services via microservice Banque' }),
+    (0, swagger_1.ApiResponse)({
+        status: common_1.HttpStatus.OK,
+        description: 'Statistiques récupérées avec succès',
+        type: service_dto_1.ServiceStatsDto,
+    }),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", []),
+    __metadata("design:returntype", typeof (_o = typeof Promise !== "undefined" && Promise) === "function" ? _o : Object)
+], BanqueServiceController.prototype, "getServiceStats", null);
+__decorate([
+    (0, common_1.Post)('categories'),
+    (0, src_1.Log)('Création catégorie service (Banque)', 'info'),
+    (0, auth_decorator_1.Auth)(),
+    (0, swagger_1.ApiOperation)({ summary: 'Créer une nouvelle catégorie de service via microservice Banque' }),
+    (0, swagger_1.ApiBody)({ type: service_dto_1.CreateServiceCategoryDto }),
+    (0, swagger_1.ApiResponse)({
+        status: common_1.HttpStatus.CREATED,
+        description: 'Catégorie créée avec succès',
+        type: service_dto_1.ServiceCategoryDto,
+    }),
+    (0, swagger_1.ApiResponse)({ status: common_1.HttpStatus.BAD_REQUEST, description: 'Données invalides' }),
+    __param(0, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [typeof (_p = typeof service_dto_1.CreateServiceCategoryDto !== "undefined" && service_dto_1.CreateServiceCategoryDto) === "function" ? _p : Object]),
+    __metadata("design:returntype", typeof (_q = typeof Promise !== "undefined" && Promise) === "function" ? _q : Object)
+], BanqueServiceController.prototype, "createServiceCategory", null);
+__decorate([
+    (0, common_1.Get)('categories'),
+    (0, auth_decorator_1.Auth)(),
+    (0, swagger_1.ApiOperation)({ summary: 'Récupérer toutes les catégories de service via microservice Banque' }),
+    (0, swagger_1.ApiResponse)({
+        status: common_1.HttpStatus.OK,
+        description: 'Catégories récupérées avec succès',
+        type: [service_dto_1.ServiceCategoryDto],
+    }),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", []),
+    __metadata("design:returntype", typeof (_r = typeof Promise !== "undefined" && Promise) === "function" ? _r : Object)
+], BanqueServiceController.prototype, "getAllServiceCategories", null);
+__decorate([
+    (0, common_1.Get)('categories/:id'),
+    (0, auth_decorator_1.Auth)(),
+    (0, swagger_1.ApiOperation)({ summary: 'Récupérer une catégorie de service par ID via microservice Banque' }),
+    (0, swagger_1.ApiParam)({ name: 'id', description: 'ID de la catégorie' }),
+    (0, swagger_1.ApiResponse)({
+        status: common_1.HttpStatus.OK,
+        description: 'Catégorie trouvée',
+        type: service_dto_1.ServiceCategoryDto,
+    }),
+    (0, swagger_1.ApiResponse)({ status: common_1.HttpStatus.NOT_FOUND, description: 'Catégorie non trouvée' }),
+    __param(0, (0, common_1.Param)('id')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", typeof (_s = typeof Promise !== "undefined" && Promise) === "function" ? _s : Object)
+], BanqueServiceController.prototype, "getServiceCategoryById", null);
+exports.BanqueServiceController = BanqueServiceController = __decorate([
+    (0, swagger_1.ApiTags)('banque-services'),
+    (0, common_1.Controller)('banque/services'),
+    __param(0, (0, common_1.Inject)('BANQUE_SERVICE')),
+    __metadata("design:paramtypes", [typeof (_a = typeof microservices_1.ClientProxy !== "undefined" && microservices_1.ClientProxy) === "function" ? _a : Object])
+], BanqueServiceController);
+
+
+/***/ }),
+
 /***/ "./apps/api-gateway/src/friendships/friendships.controller.ts":
 /*!********************************************************************!*\
   !*** ./apps/api-gateway/src/friendships/friendships.controller.ts ***!
@@ -758,7 +1573,7 @@ let FriendshipsController = class FriendshipsController {
     }
     async sendFriendshipRequest(user, createFriendshipDto) {
         this.logger.info('Envoi demande amitié', {
-            userId: user.id,
+            userId: user.id.toString(),
             targetId: createFriendshipDto.user_two_id,
         });
         try {
@@ -770,7 +1585,7 @@ let FriendshipsController = class FriendshipsController {
             }))
                 .toPromise();
             this.logger.info('Demande amitié envoyée avec succès', {
-                userId: user.id,
+                userId: user.id.toString(),
                 friendshipId: result.friendship_id,
             });
             return result;
@@ -782,7 +1597,7 @@ let FriendshipsController = class FriendshipsController {
     }
     async acceptFriendshipRequest(user, acceptFriendshipDto) {
         this.logger.info('Acceptation demande amitié', {
-            userId: user.id,
+            userId: user.id.toString(),
             friendshipId: acceptFriendshipDto.friendship_id,
         });
         try {
@@ -794,7 +1609,7 @@ let FriendshipsController = class FriendshipsController {
             }))
                 .toPromise();
             this.logger.info('Demande acceptée avec succès', {
-                userId: user.id,
+                userId: user.id.toString(),
                 friendshipId: acceptFriendshipDto.friendship_id,
             });
             return result;
@@ -806,7 +1621,7 @@ let FriendshipsController = class FriendshipsController {
     }
     async declineFriendshipRequest(user, declineFriendshipDto) {
         this.logger.info('Refus demande amitié', {
-            userId: user.id,
+            userId: user.id.toString(),
             friendshipId: declineFriendshipDto.friendship_id,
         });
         try {
@@ -818,7 +1633,7 @@ let FriendshipsController = class FriendshipsController {
             }))
                 .toPromise();
             this.logger.info('Demande refusée avec succès', {
-                userId: user.id,
+                userId: user.id.toString(),
                 friendshipId: declineFriendshipDto.friendship_id,
             });
             return result;
@@ -830,20 +1645,20 @@ let FriendshipsController = class FriendshipsController {
     }
     async getUserFriends(user, page = 1, limit = 20) {
         this.logger.info('Récupération amis utilisateur', {
-            userId: user.id,
+            userId: user.id.toString(),
             page,
             limit,
         });
         try {
             const result = await this.userService
-                .send({ cmd: 'get_user_friends' }, { userId: user.id, page, limit })
+                .send({ cmd: 'get_user_friends' }, { userId: user.id.toString(), page, limit })
                 .pipe((0, operators_1.timeout)(5000), (0, operators_1.catchError)(error => {
                 this.logger.error('Erreur récupération amis', error.message);
                 return this.handleMicroserviceError(error);
             }))
                 .toPromise();
             this.logger.info('Amis récupérés avec succès', {
-                userId: user.id,
+                userId: user.id.toString(),
                 friendsCount: result.length,
             });
             return result;
@@ -855,19 +1670,19 @@ let FriendshipsController = class FriendshipsController {
     }
     async removeFriend(user, friendId) {
         this.logger.info('Suppression ami', {
-            userId: user.id,
+            userId: user.id.toString(),
             friendId,
         });
         try {
             const result = await this.userService
-                .send({ cmd: 'remove_friend' }, { userId: user.id, friendId })
+                .send({ cmd: 'remove_friend' }, { userId: user.id.toString(), friendId })
                 .pipe((0, operators_1.timeout)(5000), (0, operators_1.catchError)(error => {
                 this.logger.error('Erreur suppression ami', error.message);
                 return this.handleMicroserviceError(error);
             }))
                 .toPromise();
             this.logger.info('Ami supprimé avec succès', {
-                userId: user.id,
+                userId: user.id.toString(),
                 friendId,
             });
             return result;
@@ -879,7 +1694,7 @@ let FriendshipsController = class FriendshipsController {
     }
     async getReceivedFriendshipRequests(user, page = 1, limit = 20) {
         this.logger.info('Récupération demandes reçues', {
-            userId: user.id,
+            userId: user.id.toString().toString(),
             page,
             limit,
         });
@@ -892,7 +1707,7 @@ let FriendshipsController = class FriendshipsController {
             }))
                 .toPromise();
             this.logger.info('Demandes reçues récupérées avec succès', {
-                userId: user.id,
+                userId: user.id.toString().toString(),
                 requestsCount: result.length,
             });
             return result;
@@ -904,20 +1719,20 @@ let FriendshipsController = class FriendshipsController {
     }
     async getSentFriendshipRequests(user, page = 1, limit = 20) {
         this.logger.info('Récupération demandes envoyées', {
-            userId: user.id,
+            userId: user.id.toString().toString(),
             page,
             limit,
         });
         try {
             const result = await this.userService
-                .send({ cmd: 'get_sent_friendship_requests' }, { userId: user.id, page, limit })
+                .send({ cmd: 'get_sent_friendship_requests' }, { userId: user.id.toString(), page, limit })
                 .pipe((0, operators_1.timeout)(5000), (0, operators_1.catchError)(error => {
                 this.logger.error('Erreur récupération demandes envoyées', error.message);
                 return this.handleMicroserviceError(error);
             }))
                 .toPromise();
             this.logger.info('Demandes envoyées récupérées avec succès', {
-                userId: user.id,
+                userId: user.id.toString().toString(),
                 requestsCount: result.length,
             });
             return result;
@@ -929,19 +1744,19 @@ let FriendshipsController = class FriendshipsController {
     }
     async blockUser(user, blockUserDto) {
         this.logger.info('Blocage utilisateur', {
-            userId: user.id,
+            userId: user.id.toString().toString(),
             targetId: blockUserDto.user_id,
         });
         try {
             const result = await this.userService
-                .send({ cmd: 'block_user' }, { userId: user.id, blockUserDto })
+                .send({ cmd: 'block_user' }, { userId: user.id.toString(), blockUserDto })
                 .pipe((0, operators_1.timeout)(5000), (0, operators_1.catchError)(error => {
                 this.logger.error('Erreur blocage utilisateur', error.message);
                 return this.handleMicroserviceError(error);
             }))
                 .toPromise();
             this.logger.info('Utilisateur bloqué avec succès', {
-                userId: user.id,
+                userId: user.id.toString().toString(),
                 targetId: blockUserDto.user_id,
             });
             return result;
@@ -953,19 +1768,19 @@ let FriendshipsController = class FriendshipsController {
     }
     async unblockUser(user, unblockUserDto) {
         this.logger.info('Déblocage utilisateur', {
-            userId: user.id,
+            userId: user.id.toString().toString(),
             targetId: unblockUserDto.user_id,
         });
         try {
             const result = await this.userService
-                .send({ cmd: 'unblock_user' }, { userId: user.id, unblockUserDto })
+                .send({ cmd: 'unblock_user' }, { userId: user.id.toString(), unblockUserDto })
                 .pipe((0, operators_1.timeout)(5000), (0, operators_1.catchError)(error => {
                 this.logger.error('Erreur déblocage utilisateur', error.message);
                 return this.handleMicroserviceError(error);
             }))
                 .toPromise();
             this.logger.info('Utilisateur débloqué avec succès', {
-                userId: user.id,
+                userId: user.id.toString().toString(),
                 targetId: unblockUserDto.user_id,
             });
             return result;
@@ -977,7 +1792,7 @@ let FriendshipsController = class FriendshipsController {
     }
     async getFriendshipStats(user) {
         this.logger.info('Récupération stats amitié', {
-            userId: user.id,
+            userId: user.id.toString().toString(),
         });
         try {
             const result = await this.userService
@@ -988,7 +1803,7 @@ let FriendshipsController = class FriendshipsController {
             }))
                 .toPromise();
             this.logger.info('Stats récupérées avec succès', {
-                userId: user.id,
+                userId: user.id.toString().toString(),
                 totalFriends: result.total_friends,
             });
             return result;
@@ -1000,19 +1815,19 @@ let FriendshipsController = class FriendshipsController {
     }
     async getMutualFriends(user, otherUserId) {
         this.logger.info('Récupération amis en commun', {
-            userId: user.id,
+            userId: user.id.toString().toString(),
             otherUserId,
         });
         try {
             const result = await this.userService
-                .send({ cmd: 'get_mutual_friends' }, { userId: user.id, otherUserId })
+                .send({ cmd: 'get_mutual_friends' }, { userId: user.id.toString(), otherUserId })
                 .pipe((0, operators_1.timeout)(5000), (0, operators_1.catchError)(error => {
                 this.logger.error('Erreur récupération amis en commun', error.message);
                 return this.handleMicroserviceError(error);
             }))
                 .toPromise();
             this.logger.info('Amis en commun récupérés avec succès', {
-                userId: user.id,
+                userId: user.id.toString().toString(),
                 otherUserId,
                 mutualCount: result.length,
             });
@@ -1025,19 +1840,19 @@ let FriendshipsController = class FriendshipsController {
     }
     async getFriendshipSuggestions(user, limit = 10) {
         this.logger.info('Récupération suggestions amitié', {
-            userId: user.id,
+            userId: user.id.toString().toString(),
             limit,
         });
         try {
             const result = await this.userService
-                .send({ cmd: 'get_friendship_suggestions' }, { userId: user.id, limit })
+                .send({ cmd: 'get_friendship_suggestions' }, { userId: user.id.toString(), limit })
                 .pipe((0, operators_1.timeout)(5000), (0, operators_1.catchError)(error => {
                 this.logger.error('Erreur récupération suggestions', error.message);
                 return this.handleMicroserviceError(error);
             }))
                 .toPromise();
             this.logger.info('Suggestions récupérées avec succès', {
-                userId: user.id,
+                userId: user.id.toString().toString(),
                 suggestionsCount: result.length,
             });
             return result;
@@ -1049,19 +1864,19 @@ let FriendshipsController = class FriendshipsController {
     }
     async getFriendshipStatus(user, otherUserId) {
         this.logger.info('Vérification statut amitié', {
-            userId: user.id,
+            userId: user.id.toString(),
             otherUserId,
         });
         try {
             const result = await this.userService
-                .send({ cmd: 'get_friendship_status' }, { userId: user.id, otherUserId })
+                .send({ cmd: 'get_friendship_status' }, { userId: user.id.toString(), otherUserId })
                 .pipe((0, operators_1.timeout)(5000), (0, operators_1.catchError)(error => {
                 this.logger.error('Erreur vérification statut', error.message);
                 return this.handleMicroserviceError(error);
             }))
                 .toPromise();
             this.logger.info('Statut vérifié avec succès', {
-                userId: user.id,
+                userId: user.id.toString(),
                 otherUserId,
                 status: result.status,
             });
@@ -1373,7 +2188,7 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 var __param = (this && this.__param) || function (paramIndex, decorator) {
     return function (target, key) { decorator(target, key, paramIndex); }
 };
-var _a, _b, _c;
+var _a, _b, _c, _d;
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.HealthController = void 0;
 const common_1 = __webpack_require__(/*! @nestjs/common */ "@nestjs/common");
@@ -1384,10 +2199,12 @@ let HealthController = class HealthController {
     authClient;
     userClient;
     bankClient;
-    constructor(authClient, userClient, bankClient) {
+    shopClient;
+    constructor(authClient, userClient, bankClient, shopClient) {
         this.authClient = authClient;
         this.userClient = userClient;
         this.bankClient = bankClient;
+        this.shopClient = shopClient;
     }
     async check() {
         const services = {};
@@ -1414,6 +2231,14 @@ let HealthController = class HealthController {
         }
         catch {
             services.bankService = 'unavailable';
+        }
+        try {
+            console.log('🔍 Shop Health', this.shopClient);
+            const shopHealth = await (0, rxjs_1.firstValueFrom)(this.shopClient.send({ cmd: 'health' }, {}).pipe((0, rxjs_1.timeout)(2000), (0, rxjs_1.catchError)(() => (0, rxjs_1.of)({ status: 'unavailable' }))));
+            services.shopService = shopHealth.status ?? 'unavailable';
+        }
+        catch {
+            services.shopService = 'unavailable';
         }
         return {
             status: 'ok',
@@ -1455,7 +2280,8 @@ exports.HealthController = HealthController = __decorate([
     __param(0, (0, common_1.Inject)('AUTH_SERVICE')),
     __param(1, (0, common_1.Inject)('USER_SERVICE')),
     __param(2, (0, common_1.Inject)('BANQUE_SERVICE')),
-    __metadata("design:paramtypes", [typeof (_a = typeof microservices_1.ClientProxy !== "undefined" && microservices_1.ClientProxy) === "function" ? _a : Object, typeof (_b = typeof microservices_1.ClientProxy !== "undefined" && microservices_1.ClientProxy) === "function" ? _b : Object, typeof (_c = typeof microservices_1.ClientProxy !== "undefined" && microservices_1.ClientProxy) === "function" ? _c : Object])
+    __param(3, (0, common_1.Inject)('SHOP_SERVICE')),
+    __metadata("design:paramtypes", [typeof (_a = typeof microservices_1.ClientProxy !== "undefined" && microservices_1.ClientProxy) === "function" ? _a : Object, typeof (_b = typeof microservices_1.ClientProxy !== "undefined" && microservices_1.ClientProxy) === "function" ? _b : Object, typeof (_c = typeof microservices_1.ClientProxy !== "undefined" && microservices_1.ClientProxy) === "function" ? _c : Object, typeof (_d = typeof microservices_1.ClientProxy !== "undefined" && microservices_1.ClientProxy) === "function" ? _d : Object])
 ], HealthController);
 
 
@@ -1481,7 +2307,11 @@ const microservices_1 = __webpack_require__(/*! @nestjs/microservices */ "@nestj
 const auth_controller_1 = __webpack_require__(/*! ../auth/auth.controller */ "./apps/api-gateway/src/auth/auth.controller.ts");
 const health_controller_1 = __webpack_require__(/*! ../health/health.controller */ "./apps/api-gateway/src/health/health.controller.ts");
 const users_controller_1 = __webpack_require__(/*! ../users/users.controller */ "./apps/api-gateway/src/users/users.controller.ts");
-const services_controller_1 = __webpack_require__(/*! ../services/services.controller */ "./apps/api-gateway/src/services/services.controller.ts");
+const user_inventory_controller_1 = __webpack_require__(/*! ../users/user-inventory.controller */ "./apps/api-gateway/src/users/user-inventory.controller.ts");
+const user_pranks_controller_1 = __webpack_require__(/*! ../users/user-pranks.controller */ "./apps/api-gateway/src/users/user-pranks.controller.ts");
+const banque_controller_1 = __webpack_require__(/*! ../banque/banque.controller */ "./apps/api-gateway/src/banque/banque.controller.ts");
+const service_controller_1 = __webpack_require__(/*! ../banque/service.controller */ "./apps/api-gateway/src/banque/service.controller.ts");
+const prank_controller_1 = __webpack_require__(/*! ../banque/prank.controller */ "./apps/api-gateway/src/banque/prank.controller.ts");
 const user_enrichment_interceptor_1 = __webpack_require__(/*! ../auth/interceptors/user-enrichment.interceptor */ "./apps/api-gateway/src/auth/interceptors/user-enrichment.interceptor.ts");
 let MicroservicesModule = class MicroservicesModule {
 };
@@ -1514,9 +2344,26 @@ exports.MicroservicesModule = MicroservicesModule = __decorate([
                         port: parseInt(process.env.BANQUE_SERVICE_PORT ?? '4004'),
                     },
                 },
+                {
+                    name: 'SHOP_SERVICE',
+                    transport: microservices_1.Transport.TCP,
+                    options: {
+                        host: process.env.SHOP_SERVICE_HOST ?? 'localhost',
+                        port: parseInt(process.env.SHOP_SERVICE_PORT ?? '4005'),
+                    },
+                },
             ]),
         ],
-        controllers: [auth_controller_1.AuthController, health_controller_1.HealthController, users_controller_1.UsersController, services_controller_1.ServicesController],
+        controllers: [
+            auth_controller_1.AuthController,
+            health_controller_1.HealthController,
+            users_controller_1.UsersController,
+            user_inventory_controller_1.UserInventoryController,
+            user_pranks_controller_1.UserPranksController,
+            banque_controller_1.BanqueController,
+            service_controller_1.BanqueServiceController,
+            prank_controller_1.BanquePrankController,
+        ],
         providers: [user_enrichment_interceptor_1.UserEnrichmentInterceptor],
         exports: [microservices_1.ClientsModule],
     })
@@ -1525,9 +2372,364 @@ exports.MicroservicesModule = MicroservicesModule = __decorate([
 
 /***/ }),
 
-/***/ "./apps/api-gateway/src/services/services.controller.ts":
+/***/ "./apps/api-gateway/src/prank-packs/prank-packs.controller.ts":
+/*!********************************************************************!*\
+  !*** ./apps/api-gateway/src/prank-packs/prank-packs.controller.ts ***!
+  \********************************************************************/
+/***/ (function(__unused_webpack_module, exports, __webpack_require__) {
+
+
+var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
+    var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
+    if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
+    else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+    return c > 3 && r && Object.defineProperty(target, key, r), r;
+};
+var __metadata = (this && this.__metadata) || function (k, v) {
+    if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
+};
+var __param = (this && this.__param) || function (paramIndex, decorator) {
+    return function (target, key) { decorator(target, key, paramIndex); }
+};
+var _a, _b, _c, _d, _e, _f, _g, _h, _j;
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.PrankPacksController = void 0;
+const common_1 = __webpack_require__(/*! @nestjs/common */ "@nestjs/common");
+const microservices_1 = __webpack_require__(/*! @nestjs/microservices */ "@nestjs/microservices");
+const swagger_1 = __webpack_require__(/*! @nestjs/swagger */ "@nestjs/swagger");
+const rxjs_1 = __webpack_require__(/*! rxjs */ "rxjs");
+const prank_pack_dto_1 = __webpack_require__(/*! @app/contracts/PrankPack/dtos/prank-pack.dto */ "./libs/contracts/src/PrankPack/dtos/prank-pack.dto.ts");
+const auth_decorator_1 = __webpack_require__(/*! ../auth/decorators/auth.decorator */ "./apps/api-gateway/src/auth/decorators/auth.decorator.ts");
+const current_user_decorator_1 = __webpack_require__(/*! ../auth/decorators/current-user.decorator */ "./apps/api-gateway/src/auth/decorators/current-user.decorator.ts");
+const auth_interface_1 = __webpack_require__(/*! @app/contracts/Auth/interfaces/auth.interface */ "./libs/contracts/src/Auth/interfaces/auth.interface.ts");
+const user_enrichment_interceptor_1 = __webpack_require__(/*! ../auth/interceptors/user-enrichment.interceptor */ "./apps/api-gateway/src/auth/interceptors/user-enrichment.interceptor.ts");
+const src_1 = __webpack_require__(/*! libs/logger/src */ "./libs/logger/src/index.ts");
+let PrankPacksController = class PrankPacksController {
+    shopClient;
+    constructor(shopClient) {
+        this.shopClient = shopClient;
+    }
+    async getAvailablePrankPacks() {
+        return (0, rxjs_1.firstValueFrom)(this.shopClient.send({ cmd: 'get_available_prank_packs' }, {}));
+    }
+    async getAvailablePrankPacksGrouped() {
+        return (0, rxjs_1.firstValueFrom)(this.shopClient.send({ cmd: 'get_available_prank_packs_grouped' }, {}));
+    }
+    async getPackAvailablePranks(packId) {
+        return (0, rxjs_1.firstValueFrom)(this.shopClient.send({ cmd: 'get_pack_available_pranks' }, { packId }));
+    }
+    async openPrankPack(packId, currentUser) {
+        return (0, rxjs_1.firstValueFrom)(this.shopClient.send({ cmd: 'open_prank_pack' }, { userId: currentUser.id, packId }));
+    }
+    async openMultiplePrankPacks(packId, openMultipleDto, currentUser) {
+        return (0, rxjs_1.firstValueFrom)(this.shopClient.send({ cmd: 'open_multiple_prank_packs' }, { userId: currentUser.id, packId, quantity: openMultipleDto.quantity }));
+    }
+};
+exports.PrankPacksController = PrankPacksController;
+__decorate([
+    (0, common_1.Get)(),
+    (0, auth_decorator_1.Auth)(),
+    (0, swagger_1.ApiOperation)({ summary: 'Récupérer tous les packs de pranks disponibles' }),
+    (0, swagger_1.ApiResponse)({
+        status: common_1.HttpStatus.OK,
+        description: 'Liste des packs disponibles',
+        type: [prank_pack_dto_1.PrankPackDto],
+    }),
+    (0, src_1.Log)('Récupération des packs de pranks disponibles', 'info'),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", []),
+    __metadata("design:returntype", typeof (_b = typeof Promise !== "undefined" && Promise) === "function" ? _b : Object)
+], PrankPacksController.prototype, "getAvailablePrankPacks", null);
+__decorate([
+    (0, common_1.Get)('grouped'),
+    (0, auth_decorator_1.Auth)(),
+    (0, swagger_1.ApiOperation)({ summary: 'Récupérer tous les packs de pranks groupés par type' }),
+    (0, swagger_1.ApiResponse)({
+        status: common_1.HttpStatus.OK,
+        description: 'Packs groupés par type et ordonnés par niveau requis',
+        type: prank_pack_dto_1.PacksByTypeDto,
+    }),
+    (0, src_1.Log)('Récupération des packs de pranks groupés', 'info'),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", []),
+    __metadata("design:returntype", typeof (_c = typeof Promise !== "undefined" && Promise) === "function" ? _c : Object)
+], PrankPacksController.prototype, "getAvailablePrankPacksGrouped", null);
+__decorate([
+    (0, common_1.Get)(':packId/pranks'),
+    (0, auth_decorator_1.Auth)(),
+    (0, swagger_1.ApiOperation)({ summary: 'Récupérer les pranks disponibles dans un pack' }),
+    (0, swagger_1.ApiParam)({ name: 'packId', description: 'ID du pack', type: 'number' }),
+    (0, swagger_1.ApiResponse)({
+        status: common_1.HttpStatus.OK,
+        description: 'Pranks disponibles dans le pack groupés par rareté',
+        type: prank_pack_dto_1.PackAvailablePranksDto,
+    }),
+    (0, swagger_1.ApiResponse)({
+        status: common_1.HttpStatus.NOT_FOUND,
+        description: 'Pack non trouvé',
+    }),
+    (0, src_1.Log)('Récupération des pranks disponibles dans un pack', 'info'),
+    __param(0, (0, common_1.Param)('packId', common_1.ParseIntPipe)),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Number]),
+    __metadata("design:returntype", typeof (_d = typeof Promise !== "undefined" && Promise) === "function" ? _d : Object)
+], PrankPacksController.prototype, "getPackAvailablePranks", null);
+__decorate([
+    (0, common_1.Post)(':packId/open'),
+    (0, auth_decorator_1.Auth)(),
+    (0, swagger_1.ApiOperation)({ summary: 'Ouvrir un pack de pranks' }),
+    (0, swagger_1.ApiParam)({ name: 'packId', description: 'ID du pack à ouvrir', type: 'number' }),
+    (0, swagger_1.ApiResponse)({
+        status: common_1.HttpStatus.OK,
+        description: 'Pack ouvert avec succès',
+        type: prank_pack_dto_1.PackOpeningResultDto,
+    }),
+    (0, swagger_1.ApiResponse)({
+        status: common_1.HttpStatus.BAD_REQUEST,
+        description: "Erreur lors de l'ouverture du pack",
+        type: prank_pack_dto_1.PackOpeningErrorDto,
+    }),
+    (0, swagger_1.ApiResponse)({
+        status: common_1.HttpStatus.NOT_FOUND,
+        description: 'Pack non trouvé',
+    }),
+    (0, swagger_1.ApiResponse)({
+        status: common_1.HttpStatus.FORBIDDEN,
+        description: 'Conditions non remplies (niveau, devise, etc.)',
+    }),
+    (0, src_1.Log)('Ouverture de pack de pranks', 'info'),
+    __param(0, (0, common_1.Param)('packId', common_1.ParseIntPipe)),
+    __param(1, (0, current_user_decorator_1.CurrentUser)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Number, typeof (_e = typeof auth_interface_1.ICurrentUser !== "undefined" && auth_interface_1.ICurrentUser) === "function" ? _e : Object]),
+    __metadata("design:returntype", typeof (_f = typeof Promise !== "undefined" && Promise) === "function" ? _f : Object)
+], PrankPacksController.prototype, "openPrankPack", null);
+__decorate([
+    (0, common_1.Post)(':packId/open-multiple'),
+    (0, auth_decorator_1.Auth)(),
+    (0, swagger_1.ApiOperation)({ summary: "Ouvrir plusieurs packs de pranks d'un coup" }),
+    (0, swagger_1.ApiParam)({ name: 'packId', description: 'ID du pack à ouvrir', type: 'number' }),
+    (0, swagger_1.ApiResponse)({
+        status: common_1.HttpStatus.OK,
+        description: 'Packs ouverts avec succès',
+        type: prank_pack_dto_1.MultiplePackOpeningResultDto,
+    }),
+    (0, swagger_1.ApiResponse)({
+        status: common_1.HttpStatus.BAD_REQUEST,
+        description: "Erreur lors de l'ouverture des packs",
+        type: prank_pack_dto_1.PackOpeningErrorDto,
+    }),
+    (0, swagger_1.ApiResponse)({
+        status: common_1.HttpStatus.NOT_FOUND,
+        description: 'Pack non trouvé',
+    }),
+    (0, swagger_1.ApiResponse)({
+        status: common_1.HttpStatus.FORBIDDEN,
+        description: 'Conditions non remplies (niveau, devise, etc.)',
+    }),
+    (0, src_1.Log)('Ouverture de packs multiples de pranks', 'info'),
+    __param(0, (0, common_1.Param)('packId', common_1.ParseIntPipe)),
+    __param(1, (0, common_1.Body)()),
+    __param(2, (0, current_user_decorator_1.CurrentUser)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Number, typeof (_g = typeof prank_pack_dto_1.OpenMultiplePacksDto !== "undefined" && prank_pack_dto_1.OpenMultiplePacksDto) === "function" ? _g : Object, typeof (_h = typeof auth_interface_1.ICurrentUser !== "undefined" && auth_interface_1.ICurrentUser) === "function" ? _h : Object]),
+    __metadata("design:returntype", typeof (_j = typeof Promise !== "undefined" && Promise) === "function" ? _j : Object)
+], PrankPacksController.prototype, "openMultiplePrankPacks", null);
+exports.PrankPacksController = PrankPacksController = __decorate([
+    (0, swagger_1.ApiTags)('prank-packs'),
+    (0, common_1.Controller)('prank-packs'),
+    (0, common_1.UseInterceptors)(user_enrichment_interceptor_1.UserEnrichmentInterceptor),
+    __param(0, (0, common_1.Inject)('SHOP_SERVICE')),
+    __metadata("design:paramtypes", [typeof (_a = typeof microservices_1.ClientProxy !== "undefined" && microservices_1.ClientProxy) === "function" ? _a : Object])
+], PrankPacksController);
+
+
+/***/ }),
+
+/***/ "./apps/api-gateway/src/prank-packs/prank-packs.module.ts":
+/*!****************************************************************!*\
+  !*** ./apps/api-gateway/src/prank-packs/prank-packs.module.ts ***!
+  \****************************************************************/
+/***/ (function(__unused_webpack_module, exports, __webpack_require__) {
+
+
+var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
+    var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
+    if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
+    else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+    return c > 3 && r && Object.defineProperty(target, key, r), r;
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.PrankPacksModule = void 0;
+const common_1 = __webpack_require__(/*! @nestjs/common */ "@nestjs/common");
+const prank_packs_controller_1 = __webpack_require__(/*! ./prank-packs.controller */ "./apps/api-gateway/src/prank-packs/prank-packs.controller.ts");
+const microservices_module_1 = __webpack_require__(/*! ../microservices/microservices.module */ "./apps/api-gateway/src/microservices/microservices.module.ts");
+let PrankPacksModule = class PrankPacksModule {
+};
+exports.PrankPacksModule = PrankPacksModule;
+exports.PrankPacksModule = PrankPacksModule = __decorate([
+    (0, common_1.Module)({
+        imports: [microservices_module_1.MicroservicesModule],
+        controllers: [prank_packs_controller_1.PrankPacksController],
+    })
+], PrankPacksModule);
+
+
+/***/ }),
+
+/***/ "./apps/api-gateway/src/users/user-inventory.controller.ts":
+/*!*****************************************************************!*\
+  !*** ./apps/api-gateway/src/users/user-inventory.controller.ts ***!
+  \*****************************************************************/
+/***/ (function(__unused_webpack_module, exports, __webpack_require__) {
+
+
+var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
+    var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
+    if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
+    else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+    return c > 3 && r && Object.defineProperty(target, key, r), r;
+};
+var __metadata = (this && this.__metadata) || function (k, v) {
+    if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
+};
+var __param = (this && this.__param) || function (paramIndex, decorator) {
+    return function (target, key) { decorator(target, key, paramIndex); }
+};
+var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l;
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.UserInventoryController = void 0;
+const common_1 = __webpack_require__(/*! @nestjs/common */ "@nestjs/common");
+const microservices_1 = __webpack_require__(/*! @nestjs/microservices */ "@nestjs/microservices");
+const swagger_1 = __webpack_require__(/*! @nestjs/swagger */ "@nestjs/swagger");
+const rxjs_1 = __webpack_require__(/*! rxjs */ "rxjs");
+const User_1 = __webpack_require__(/*! @app/contracts/User */ "./libs/contracts/src/User/index.ts");
+const auth_decorator_1 = __webpack_require__(/*! ../auth/decorators/auth.decorator */ "./apps/api-gateway/src/auth/decorators/auth.decorator.ts");
+const current_user_decorator_1 = __webpack_require__(/*! ../auth/decorators/current-user.decorator */ "./apps/api-gateway/src/auth/decorators/current-user.decorator.ts");
+const auth_interface_1 = __webpack_require__(/*! @app/contracts/Auth/interfaces/auth.interface */ "./libs/contracts/src/Auth/interfaces/auth.interface.ts");
+const user_enrichment_interceptor_1 = __webpack_require__(/*! ../auth/interceptors/user-enrichment.interceptor */ "./apps/api-gateway/src/auth/interceptors/user-enrichment.interceptor.ts");
+const logger_1 = __webpack_require__(/*! @app/logger */ "./libs/logger/src/index.ts");
+let UserInventoryController = class UserInventoryController {
+    userClient;
+    constructor(userClient) {
+        this.userClient = userClient;
+    }
+    async getUserInventory(currentUser) {
+        return (0, rxjs_1.firstValueFrom)(this.userClient.send({ cmd: 'get_user_inventory' }, { userId: currentUser.id }));
+    }
+    async getUserInventoryStats(currentUser) {
+        return (0, rxjs_1.firstValueFrom)(this.userClient.send({ cmd: 'get_user_inventory_stats' }, { userId: currentUser.id }));
+    }
+    async addPackToInventory(addPackDto, currentUser) {
+        return (0, rxjs_1.firstValueFrom)(this.userClient.send({ cmd: 'add_pack_to_inventory' }, {
+            userId: currentUser.id,
+            addPackDto,
+        }));
+    }
+    async removePackFromInventory(removePackDto, currentUser) {
+        return (0, rxjs_1.firstValueFrom)(this.userClient.send({ cmd: 'remove_pack_from_inventory' }, {
+            userId: currentUser.id,
+            removePackDto,
+        }));
+    }
+};
+exports.UserInventoryController = UserInventoryController;
+__decorate([
+    (0, common_1.Get)(),
+    (0, auth_decorator_1.Auth)(),
+    (0, swagger_1.ApiOperation)({ summary: "Récupère l'inventaire complet d'un utilisateur" }),
+    (0, swagger_1.ApiResponse)({
+        status: common_1.HttpStatus.OK,
+        description: 'Inventaire récupéré avec succès',
+        type: User_1.UserPackInventoryDto,
+    }),
+    (0, swagger_1.ApiResponse)({ status: common_1.HttpStatus.UNAUTHORIZED, description: 'Non autorisé' }),
+    (0, swagger_1.ApiResponse)({ status: common_1.HttpStatus.NOT_FOUND, description: 'Utilisateur non trouvé' }),
+    (0, swagger_1.ApiResponse)({ status: common_1.HttpStatus.INTERNAL_SERVER_ERROR, description: 'Erreur serveur' }),
+    (0, logger_1.Log)('Récupération inventaire utilisateur', 'info'),
+    __param(0, (0, current_user_decorator_1.CurrentUser)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [typeof (_b = typeof auth_interface_1.ICurrentUser !== "undefined" && auth_interface_1.ICurrentUser) === "function" ? _b : Object]),
+    __metadata("design:returntype", typeof (_c = typeof Promise !== "undefined" && Promise) === "function" ? _c : Object)
+], UserInventoryController.prototype, "getUserInventory", null);
+__decorate([
+    (0, common_1.Get)('stats'),
+    (0, auth_decorator_1.Auth)(),
+    (0, swagger_1.ApiOperation)({
+        summary: "Récupère les statistiques d'inventaire d'un utilisateur",
+    }),
+    (0, swagger_1.ApiResponse)({
+        status: common_1.HttpStatus.OK,
+        description: 'Statistiques récupérées avec succès',
+        type: User_1.UserPackInventoryStatsDto,
+    }),
+    (0, swagger_1.ApiResponse)({ status: common_1.HttpStatus.UNAUTHORIZED, description: 'Non autorisé' }),
+    (0, swagger_1.ApiResponse)({ status: common_1.HttpStatus.NOT_FOUND, description: 'Utilisateur non trouvé' }),
+    (0, swagger_1.ApiResponse)({ status: common_1.HttpStatus.INTERNAL_SERVER_ERROR, description: 'Erreur serveur' }),
+    (0, logger_1.Log)('Récupération stats inventaire utilisateur', 'info'),
+    __param(0, (0, current_user_decorator_1.CurrentUser)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [typeof (_d = typeof auth_interface_1.ICurrentUser !== "undefined" && auth_interface_1.ICurrentUser) === "function" ? _d : Object]),
+    __metadata("design:returntype", typeof (_e = typeof Promise !== "undefined" && Promise) === "function" ? _e : Object)
+], UserInventoryController.prototype, "getUserInventoryStats", null);
+__decorate([
+    (0, common_1.Post)('add'),
+    (0, auth_decorator_1.Auth)(),
+    (0, swagger_1.ApiOperation)({ summary: "Ajoute des packs à l'inventaire d'un utilisateur" }),
+    (0, swagger_1.ApiBody)({ type: User_1.AddPackToInventoryDto }),
+    (0, swagger_1.ApiResponse)({
+        status: common_1.HttpStatus.OK,
+        description: 'Pack ajouté avec succès',
+        type: User_1.AddPackToInventoryResultDto,
+    }),
+    (0, swagger_1.ApiResponse)({ status: common_1.HttpStatus.BAD_REQUEST, description: 'Données invalides' }),
+    (0, swagger_1.ApiResponse)({ status: common_1.HttpStatus.UNAUTHORIZED, description: 'Non autorisé' }),
+    (0, swagger_1.ApiResponse)({ status: common_1.HttpStatus.NOT_FOUND, description: 'Utilisateur ou pack non trouvé' }),
+    (0, swagger_1.ApiResponse)({ status: common_1.HttpStatus.INTERNAL_SERVER_ERROR, description: 'Erreur serveur' }),
+    (0, logger_1.Log)('Ajout pack à inventaire utilisateur', 'info'),
+    __param(0, (0, common_1.Body)()),
+    __param(1, (0, current_user_decorator_1.CurrentUser)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [typeof (_f = typeof User_1.AddPackToInventoryDto !== "undefined" && User_1.AddPackToInventoryDto) === "function" ? _f : Object, typeof (_g = typeof auth_interface_1.ICurrentUser !== "undefined" && auth_interface_1.ICurrentUser) === "function" ? _g : Object]),
+    __metadata("design:returntype", typeof (_h = typeof Promise !== "undefined" && Promise) === "function" ? _h : Object)
+], UserInventoryController.prototype, "addPackToInventory", null);
+__decorate([
+    (0, common_1.Delete)('remove'),
+    (0, auth_decorator_1.Auth)(),
+    (0, swagger_1.ApiOperation)({
+        summary: "Retire des packs de l'inventaire d'un utilisateur",
+    }),
+    (0, swagger_1.ApiBody)({ type: User_1.RemovePackFromInventoryDto }),
+    (0, swagger_1.ApiResponse)({
+        status: common_1.HttpStatus.OK,
+        description: 'Pack retiré avec succès',
+        type: User_1.RemovePackFromInventoryResultDto,
+    }),
+    (0, swagger_1.ApiResponse)({ status: common_1.HttpStatus.BAD_REQUEST, description: 'Données invalides' }),
+    (0, swagger_1.ApiResponse)({ status: common_1.HttpStatus.UNAUTHORIZED, description: 'Non autorisé' }),
+    (0, swagger_1.ApiResponse)({ status: common_1.HttpStatus.NOT_FOUND, description: 'Utilisateur non trouvé' }),
+    (0, swagger_1.ApiResponse)({ status: common_1.HttpStatus.INTERNAL_SERVER_ERROR, description: 'Erreur serveur' }),
+    (0, logger_1.Log)('Retrait pack de inventaire utilisateur', 'info'),
+    __param(0, (0, common_1.Body)()),
+    __param(1, (0, current_user_decorator_1.CurrentUser)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [typeof (_j = typeof User_1.RemovePackFromInventoryDto !== "undefined" && User_1.RemovePackFromInventoryDto) === "function" ? _j : Object, typeof (_k = typeof auth_interface_1.ICurrentUser !== "undefined" && auth_interface_1.ICurrentUser) === "function" ? _k : Object]),
+    __metadata("design:returntype", typeof (_l = typeof Promise !== "undefined" && Promise) === "function" ? _l : Object)
+], UserInventoryController.prototype, "removePackFromInventory", null);
+exports.UserInventoryController = UserInventoryController = __decorate([
+    (0, swagger_1.ApiTags)('User Inventory'),
+    (0, common_1.Controller)('users/:userId/inventory'),
+    (0, common_1.UseInterceptors)(user_enrichment_interceptor_1.UserEnrichmentInterceptor),
+    __param(0, (0, common_1.Inject)('USER_SERVICE')),
+    __metadata("design:paramtypes", [typeof (_a = typeof microservices_1.ClientProxy !== "undefined" && microservices_1.ClientProxy) === "function" ? _a : Object])
+], UserInventoryController);
+
+
+/***/ }),
+
+/***/ "./apps/api-gateway/src/users/user-pranks.controller.ts":
 /*!**************************************************************!*\
-  !*** ./apps/api-gateway/src/services/services.controller.ts ***!
+  !*** ./apps/api-gateway/src/users/user-pranks.controller.ts ***!
   \**************************************************************/
 /***/ (function(__unused_webpack_module, exports, __webpack_require__) {
 
@@ -1544,373 +2746,150 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 var __param = (this && this.__param) || function (paramIndex, decorator) {
     return function (target, key) { decorator(target, key, paramIndex); }
 };
-var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l, _m, _o, _p, _q, _r, _s, _t, _u, _v, _w, _x;
+var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l, _m;
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.ServicesController = void 0;
+exports.UserPranksController = void 0;
 const common_1 = __webpack_require__(/*! @nestjs/common */ "@nestjs/common");
 const microservices_1 = __webpack_require__(/*! @nestjs/microservices */ "@nestjs/microservices");
 const swagger_1 = __webpack_require__(/*! @nestjs/swagger */ "@nestjs/swagger");
 const rxjs_1 = __webpack_require__(/*! rxjs */ "rxjs");
-const service_dto_1 = __webpack_require__(/*! @app/contracts/Service/dtos/service.dto */ "./libs/contracts/src/Service/dtos/service.dto.ts");
+const User_1 = __webpack_require__(/*! @app/contracts/User */ "./libs/contracts/src/User/index.ts");
 const auth_decorator_1 = __webpack_require__(/*! ../auth/decorators/auth.decorator */ "./apps/api-gateway/src/auth/decorators/auth.decorator.ts");
 const current_user_decorator_1 = __webpack_require__(/*! ../auth/decorators/current-user.decorator */ "./apps/api-gateway/src/auth/decorators/current-user.decorator.ts");
-const src_1 = __webpack_require__(/*! libs/logger/src */ "./libs/logger/src/index.ts");
 const auth_interface_1 = __webpack_require__(/*! @app/contracts/Auth/interfaces/auth.interface */ "./libs/contracts/src/Auth/interfaces/auth.interface.ts");
-let ServicesController = class ServicesController {
-    banqueClient;
-    constructor(banqueClient) {
-        this.banqueClient = banqueClient;
+const user_enrichment_interceptor_1 = __webpack_require__(/*! ../auth/interceptors/user-enrichment.interceptor */ "./apps/api-gateway/src/auth/interceptors/user-enrichment.interceptor.ts");
+const logger_1 = __webpack_require__(/*! @app/logger */ "./libs/logger/src/index.ts");
+let UserPranksController = class UserPranksController {
+    userClient;
+    constructor(userClient) {
+        this.userClient = userClient;
     }
-    async createService(providerId, createServiceDto) {
-        const result = await (0, rxjs_1.firstValueFrom)(this.banqueClient.send({ cmd: 'create_service' }, { providerId: parseInt(providerId), createServiceDto }));
-        return result;
+    async getUserPranksCollection(filters, currentUser) {
+        return (0, rxjs_1.firstValueFrom)(this.userClient.send({ cmd: 'get_user_pranks_collection' }, {
+            userId: currentUser.id,
+            filters,
+        }));
     }
-    async updateService(id, updateServiceDto) {
-        const result = await (0, rxjs_1.firstValueFrom)(this.banqueClient.send({ cmd: 'update_service' }, { serviceId: parseInt(id), updateServiceDto }));
-        return result;
+    async getUserPranksStats(currentUser) {
+        return (0, rxjs_1.firstValueFrom)(this.userClient.send({ cmd: 'get_user_pranks_stats' }, {
+            userId: currentUser.id,
+        }));
     }
-    async deleteService(id) {
-        const result = await (0, rxjs_1.firstValueFrom)(this.banqueClient.send({ cmd: 'delete_service' }, parseInt(id)));
-        return result;
+    async addPrankToCollection(addPrankDto, currentUser) {
+        return (0, rxjs_1.firstValueFrom)(this.userClient.send({ cmd: 'add_prank_to_collection' }, {
+            userId: currentUser.id,
+            addPrankDto,
+        }));
     }
-    async confirmService(id, beneficiaryId) {
-        const result = await (0, rxjs_1.firstValueFrom)(this.banqueClient.send({ cmd: 'confirm_service' }, { serviceId: parseInt(id), beneficiaryId: parseInt(beneficiaryId) }));
-        return result;
-    }
-    async repayServiceWithService(serviceId, repaymentServiceId) {
-        return (0, rxjs_1.firstValueFrom)(this.banqueClient.send({ cmd: 'repay_service_with_service' }, { serviceId: parseInt(serviceId), repaymentServiceId: parseInt(repaymentServiceId) }));
-    }
-    async findServiceById(id) {
-        return (0, rxjs_1.firstValueFrom)(this.banqueClient.send({ cmd: 'find_service_by_id' }, parseInt(id)));
-    }
-    async getServiceWithDetails(id) {
-        return (0, rxjs_1.firstValueFrom)(this.banqueClient.send({ cmd: 'get_service_with_details' }, parseInt(id)));
-    }
-    async findServicesWithFilters(filters) {
-        console.log('filters', filters);
-        const cleanedFilters = {
-            ...filters,
-            page: filters.page ? parseInt(filters.page.toString()) : 1,
-            limit: filters.limit ? parseInt(filters.limit.toString()) : 20,
-            category_id: filters.category_id ? parseInt(filters.category_id.toString()) : undefined,
-            provider_id: filters.provider_id ? parseInt(filters.provider_id.toString()) : undefined,
-            beneficiary_id: filters.beneficiary_id
-                ? parseInt(filters.beneficiary_id.toString())
-                : undefined,
-            jeton_value_min: filters.jeton_value_min
-                ? parseInt(filters.jeton_value_min.toString())
-                : undefined,
-            jeton_value_max: filters.jeton_value_max
-                ? parseInt(filters.jeton_value_max.toString())
-                : undefined,
-            created_after: filters.created_after ? new Date(filters.created_after) : undefined,
-            created_before: filters.created_before ? new Date(filters.created_before) : undefined,
-        };
-        return (0, rxjs_1.firstValueFrom)(this.banqueClient.send({ cmd: 'find_services_with_filters' }, cleanedFilters));
-    }
-    async getUserServices(user, page, limit) {
-        return (0, rxjs_1.firstValueFrom)(this.banqueClient.send({ cmd: 'get_user_services' }, { userId: user.id, page, limit }));
-    }
-    async getUserPranks(user, page, limit) {
-        return (0, rxjs_1.firstValueFrom)(this.banqueClient.send({ cmd: 'get_user_pranks' }, { userId: user.id, page, limit }));
-    }
-    async getServiceStats() {
-        return (0, rxjs_1.firstValueFrom)(this.banqueClient.send({ cmd: 'get_service_stats' }, {}));
-    }
-    async createServiceCategory(createCategoryDto) {
-        return (0, rxjs_1.firstValueFrom)(this.banqueClient.send({ cmd: 'create_service_category' }, createCategoryDto));
-    }
-    async getAllServiceCategories() {
-        return (0, rxjs_1.firstValueFrom)(this.banqueClient.send({ cmd: 'get_all_service_categories' }, {}));
-    }
-    async getServiceCategoryById(id) {
-        return (0, rxjs_1.firstValueFrom)(this.banqueClient.send({ cmd: 'get_service_category_by_id' }, parseInt(id)));
-    }
-    async healthCheck() {
-        return (0, rxjs_1.firstValueFrom)(this.banqueClient.send({ cmd: 'banque_service_health' }, {}));
+    async removePrankFromCollection(removePrankDto, currentUser) {
+        return (0, rxjs_1.firstValueFrom)(this.userClient.send({ cmd: 'remove_prank_from_collection' }, {
+            userId: currentUser.id,
+            removePrankDto,
+        }));
     }
 };
-exports.ServicesController = ServicesController;
-__decorate([
-    (0, common_1.Post)(),
-    (0, src_1.Log)('Création service', 'info'),
-    (0, auth_decorator_1.Auth)(),
-    (0, swagger_1.ApiOperation)({ summary: 'Créer un nouveau service' }),
-    (0, swagger_1.ApiBody)({ type: service_dto_1.CreateServiceDto }),
-    (0, swagger_1.ApiResponse)({
-        status: common_1.HttpStatus.CREATED,
-        description: 'Service créé avec succès',
-        type: service_dto_1.ServiceResponseDto,
-    }),
-    (0, swagger_1.ApiResponse)({ status: common_1.HttpStatus.BAD_REQUEST, description: 'Données invalides' }),
-    (0, swagger_1.ApiResponse)({ status: common_1.HttpStatus.NOT_FOUND, description: 'Utilisateur non trouvé' }),
-    __param(0, (0, current_user_decorator_1.GetUserId)()),
-    __param(1, (0, common_1.Body)()),
-    __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String, typeof (_b = typeof service_dto_1.CreateServiceDto !== "undefined" && service_dto_1.CreateServiceDto) === "function" ? _b : Object]),
-    __metadata("design:returntype", typeof (_c = typeof Promise !== "undefined" && Promise) === "function" ? _c : Object)
-], ServicesController.prototype, "createService", null);
-__decorate([
-    (0, common_1.Put)(':id'),
-    (0, src_1.Log)('Mise à jour service', 'info'),
-    (0, auth_decorator_1.Auth)(),
-    (0, swagger_1.ApiOperation)({ summary: 'Mettre à jour un service' }),
-    (0, swagger_1.ApiParam)({ name: 'id', description: 'ID du service' }),
-    (0, swagger_1.ApiBody)({ type: service_dto_1.UpdateServiceDto }),
-    (0, swagger_1.ApiResponse)({
-        status: common_1.HttpStatus.OK,
-        description: 'Service mis à jour avec succès',
-        type: service_dto_1.ServiceResponseDto,
-    }),
-    (0, swagger_1.ApiResponse)({ status: common_1.HttpStatus.NOT_FOUND, description: 'Service non trouvé' }),
-    (0, swagger_1.ApiResponse)({ status: common_1.HttpStatus.FORBIDDEN, description: 'Service non modifiable' }),
-    __param(0, (0, common_1.Param)('id')),
-    __param(1, (0, common_1.Body)()),
-    __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String, typeof (_d = typeof service_dto_1.UpdateServiceDto !== "undefined" && service_dto_1.UpdateServiceDto) === "function" ? _d : Object]),
-    __metadata("design:returntype", typeof (_e = typeof Promise !== "undefined" && Promise) === "function" ? _e : Object)
-], ServicesController.prototype, "updateService", null);
-__decorate([
-    (0, common_1.Delete)(':id'),
-    (0, src_1.Log)('Suppression service', 'info'),
-    (0, auth_decorator_1.Auth)(),
-    (0, swagger_1.ApiOperation)({ summary: 'Supprimer un service' }),
-    (0, swagger_1.ApiParam)({ name: 'id', description: 'ID du service' }),
-    (0, swagger_1.ApiResponse)({ status: common_1.HttpStatus.OK, description: 'Service supprimé avec succès' }),
-    (0, swagger_1.ApiResponse)({ status: common_1.HttpStatus.NOT_FOUND, description: 'Service non trouvé' }),
-    (0, swagger_1.ApiResponse)({ status: common_1.HttpStatus.FORBIDDEN, description: 'Service non supprimable' }),
-    __param(0, (0, common_1.Param)('id')),
-    __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String]),
-    __metadata("design:returntype", typeof (_f = typeof Promise !== "undefined" && Promise) === "function" ? _f : Object)
-], ServicesController.prototype, "deleteService", null);
-__decorate([
-    (0, common_1.Post)(':id/confirm'),
-    (0, src_1.Log)('Confirmation service', 'info'),
-    (0, auth_decorator_1.Auth)(),
-    (0, swagger_1.ApiOperation)({ summary: 'Confirmer un service' }),
-    (0, swagger_1.ApiParam)({ name: 'id', description: 'ID du service' }),
-    (0, swagger_1.ApiResponse)({
-        status: common_1.HttpStatus.OK,
-        description: 'Service confirmé avec succès',
-        type: service_dto_1.ServiceResponseDto,
-    }),
-    (0, swagger_1.ApiResponse)({ status: common_1.HttpStatus.NOT_FOUND, description: 'Service non trouvé' }),
-    (0, swagger_1.ApiResponse)({ status: common_1.HttpStatus.FORBIDDEN, description: 'Seul le bénéficiaire peut confirmer' }),
-    __param(0, (0, common_1.Param)('id')),
-    __param(1, (0, current_user_decorator_1.GetUserId)()),
-    __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String, String]),
-    __metadata("design:returntype", typeof (_g = typeof Promise !== "undefined" && Promise) === "function" ? _g : Object)
-], ServicesController.prototype, "confirmService", null);
-__decorate([
-    (0, common_1.Post)(':id/repay/:repaymentServiceId'),
-    (0, auth_decorator_1.Auth)(),
-    (0, swagger_1.ApiOperation)({ summary: 'Rembourser un service par un autre service' }),
-    (0, swagger_1.ApiParam)({ name: 'id', description: 'ID du service à rembourser' }),
-    (0, swagger_1.ApiParam)({ name: 'repaymentServiceId', description: 'ID du service de remboursement' }),
-    (0, swagger_1.ApiResponse)({
-        status: common_1.HttpStatus.OK,
-        description: 'Service remboursé avec succès',
-        type: service_dto_1.ServiceResponseDto,
-    }),
-    (0, swagger_1.ApiResponse)({ status: common_1.HttpStatus.NOT_FOUND, description: 'Service non trouvé' }),
-    (0, swagger_1.ApiResponse)({ status: common_1.HttpStatus.BAD_REQUEST, description: 'Remboursement invalide' }),
-    __param(0, (0, common_1.Param)('id')),
-    __param(1, (0, common_1.Param)('repaymentServiceId')),
-    __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String, String]),
-    __metadata("design:returntype", typeof (_h = typeof Promise !== "undefined" && Promise) === "function" ? _h : Object)
-], ServicesController.prototype, "repayServiceWithService", null);
-__decorate([
-    (0, common_1.Get)(':id'),
-    (0, auth_decorator_1.Auth)(),
-    (0, swagger_1.ApiOperation)({ summary: 'Récupérer un service par ID' }),
-    (0, swagger_1.ApiParam)({ name: 'id', description: 'ID du service' }),
-    (0, swagger_1.ApiResponse)({
-        status: common_1.HttpStatus.OK,
-        description: 'Service trouvé',
-        type: service_dto_1.ServiceResponseDto,
-    }),
-    (0, swagger_1.ApiResponse)({ status: common_1.HttpStatus.NOT_FOUND, description: 'Service non trouvé' }),
-    __param(0, (0, common_1.Param)('id')),
-    __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String]),
-    __metadata("design:returntype", typeof (_j = typeof Promise !== "undefined" && Promise) === "function" ? _j : Object)
-], ServicesController.prototype, "findServiceById", null);
-__decorate([
-    (0, common_1.Get)(':id/details'),
-    (0, auth_decorator_1.Auth)(),
-    (0, swagger_1.ApiOperation)({ summary: "Récupérer les détails complets d'un service" }),
-    (0, swagger_1.ApiParam)({ name: 'id', description: 'ID du service' }),
-    (0, swagger_1.ApiResponse)({
-        status: common_1.HttpStatus.OK,
-        description: 'Détails du service récupérés',
-        type: service_dto_1.ServiceWithDetailsDto,
-    }),
-    (0, swagger_1.ApiResponse)({ status: common_1.HttpStatus.NOT_FOUND, description: 'Service non trouvé' }),
-    __param(0, (0, common_1.Param)('id')),
-    __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String]),
-    __metadata("design:returntype", typeof (_k = typeof Promise !== "undefined" && Promise) === "function" ? _k : Object)
-], ServicesController.prototype, "getServiceWithDetails", null);
+exports.UserPranksController = UserPranksController;
 __decorate([
     (0, common_1.Get)(),
     (0, auth_decorator_1.Auth)(),
-    (0, swagger_1.ApiOperation)({ summary: 'Rechercher des services avec filtres' }),
-    (0, swagger_1.ApiQuery)({ name: 'status', required: false, description: 'Statut du service' }),
+    (0, swagger_1.ApiOperation)({ summary: "Récupère la collection de pranks d'un utilisateur" }),
+    (0, swagger_1.ApiQuery)({ name: 'rarity', required: false, description: 'Filtrer par rareté', isArray: true }),
+    (0, swagger_1.ApiQuery)({ name: 'type', required: false, description: 'Filtrer par type', isArray: true }),
+    (0, swagger_1.ApiQuery)({ name: 'sortBy', required: false, description: 'Trier par champ' }),
+    (0, swagger_1.ApiQuery)({ name: 'sortOrder', required: false, description: 'Ordre de tri (asc/desc)' }),
+    (0, swagger_1.ApiQuery)({ name: 'limit', required: false, description: 'Limite de résultats', type: 'number' }),
     (0, swagger_1.ApiQuery)({
-        name: 'type',
-        enum: ['service', 'prank'],
+        name: 'offset',
         required: false,
-        description: 'Type de service (service ou prank)',
+        description: 'Décalage pour pagination',
+        type: 'number',
     }),
-    (0, swagger_1.ApiQuery)({
-        name: 'page',
-        type: String,
-        required: false,
-        description: 'Numéro de page pour la pagination',
-    }),
-    (0, swagger_1.ApiQuery)({
-        name: 'limit',
-        type: String,
-        required: false,
-        description: "Nombre d'éléments par page",
-    }),
-    (0, swagger_1.ApiQuery)({ name: 'category_id', required: false, description: 'ID de la catégorie' }),
-    (0, swagger_1.ApiQuery)({ name: 'provider_id', required: false, description: 'ID du fournisseur' }),
-    (0, swagger_1.ApiQuery)({ name: 'beneficiary_id', required: false, description: 'ID du bénéficiaire' }),
-    (0, swagger_1.ApiQuery)({ name: 'jeton_value_min', required: false, description: 'Valeur minimale en jetons' }),
-    (0, swagger_1.ApiQuery)({ name: 'jeton_value_max', required: false, description: 'Valeur maximale en jetons' }),
-    (0, swagger_1.ApiQuery)({ name: 'created_after', required: false, description: 'Créé après cette date' }),
-    (0, swagger_1.ApiQuery)({ name: 'created_before', required: false, description: 'Créé avant cette date' }),
     (0, swagger_1.ApiResponse)({
         status: common_1.HttpStatus.OK,
-        description: 'Services trouvés',
-        type: [service_dto_1.ServiceWithDetailsDto],
+        description: 'Collection récupérée avec succès',
+        type: User_1.UserPranksCollectionDto,
     }),
+    (0, swagger_1.ApiResponse)({ status: common_1.HttpStatus.UNAUTHORIZED, description: 'Non autorisé' }),
+    (0, swagger_1.ApiResponse)({ status: common_1.HttpStatus.NOT_FOUND, description: 'Utilisateur non trouvé' }),
+    (0, swagger_1.ApiResponse)({ status: common_1.HttpStatus.INTERNAL_SERVER_ERROR, description: 'Erreur serveur' }),
+    (0, logger_1.Log)('Récupération collection pranks utilisateur', 'info'),
     __param(0, (0, common_1.Query)()),
+    __param(1, (0, current_user_decorator_1.CurrentUser)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [typeof (_l = typeof service_dto_1.ServiceFiltersDto !== "undefined" && service_dto_1.ServiceFiltersDto) === "function" ? _l : Object]),
-    __metadata("design:returntype", typeof (_m = typeof Promise !== "undefined" && Promise) === "function" ? _m : Object)
-], ServicesController.prototype, "findServicesWithFilters", null);
+    __metadata("design:paramtypes", [typeof (_b = typeof User_1.UserPrankFiltersDto !== "undefined" && User_1.UserPrankFiltersDto) === "function" ? _b : Object, typeof (_c = typeof auth_interface_1.ICurrentUser !== "undefined" && auth_interface_1.ICurrentUser) === "function" ? _c : Object]),
+    __metadata("design:returntype", typeof (_d = typeof Promise !== "undefined" && Promise) === "function" ? _d : Object)
+], UserPranksController.prototype, "getUserPranksCollection", null);
 __decorate([
-    (0, common_1.Get)('user/services'),
+    (0, common_1.Get)('stats'),
     (0, auth_decorator_1.Auth)(),
-    (0, swagger_1.ApiOperation)({ summary: "Récupérer les services d'un utilisateur" }),
-    (0, swagger_1.ApiParam)({ name: 'userId', description: "ID de l'utilisateur" }),
+    (0, swagger_1.ApiOperation)({
+        summary: "Récupère les statistiques de collection de pranks d'un utilisateur",
+    }),
     (0, swagger_1.ApiResponse)({
         status: common_1.HttpStatus.OK,
-        description: 'Services récupérés',
-        type: [service_dto_1.ServiceWithDetailsDto],
+        description: 'Statistiques récupérées avec succès',
+        type: User_1.UserPranksStatsDto,
     }),
+    (0, swagger_1.ApiResponse)({ status: common_1.HttpStatus.UNAUTHORIZED, description: 'Non autorisé' }),
+    (0, swagger_1.ApiResponse)({ status: common_1.HttpStatus.NOT_FOUND, description: 'Utilisateur non trouvé' }),
+    (0, swagger_1.ApiResponse)({ status: common_1.HttpStatus.INTERNAL_SERVER_ERROR, description: 'Erreur serveur' }),
+    (0, logger_1.Log)('Récupération stats pranks utilisateur', 'info'),
     __param(0, (0, current_user_decorator_1.CurrentUser)()),
-    __param(1, (0, common_1.Query)('page')),
-    __param(2, (0, common_1.Query)('limit')),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [typeof (_o = typeof auth_interface_1.ICurrentUser !== "undefined" && auth_interface_1.ICurrentUser) === "function" ? _o : Object, String, String]),
-    __metadata("design:returntype", typeof (_p = typeof Promise !== "undefined" && Promise) === "function" ? _p : Object)
-], ServicesController.prototype, "getUserServices", null);
+    __metadata("design:paramtypes", [typeof (_e = typeof auth_interface_1.ICurrentUser !== "undefined" && auth_interface_1.ICurrentUser) === "function" ? _e : Object]),
+    __metadata("design:returntype", typeof (_f = typeof Promise !== "undefined" && Promise) === "function" ? _f : Object)
+], UserPranksController.prototype, "getUserPranksStats", null);
 __decorate([
-    (0, common_1.Get)('user/pranks'),
+    (0, common_1.Post)('add'),
     (0, auth_decorator_1.Auth)(),
-    (0, swagger_1.ApiOperation)({ summary: "Récupérer les pranks d'un utilisateur" }),
-    (0, swagger_1.ApiParam)({ name: 'userId', description: "ID de l'utilisateur" }),
+    (0, swagger_1.ApiOperation)({ summary: "Ajoute des pranks à la collection d'un utilisateur" }),
+    (0, swagger_1.ApiBody)({ type: User_1.AddPrankToCollectionDto }),
     (0, swagger_1.ApiResponse)({
         status: common_1.HttpStatus.OK,
-        description: 'Pranks récupérés',
-        type: [service_dto_1.ServiceWithDetailsDto],
+        description: 'Prank ajouté avec succès',
+        type: User_1.AddPrankToCollectionResultDto,
     }),
-    __param(0, (0, current_user_decorator_1.CurrentUser)()),
-    __param(1, (0, common_1.Query)('page')),
-    __param(2, (0, common_1.Query)('limit')),
-    __metadata("design:type", Function),
-    __metadata("design:paramtypes", [typeof (_q = typeof auth_interface_1.ICurrentUser !== "undefined" && auth_interface_1.ICurrentUser) === "function" ? _q : Object, String, String]),
-    __metadata("design:returntype", typeof (_r = typeof Promise !== "undefined" && Promise) === "function" ? _r : Object)
-], ServicesController.prototype, "getUserPranks", null);
-__decorate([
-    (0, common_1.Get)('stats/global'),
-    (0, auth_decorator_1.Auth)(),
-    (0, swagger_1.ApiOperation)({ summary: 'Récupérer les statistiques globales des services' }),
-    (0, swagger_1.ApiResponse)({
-        status: common_1.HttpStatus.OK,
-        description: 'Statistiques récupérées',
-        type: service_dto_1.ServiceStatsDto,
-    }),
-    __metadata("design:type", Function),
-    __metadata("design:paramtypes", []),
-    __metadata("design:returntype", typeof (_s = typeof Promise !== "undefined" && Promise) === "function" ? _s : Object)
-], ServicesController.prototype, "getServiceStats", null);
-__decorate([
-    (0, common_1.Post)('categories'),
-    (0, auth_decorator_1.Auth)(),
-    (0, swagger_1.ApiOperation)({ summary: 'Créer une catégorie de service' }),
-    (0, swagger_1.ApiBody)({ type: service_dto_1.CreateServiceCategoryDto }),
-    (0, swagger_1.ApiResponse)({
-        status: common_1.HttpStatus.CREATED,
-        description: 'Catégorie créée avec succès',
-        type: service_dto_1.ServiceCategoryDto,
-    }),
-    (0, swagger_1.ApiResponse)({ status: common_1.HttpStatus.CONFLICT, description: 'Catégorie déjà existante' }),
+    (0, swagger_1.ApiResponse)({ status: common_1.HttpStatus.BAD_REQUEST, description: 'Données invalides' }),
+    (0, swagger_1.ApiResponse)({ status: common_1.HttpStatus.UNAUTHORIZED, description: 'Non autorisé' }),
+    (0, swagger_1.ApiResponse)({ status: common_1.HttpStatus.NOT_FOUND, description: 'Utilisateur ou prank non trouvé' }),
+    (0, swagger_1.ApiResponse)({ status: common_1.HttpStatus.INTERNAL_SERVER_ERROR, description: 'Erreur serveur' }),
+    (0, logger_1.Log)('Ajout prank à collection utilisateur', 'info'),
     __param(0, (0, common_1.Body)()),
+    __param(1, (0, current_user_decorator_1.CurrentUser)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [typeof (_t = typeof service_dto_1.CreateServiceCategoryDto !== "undefined" && service_dto_1.CreateServiceCategoryDto) === "function" ? _t : Object]),
-    __metadata("design:returntype", typeof (_u = typeof Promise !== "undefined" && Promise) === "function" ? _u : Object)
-], ServicesController.prototype, "createServiceCategory", null);
+    __metadata("design:paramtypes", [typeof (_g = typeof User_1.AddPrankToCollectionDto !== "undefined" && User_1.AddPrankToCollectionDto) === "function" ? _g : Object, typeof (_h = typeof auth_interface_1.ICurrentUser !== "undefined" && auth_interface_1.ICurrentUser) === "function" ? _h : Object]),
+    __metadata("design:returntype", typeof (_j = typeof Promise !== "undefined" && Promise) === "function" ? _j : Object)
+], UserPranksController.prototype, "addPrankToCollection", null);
 __decorate([
-    (0, common_1.Get)('categories'),
+    (0, common_1.Delete)('remove'),
     (0, auth_decorator_1.Auth)(),
-    (0, swagger_1.ApiOperation)({ summary: 'Récupérer toutes les catégories de service' }),
+    (0, swagger_1.ApiOperation)({
+        summary: "Retire des pranks de la collection d'un utilisateur",
+    }),
+    (0, swagger_1.ApiBody)({ type: User_1.RemovePrankFromCollectionDto }),
     (0, swagger_1.ApiResponse)({
         status: common_1.HttpStatus.OK,
-        description: 'Catégories récupérées',
-        type: [service_dto_1.ServiceCategoryDto],
+        description: 'Prank retiré avec succès',
+        type: User_1.RemovePrankFromCollectionResultDto,
     }),
+    (0, swagger_1.ApiResponse)({ status: common_1.HttpStatus.BAD_REQUEST, description: 'Données invalides' }),
+    (0, swagger_1.ApiResponse)({ status: common_1.HttpStatus.UNAUTHORIZED, description: 'Non autorisé' }),
+    (0, swagger_1.ApiResponse)({ status: common_1.HttpStatus.NOT_FOUND, description: 'Utilisateur non trouvé' }),
+    (0, swagger_1.ApiResponse)({ status: common_1.HttpStatus.INTERNAL_SERVER_ERROR, description: 'Erreur serveur' }),
+    (0, logger_1.Log)('Retrait prank de collection utilisateur', 'info'),
+    __param(0, (0, common_1.Body)()),
+    __param(1, (0, current_user_decorator_1.CurrentUser)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", []),
-    __metadata("design:returntype", typeof (_v = typeof Promise !== "undefined" && Promise) === "function" ? _v : Object)
-], ServicesController.prototype, "getAllServiceCategories", null);
-__decorate([
-    (0, common_1.Get)('categories/:id'),
-    (0, auth_decorator_1.Auth)(),
-    (0, swagger_1.ApiOperation)({ summary: 'Récupérer une catégorie par ID' }),
-    (0, swagger_1.ApiParam)({ name: 'id', description: 'ID de la catégorie' }),
-    (0, swagger_1.ApiResponse)({
-        status: common_1.HttpStatus.OK,
-        description: 'Catégorie trouvée',
-        type: service_dto_1.ServiceCategoryDto,
-    }),
-    (0, swagger_1.ApiResponse)({ status: common_1.HttpStatus.NOT_FOUND, description: 'Catégorie non trouvée' }),
-    __param(0, (0, common_1.Param)('id')),
-    __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String]),
-    __metadata("design:returntype", typeof (_w = typeof Promise !== "undefined" && Promise) === "function" ? _w : Object)
-], ServicesController.prototype, "getServiceCategoryById", null);
-__decorate([
-    (0, common_1.Get)('health/check'),
-    (0, auth_decorator_1.Auth)(),
-    (0, swagger_1.ApiOperation)({ summary: 'Vérifier la santé du service banque' }),
-    (0, swagger_1.ApiResponse)({
-        status: common_1.HttpStatus.OK,
-        description: 'Service en bonne santé',
-        schema: {
-            type: 'object',
-            properties: {
-                status: { type: 'string' },
-                timestamp: { type: 'string' },
-            },
-        },
-    }),
-    __metadata("design:type", Function),
-    __metadata("design:paramtypes", []),
-    __metadata("design:returntype", typeof (_x = typeof Promise !== "undefined" && Promise) === "function" ? _x : Object)
-], ServicesController.prototype, "healthCheck", null);
-exports.ServicesController = ServicesController = __decorate([
-    (0, swagger_1.ApiTags)('services'),
-    (0, common_1.Controller)('services'),
-    __param(0, (0, common_1.Inject)('BANQUE_SERVICE')),
+    __metadata("design:paramtypes", [typeof (_k = typeof User_1.RemovePrankFromCollectionDto !== "undefined" && User_1.RemovePrankFromCollectionDto) === "function" ? _k : Object, typeof (_l = typeof auth_interface_1.ICurrentUser !== "undefined" && auth_interface_1.ICurrentUser) === "function" ? _l : Object]),
+    __metadata("design:returntype", typeof (_m = typeof Promise !== "undefined" && Promise) === "function" ? _m : Object)
+], UserPranksController.prototype, "removePrankFromCollection", null);
+exports.UserPranksController = UserPranksController = __decorate([
+    (0, swagger_1.ApiTags)('User Pranks'),
+    (0, common_1.Controller)('users/:userId/pranks'),
+    (0, common_1.UseInterceptors)(user_enrichment_interceptor_1.UserEnrichmentInterceptor),
+    __param(0, (0, common_1.Inject)('USER_SERVICE')),
     __metadata("design:paramtypes", [typeof (_a = typeof microservices_1.ClientProxy !== "undefined" && microservices_1.ClientProxy) === "function" ? _a : Object])
-], ServicesController);
+], UserPranksController);
 
 
 /***/ }),
@@ -3020,6 +3999,995 @@ __decorate([
 
 /***/ }),
 
+/***/ "./libs/contracts/src/Prank/dtos/prank.dto.ts":
+/*!****************************************************!*\
+  !*** ./libs/contracts/src/Prank/dtos/prank.dto.ts ***!
+  \****************************************************/
+/***/ (function(__unused_webpack_module, exports, __webpack_require__) {
+
+
+var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
+    var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
+    if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
+    else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+    return c > 3 && r && Object.defineProperty(target, key, r), r;
+};
+var __metadata = (this && this.__metadata) || function (k, v) {
+    if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
+};
+var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l, _m, _o, _p, _q, _r;
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.ExecutedPrankFiltersDto = exports.PrankStatsDto = exports.PrankFiltersDto = exports.ExecutedPrankWithDetailsDto = exports.ExecutedPrankResponseDto = exports.UpdateExecutedPrankDto = exports.CreateExecutedPrankDto = exports.PrankResponseDto = exports.UpdatePrankDto = void 0;
+const class_validator_1 = __webpack_require__(/*! class-validator */ "class-validator");
+const swagger_1 = __webpack_require__(/*! @nestjs/swagger */ "@nestjs/swagger");
+const common_types_1 = __webpack_require__(/*! ../../types/common.types */ "./libs/contracts/src/types/common.types.ts");
+class UpdatePrankDto {
+    name;
+    description;
+    default_jeton_cost_equivalent;
+    xp_reward_executor;
+    xp_reward_target;
+    coins_reward_executor;
+    coins_reward_target;
+    type;
+    config_details_json;
+    requires_proof;
+    is_active;
+    image_url;
+    rarity;
+}
+exports.UpdatePrankDto = UpdatePrankDto;
+__decorate([
+    (0, swagger_1.ApiProperty)({ example: 'Nom mis à jour', required: false }),
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.IsOptional)(),
+    __metadata("design:type", String)
+], UpdatePrankDto.prototype, "name", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ example: 'Description mise à jour', required: false }),
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.IsOptional)(),
+    __metadata("design:type", String)
+], UpdatePrankDto.prototype, "description", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ example: 30, required: false }),
+    (0, class_validator_1.IsNumber)(),
+    (0, class_validator_1.Min)(1),
+    (0, class_validator_1.IsOptional)(),
+    __metadata("design:type", Number)
+], UpdatePrankDto.prototype, "default_jeton_cost_equivalent", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ example: 15, required: false }),
+    (0, class_validator_1.IsNumber)(),
+    (0, class_validator_1.IsOptional)(),
+    __metadata("design:type", Number)
+], UpdatePrankDto.prototype, "xp_reward_executor", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ example: 10, required: false }),
+    (0, class_validator_1.IsNumber)(),
+    (0, class_validator_1.IsOptional)(),
+    __metadata("design:type", Number)
+], UpdatePrankDto.prototype, "xp_reward_target", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ example: 15, required: false }),
+    (0, class_validator_1.IsNumber)(),
+    (0, class_validator_1.IsOptional)(),
+    __metadata("design:type", Number)
+], UpdatePrankDto.prototype, "coins_reward_executor", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ example: 10, required: false }),
+    (0, class_validator_1.IsNumber)(),
+    (0, class_validator_1.IsOptional)(),
+    __metadata("design:type", Number)
+], UpdatePrankDto.prototype, "coins_reward_target", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ enum: common_types_1.PrankTypeEnum, required: false }),
+    (0, class_validator_1.IsEnum)(common_types_1.PrankTypeEnum),
+    (0, class_validator_1.IsOptional)(),
+    __metadata("design:type", typeof (_a = typeof common_types_1.PrankTypeEnum !== "undefined" && common_types_1.PrankTypeEnum) === "function" ? _a : Object)
+], UpdatePrankDto.prototype, "type", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ example: { duration: '2 minutes' }, required: false }),
+    (0, class_validator_1.IsJSON)(),
+    (0, class_validator_1.IsOptional)(),
+    __metadata("design:type", Object)
+], UpdatePrankDto.prototype, "config_details_json", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ example: false, required: false }),
+    (0, class_validator_1.IsBoolean)(),
+    (0, class_validator_1.IsOptional)(),
+    __metadata("design:type", Boolean)
+], UpdatePrankDto.prototype, "requires_proof", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ example: false, required: false }),
+    (0, class_validator_1.IsBoolean)(),
+    (0, class_validator_1.IsOptional)(),
+    __metadata("design:type", Boolean)
+], UpdatePrankDto.prototype, "is_active", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ example: 'https://example.com/prank-image.jpg', required: false }),
+    (0, class_validator_1.IsUrl)(),
+    (0, class_validator_1.IsOptional)(),
+    __metadata("design:type", String)
+], UpdatePrankDto.prototype, "image_url", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ enum: common_types_1.PrankRarityEnum, required: false }),
+    (0, class_validator_1.IsEnum)(common_types_1.PrankRarityEnum),
+    (0, class_validator_1.IsOptional)(),
+    __metadata("design:type", typeof (_b = typeof common_types_1.PrankRarityEnum !== "undefined" && common_types_1.PrankRarityEnum) === "function" ? _b : Object)
+], UpdatePrankDto.prototype, "rarity", void 0);
+class PrankResponseDto {
+    prank_id;
+    name;
+    description;
+    default_jeton_cost_equivalent;
+    xp_reward_executor;
+    xp_reward_target;
+    coins_reward_executor;
+    coins_reward_target;
+    type;
+    config_details_json;
+    requires_proof;
+    is_active;
+    created_at;
+    image_url;
+    rarity;
+}
+exports.PrankResponseDto = PrankResponseDto;
+__decorate([
+    (0, swagger_1.ApiProperty)({ example: 1 }),
+    __metadata("design:type", Number)
+], PrankResponseDto.prototype, "prank_id", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ example: 'Chanter en public' }),
+    __metadata("design:type", String)
+], PrankResponseDto.prototype, "name", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ example: 'Chanter une chanson en public pendant 1 minute' }),
+    __metadata("design:type", String)
+], PrankResponseDto.prototype, "description", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ example: 25 }),
+    __metadata("design:type", Number)
+], PrankResponseDto.prototype, "default_jeton_cost_equivalent", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ example: 10, nullable: true }),
+    __metadata("design:type", Number)
+], PrankResponseDto.prototype, "xp_reward_executor", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ example: 5, nullable: true }),
+    __metadata("design:type", Number)
+], PrankResponseDto.prototype, "xp_reward_target", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ example: 10, nullable: true }),
+    __metadata("design:type", Number)
+], PrankResponseDto.prototype, "coins_reward_executor", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ example: 5, nullable: true }),
+    __metadata("design:type", Number)
+], PrankResponseDto.prototype, "coins_reward_target", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ enum: common_types_1.PrankTypeEnum }),
+    __metadata("design:type", typeof (_c = typeof common_types_1.PrankTypeEnum !== "undefined" && common_types_1.PrankTypeEnum) === "function" ? _c : Object)
+], PrankResponseDto.prototype, "type", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ example: { duration: '1 minute', location: 'public' }, nullable: true }),
+    __metadata("design:type", Object)
+], PrankResponseDto.prototype, "config_details_json", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ example: true }),
+    __metadata("design:type", Boolean)
+], PrankResponseDto.prototype, "requires_proof", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ example: true }),
+    __metadata("design:type", Boolean)
+], PrankResponseDto.prototype, "is_active", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ example: '2023-01-01T00:00:00.000Z' }),
+    __metadata("design:type", typeof (_d = typeof Date !== "undefined" && Date) === "function" ? _d : Object)
+], PrankResponseDto.prototype, "created_at", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ example: 'https://example.com/prank-image.jpg', nullable: true }),
+    __metadata("design:type", String)
+], PrankResponseDto.prototype, "image_url", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ enum: common_types_1.PrankRarityEnum }),
+    __metadata("design:type", typeof (_e = typeof common_types_1.PrankRarityEnum !== "undefined" && common_types_1.PrankRarityEnum) === "function" ? _e : Object)
+], PrankResponseDto.prototype, "rarity", void 0);
+class CreateExecutedPrankDto {
+    service_being_repaid_id;
+    chosen_prank_id;
+    target_id;
+    jeton_value_paid;
+    status;
+}
+exports.CreateExecutedPrankDto = CreateExecutedPrankDto;
+__decorate([
+    (0, swagger_1.ApiProperty)({ example: 1, description: 'ID du service à rembourser' }),
+    (0, class_validator_1.IsNumber)(),
+    __metadata("design:type", Number)
+], CreateExecutedPrankDto.prototype, "service_being_repaid_id", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ example: 1, description: 'ID du prank choisi' }),
+    (0, class_validator_1.IsNumber)(),
+    __metadata("design:type", Number)
+], CreateExecutedPrankDto.prototype, "chosen_prank_id", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ example: 2, description: 'ID de la cible' }),
+    (0, class_validator_1.IsNumber)(),
+    __metadata("design:type", Number)
+], CreateExecutedPrankDto.prototype, "target_id", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ example: 25, description: 'Valeur en jetons payée' }),
+    (0, class_validator_1.IsNumber)(),
+    (0, class_validator_1.Min)(1),
+    __metadata("design:type", Number)
+], CreateExecutedPrankDto.prototype, "jeton_value_paid", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ enum: common_types_1.ExecutedPrankStatusEnum, description: 'Statut initial', required: false }),
+    (0, class_validator_1.IsEnum)(common_types_1.ExecutedPrankStatusEnum),
+    (0, class_validator_1.IsOptional)(),
+    __metadata("design:type", typeof (_f = typeof common_types_1.ExecutedPrankStatusEnum !== "undefined" && common_types_1.ExecutedPrankStatusEnum) === "function" ? _f : Object)
+], CreateExecutedPrankDto.prototype, "status", void 0);
+class UpdateExecutedPrankDto {
+    status;
+    proof_url;
+    execution_details_json;
+}
+exports.UpdateExecutedPrankDto = UpdateExecutedPrankDto;
+__decorate([
+    (0, swagger_1.ApiProperty)({ enum: common_types_1.ExecutedPrankStatusEnum, required: false }),
+    (0, class_validator_1.IsEnum)(common_types_1.ExecutedPrankStatusEnum),
+    (0, class_validator_1.IsOptional)(),
+    __metadata("design:type", typeof (_g = typeof common_types_1.ExecutedPrankStatusEnum !== "undefined" && common_types_1.ExecutedPrankStatusEnum) === "function" ? _g : Object)
+], UpdateExecutedPrankDto.prototype, "status", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ example: 'https://example.com/proof.jpg', required: false }),
+    (0, class_validator_1.IsUrl)(),
+    (0, class_validator_1.IsOptional)(),
+    __metadata("design:type", String)
+], UpdateExecutedPrankDto.prototype, "proof_url", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ example: { location: 'Paris', duration: '2 minutes' }, required: false }),
+    (0, class_validator_1.IsJSON)(),
+    (0, class_validator_1.IsOptional)(),
+    __metadata("design:type", Object)
+], UpdateExecutedPrankDto.prototype, "execution_details_json", void 0);
+class ExecutedPrankResponseDto {
+    executed_prank_id;
+    service_being_repaid_id;
+    chosen_prank_id;
+    executor_id;
+    target_id;
+    jeton_value_paid;
+    status;
+    proof_url;
+    execution_details_json;
+    executed_at;
+    validated_at;
+    updated_at;
+}
+exports.ExecutedPrankResponseDto = ExecutedPrankResponseDto;
+__decorate([
+    (0, swagger_1.ApiProperty)({ example: 1 }),
+    __metadata("design:type", Number)
+], ExecutedPrankResponseDto.prototype, "executed_prank_id", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ example: 1 }),
+    __metadata("design:type", Number)
+], ExecutedPrankResponseDto.prototype, "service_being_repaid_id", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ example: 1 }),
+    __metadata("design:type", Number)
+], ExecutedPrankResponseDto.prototype, "chosen_prank_id", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ example: 1 }),
+    __metadata("design:type", Number)
+], ExecutedPrankResponseDto.prototype, "executor_id", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ example: 2 }),
+    __metadata("design:type", Number)
+], ExecutedPrankResponseDto.prototype, "target_id", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ example: 25 }),
+    __metadata("design:type", Number)
+], ExecutedPrankResponseDto.prototype, "jeton_value_paid", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ enum: common_types_1.ExecutedPrankStatusEnum }),
+    __metadata("design:type", typeof (_h = typeof common_types_1.ExecutedPrankStatusEnum !== "undefined" && common_types_1.ExecutedPrankStatusEnum) === "function" ? _h : Object)
+], ExecutedPrankResponseDto.prototype, "status", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ example: 'https://example.com/proof.jpg', nullable: true }),
+    __metadata("design:type", String)
+], ExecutedPrankResponseDto.prototype, "proof_url", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ example: { location: 'Paris', duration: '2 minutes' }, nullable: true }),
+    __metadata("design:type", Object)
+], ExecutedPrankResponseDto.prototype, "execution_details_json", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ example: '2023-01-01T00:00:00.000Z', nullable: true }),
+    __metadata("design:type", typeof (_j = typeof Date !== "undefined" && Date) === "function" ? _j : Object)
+], ExecutedPrankResponseDto.prototype, "executed_at", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ example: '2023-01-01T00:00:00.000Z', nullable: true }),
+    __metadata("design:type", typeof (_k = typeof Date !== "undefined" && Date) === "function" ? _k : Object)
+], ExecutedPrankResponseDto.prototype, "validated_at", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ example: '2023-01-01T00:00:00.000Z' }),
+    __metadata("design:type", typeof (_l = typeof Date !== "undefined" && Date) === "function" ? _l : Object)
+], ExecutedPrankResponseDto.prototype, "updated_at", void 0);
+class ExecutedPrankWithDetailsDto extends ExecutedPrankResponseDto {
+    prank;
+    executor;
+    target;
+    service_being_repaid;
+}
+exports.ExecutedPrankWithDetailsDto = ExecutedPrankWithDetailsDto;
+__decorate([
+    (0, swagger_1.ApiProperty)({ type: PrankResponseDto }),
+    __metadata("design:type", PrankResponseDto)
+], ExecutedPrankWithDetailsDto.prototype, "prank", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({
+        type: 'object',
+        properties: {
+            user_id: { type: 'number', example: 1 },
+            username: { type: 'string', example: 'john_doe' },
+            profile_picture_url: {
+                type: 'string',
+                example: 'https://example.com/avatar.jpg',
+                nullable: true,
+            },
+        },
+    }),
+    __metadata("design:type", Object)
+], ExecutedPrankWithDetailsDto.prototype, "executor", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({
+        type: 'object',
+        properties: {
+            user_id: { type: 'number', example: 2 },
+            username: { type: 'string', example: 'jane_doe' },
+            profile_picture_url: {
+                type: 'string',
+                example: 'https://example.com/avatar2.jpg',
+                nullable: true,
+            },
+        },
+    }),
+    __metadata("design:type", Object)
+], ExecutedPrankWithDetailsDto.prototype, "target", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({
+        type: 'object',
+        properties: {
+            service_id: { type: 'number', example: 1 },
+            description: { type: 'string', example: 'Aider à déménager' },
+            jeton_value: { type: 'number', example: 50 },
+        },
+    }),
+    __metadata("design:type", Object)
+], ExecutedPrankWithDetailsDto.prototype, "service_being_repaid", void 0);
+class PrankFiltersDto {
+    type;
+    is_active;
+    requires_proof;
+    jeton_cost_min;
+    jeton_cost_max;
+    rarity;
+}
+exports.PrankFiltersDto = PrankFiltersDto;
+__decorate([
+    (0, swagger_1.ApiProperty)({ enum: common_types_1.PrankTypeEnum, required: false }),
+    (0, class_validator_1.IsEnum)(common_types_1.PrankTypeEnum),
+    (0, class_validator_1.IsOptional)(),
+    __metadata("design:type", typeof (_m = typeof common_types_1.PrankTypeEnum !== "undefined" && common_types_1.PrankTypeEnum) === "function" ? _m : Object)
+], PrankFiltersDto.prototype, "type", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ example: true, required: false }),
+    (0, class_validator_1.IsBoolean)(),
+    (0, class_validator_1.IsOptional)(),
+    __metadata("design:type", Boolean)
+], PrankFiltersDto.prototype, "is_active", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ example: true, required: false }),
+    (0, class_validator_1.IsBoolean)(),
+    (0, class_validator_1.IsOptional)(),
+    __metadata("design:type", Boolean)
+], PrankFiltersDto.prototype, "requires_proof", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ example: 10, required: false }),
+    (0, class_validator_1.IsNumber)(),
+    (0, class_validator_1.IsOptional)(),
+    __metadata("design:type", Number)
+], PrankFiltersDto.prototype, "jeton_cost_min", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ example: 100, required: false }),
+    (0, class_validator_1.IsNumber)(),
+    (0, class_validator_1.IsOptional)(),
+    __metadata("design:type", Number)
+], PrankFiltersDto.prototype, "jeton_cost_max", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ enum: common_types_1.PrankRarityEnum, required: false }),
+    (0, class_validator_1.IsEnum)(common_types_1.PrankRarityEnum),
+    (0, class_validator_1.IsOptional)(),
+    __metadata("design:type", typeof (_o = typeof common_types_1.PrankRarityEnum !== "undefined" && common_types_1.PrankRarityEnum) === "function" ? _o : Object)
+], PrankFiltersDto.prototype, "rarity", void 0);
+class PrankStatsDto {
+    total_pranks;
+    active_pranks;
+    total_executions;
+    pending_executions;
+    completed_executions;
+    total_jeton_value_executed;
+    average_jeton_cost;
+}
+exports.PrankStatsDto = PrankStatsDto;
+__decorate([
+    (0, swagger_1.ApiProperty)({ example: 50 }),
+    __metadata("design:type", Number)
+], PrankStatsDto.prototype, "total_pranks", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ example: 35 }),
+    __metadata("design:type", Number)
+], PrankStatsDto.prototype, "active_pranks", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ example: 120 }),
+    __metadata("design:type", Number)
+], PrankStatsDto.prototype, "total_executions", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ example: 15 }),
+    __metadata("design:type", Number)
+], PrankStatsDto.prototype, "pending_executions", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ example: 105 }),
+    __metadata("design:type", Number)
+], PrankStatsDto.prototype, "completed_executions", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ example: 2500 }),
+    __metadata("design:type", Number)
+], PrankStatsDto.prototype, "total_jeton_value_executed", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ example: 25 }),
+    __metadata("design:type", Number)
+], PrankStatsDto.prototype, "average_jeton_cost", void 0);
+class ExecutedPrankFiltersDto {
+    status;
+    executor_id;
+    target_id;
+    chosen_prank_id;
+    service_being_repaid_id;
+    executed_after;
+    executed_before;
+}
+exports.ExecutedPrankFiltersDto = ExecutedPrankFiltersDto;
+__decorate([
+    (0, swagger_1.ApiProperty)({ enum: common_types_1.ExecutedPrankStatusEnum, required: false }),
+    (0, class_validator_1.IsEnum)(common_types_1.ExecutedPrankStatusEnum),
+    (0, class_validator_1.IsOptional)(),
+    __metadata("design:type", typeof (_p = typeof common_types_1.ExecutedPrankStatusEnum !== "undefined" && common_types_1.ExecutedPrankStatusEnum) === "function" ? _p : Object)
+], ExecutedPrankFiltersDto.prototype, "status", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ example: 1, required: false }),
+    (0, class_validator_1.IsNumber)(),
+    (0, class_validator_1.IsOptional)(),
+    __metadata("design:type", Number)
+], ExecutedPrankFiltersDto.prototype, "executor_id", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ example: 2, required: false }),
+    (0, class_validator_1.IsNumber)(),
+    (0, class_validator_1.IsOptional)(),
+    __metadata("design:type", Number)
+], ExecutedPrankFiltersDto.prototype, "target_id", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ example: 1, required: false }),
+    (0, class_validator_1.IsNumber)(),
+    (0, class_validator_1.IsOptional)(),
+    __metadata("design:type", Number)
+], ExecutedPrankFiltersDto.prototype, "chosen_prank_id", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ example: 1, required: false }),
+    (0, class_validator_1.IsNumber)(),
+    (0, class_validator_1.IsOptional)(),
+    __metadata("design:type", Number)
+], ExecutedPrankFiltersDto.prototype, "service_being_repaid_id", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ example: '2023-01-01T00:00:00.000Z', required: false }),
+    (0, class_validator_1.IsDateString)(),
+    (0, class_validator_1.IsOptional)(),
+    __metadata("design:type", typeof (_q = typeof Date !== "undefined" && Date) === "function" ? _q : Object)
+], ExecutedPrankFiltersDto.prototype, "executed_after", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ example: '2023-12-31T23:59:59.999Z', required: false }),
+    (0, class_validator_1.IsDateString)(),
+    (0, class_validator_1.IsOptional)(),
+    __metadata("design:type", typeof (_r = typeof Date !== "undefined" && Date) === "function" ? _r : Object)
+], ExecutedPrankFiltersDto.prototype, "executed_before", void 0);
+
+
+/***/ }),
+
+/***/ "./libs/contracts/src/PrankPack/dtos/prank-pack.dto.ts":
+/*!*************************************************************!*\
+  !*** ./libs/contracts/src/PrankPack/dtos/prank-pack.dto.ts ***!
+  \*************************************************************/
+/***/ (function(__unused_webpack_module, exports, __webpack_require__) {
+
+
+var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
+    var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
+    if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
+    else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+    return c > 3 && r && Object.defineProperty(target, key, r), r;
+};
+var __metadata = (this && this.__metadata) || function (k, v) {
+    if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
+};
+var _a, _b, _c, _d, _e, _f;
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.OpenMultiplePacksDto = exports.PackOpeningErrorDto = exports.PackAvailablePranksDto = exports.MultiplePackOpeningResultDto = exports.PackOpeningResultDto = exports.RemainingCurrencyDto = exports.PackInfoDto = exports.BoosterOpeningResultDto = exports.AwardedPrankDto = exports.PacksByTypeDto = exports.PrankPackDto = exports.PackRarityProbabilitiesDto = exports.RarityProbabilitiesDto = void 0;
+const swagger_1 = __webpack_require__(/*! @nestjs/swagger */ "@nestjs/swagger");
+const class_validator_1 = __webpack_require__(/*! class-validator */ "class-validator");
+const class_transformer_1 = __webpack_require__(/*! class-transformer */ "class-transformer");
+const client_1 = __webpack_require__(/*! @prisma/client */ "@prisma/client");
+const prank_pack_interface_1 = __webpack_require__(/*! ../interfaces/prank-pack.interface */ "./libs/contracts/src/PrankPack/interfaces/prank-pack.interface.ts");
+class RarityProbabilitiesDto {
+    common;
+    rare;
+    extreme;
+}
+exports.RarityProbabilitiesDto = RarityProbabilitiesDto;
+__decorate([
+    (0, swagger_1.ApiProperty)({ description: 'Probabilité pour les pranks communs', example: 0.7 }),
+    (0, class_validator_1.IsNumber)(),
+    (0, class_validator_1.Min)(0),
+    (0, class_validator_1.Max)(1),
+    __metadata("design:type", Number)
+], RarityProbabilitiesDto.prototype, "common", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ description: 'Probabilité pour les pranks rares', example: 0.25 }),
+    (0, class_validator_1.IsNumber)(),
+    (0, class_validator_1.Min)(0),
+    (0, class_validator_1.Max)(1),
+    __metadata("design:type", Number)
+], RarityProbabilitiesDto.prototype, "rare", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ description: 'Probabilité pour les pranks extrêmes', example: 0.05 }),
+    (0, class_validator_1.IsNumber)(),
+    (0, class_validator_1.Min)(0),
+    (0, class_validator_1.Max)(1),
+    __metadata("design:type", Number)
+], RarityProbabilitiesDto.prototype, "extreme", void 0);
+class PackRarityProbabilitiesDto {
+    basic;
+    last_card;
+}
+exports.PackRarityProbabilitiesDto = PackRarityProbabilitiesDto;
+__decorate([
+    (0, swagger_1.ApiProperty)({
+        description: 'Probabilités de base pour toutes les cartes',
+        type: RarityProbabilitiesDto,
+    }),
+    (0, class_validator_1.ValidateNested)(),
+    (0, class_transformer_1.Type)(() => RarityProbabilitiesDto),
+    __metadata("design:type", RarityProbabilitiesDto)
+], PackRarityProbabilitiesDto.prototype, "basic", void 0);
+__decorate([
+    (0, swagger_1.ApiPropertyOptional)({
+        description: 'Probabilités spéciales pour la dernière carte (packs multiples)',
+        type: RarityProbabilitiesDto,
+    }),
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.ValidateNested)(),
+    (0, class_transformer_1.Type)(() => RarityProbabilitiesDto),
+    __metadata("design:type", RarityProbabilitiesDto)
+], PackRarityProbabilitiesDto.prototype, "last_card", void 0);
+class PrankPackDto {
+    pack_id;
+    name;
+    description;
+    image_url;
+    cost_currency_type;
+    cost_amount;
+    number_of_pranks_awarded;
+    rarity_probabilities;
+    is_available;
+    available_from;
+    available_until;
+    required_user_level;
+    pack_type;
+}
+exports.PrankPackDto = PrankPackDto;
+__decorate([
+    (0, swagger_1.ApiProperty)({ description: 'ID unique du pack' }),
+    (0, class_validator_1.IsNumber)(),
+    __metadata("design:type", Number)
+], PrankPackDto.prototype, "pack_id", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ description: 'Nom du pack' }),
+    (0, class_validator_1.IsString)(),
+    __metadata("design:type", String)
+], PrankPackDto.prototype, "name", void 0);
+__decorate([
+    (0, swagger_1.ApiPropertyOptional)({ description: 'Description du pack' }),
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsString)(),
+    __metadata("design:type", String)
+], PrankPackDto.prototype, "description", void 0);
+__decorate([
+    (0, swagger_1.ApiPropertyOptional)({ description: "URL de l'image du pack" }),
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsString)(),
+    __metadata("design:type", String)
+], PrankPackDto.prototype, "image_url", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ description: 'Type de devise nécessaire', enum: client_1.currency_type_enum }),
+    (0, class_validator_1.IsEnum)(client_1.currency_type_enum),
+    __metadata("design:type", typeof (_a = typeof client_1.currency_type_enum !== "undefined" && client_1.currency_type_enum) === "function" ? _a : Object)
+], PrankPackDto.prototype, "cost_currency_type", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ description: 'Coût du pack' }),
+    (0, class_validator_1.IsNumber)(),
+    __metadata("design:type", Number)
+], PrankPackDto.prototype, "cost_amount", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ description: "Nombre de pranks attribués à l'ouverture" }),
+    (0, class_validator_1.IsNumber)(),
+    __metadata("design:type", Number)
+], PrankPackDto.prototype, "number_of_pranks_awarded", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ description: 'Probabilités de rareté', type: PackRarityProbabilitiesDto }),
+    (0, class_validator_1.ValidateNested)(),
+    (0, class_transformer_1.Type)(() => PackRarityProbabilitiesDto),
+    __metadata("design:type", PackRarityProbabilitiesDto)
+], PrankPackDto.prototype, "rarity_probabilities", void 0);
+__decorate([
+    (0, swagger_1.ApiPropertyOptional)({ description: 'Indique si le pack est disponible' }),
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsBoolean)(),
+    __metadata("design:type", Boolean)
+], PrankPackDto.prototype, "is_available", void 0);
+__decorate([
+    (0, swagger_1.ApiPropertyOptional)({ description: 'Date de début de disponibilité' }),
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsDateString)(),
+    __metadata("design:type", typeof (_b = typeof Date !== "undefined" && Date) === "function" ? _b : Object)
+], PrankPackDto.prototype, "available_from", void 0);
+__decorate([
+    (0, swagger_1.ApiPropertyOptional)({ description: 'Date de fin de disponibilité' }),
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsDateString)(),
+    __metadata("design:type", typeof (_c = typeof Date !== "undefined" && Date) === "function" ? _c : Object)
+], PrankPackDto.prototype, "available_until", void 0);
+__decorate([
+    (0, swagger_1.ApiPropertyOptional)({ description: 'Niveau utilisateur requis' }),
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsNumber)(),
+    __metadata("design:type", Number)
+], PrankPackDto.prototype, "required_user_level", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ description: 'Type du pack', enum: prank_pack_interface_1.PackType }),
+    (0, class_validator_1.IsEnum)(prank_pack_interface_1.PackType),
+    __metadata("design:type", typeof (_d = typeof prank_pack_interface_1.PackType !== "undefined" && prank_pack_interface_1.PackType) === "function" ? _d : Object)
+], PrankPackDto.prototype, "pack_type", void 0);
+class PacksByTypeDto {
+    basic;
+    event;
+    limited;
+    gift;
+    promotional;
+}
+exports.PacksByTypeDto = PacksByTypeDto;
+__decorate([
+    (0, swagger_1.ApiProperty)({ description: 'Packs de base', type: [PrankPackDto] }),
+    (0, class_validator_1.IsArray)(),
+    (0, class_validator_1.ValidateNested)({ each: true }),
+    (0, class_transformer_1.Type)(() => PrankPackDto),
+    __metadata("design:type", Array)
+], PacksByTypeDto.prototype, "basic", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ description: 'Packs événement', type: [PrankPackDto] }),
+    (0, class_validator_1.IsArray)(),
+    (0, class_validator_1.ValidateNested)({ each: true }),
+    (0, class_transformer_1.Type)(() => PrankPackDto),
+    __metadata("design:type", Array)
+], PacksByTypeDto.prototype, "event", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ description: 'Packs limités', type: [PrankPackDto] }),
+    (0, class_validator_1.IsArray)(),
+    (0, class_validator_1.ValidateNested)({ each: true }),
+    (0, class_transformer_1.Type)(() => PrankPackDto),
+    __metadata("design:type", Array)
+], PacksByTypeDto.prototype, "limited", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ description: 'Packs cadeaux', type: [PrankPackDto] }),
+    (0, class_validator_1.IsArray)(),
+    (0, class_validator_1.ValidateNested)({ each: true }),
+    (0, class_transformer_1.Type)(() => PrankPackDto),
+    __metadata("design:type", Array)
+], PacksByTypeDto.prototype, "gift", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ description: 'Packs promotionnels', type: [PrankPackDto] }),
+    (0, class_validator_1.IsArray)(),
+    (0, class_validator_1.ValidateNested)({ each: true }),
+    (0, class_transformer_1.Type)(() => PrankPackDto),
+    __metadata("design:type", Array)
+], PacksByTypeDto.prototype, "promotional", void 0);
+class AwardedPrankDto {
+    prank_id;
+    name;
+    rarity;
+    description;
+    image_url;
+    quantity_awarded;
+    is_new;
+}
+exports.AwardedPrankDto = AwardedPrankDto;
+__decorate([
+    (0, swagger_1.ApiProperty)({ description: 'ID du prank' }),
+    (0, class_validator_1.IsNumber)(),
+    __metadata("design:type", Number)
+], AwardedPrankDto.prototype, "prank_id", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ description: 'Nom du prank' }),
+    (0, class_validator_1.IsString)(),
+    __metadata("design:type", String)
+], AwardedPrankDto.prototype, "name", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ description: 'Rareté du prank', enum: client_1.prank_rarity_enum }),
+    (0, class_validator_1.IsEnum)(client_1.prank_rarity_enum),
+    __metadata("design:type", typeof (_e = typeof client_1.prank_rarity_enum !== "undefined" && client_1.prank_rarity_enum) === "function" ? _e : Object)
+], AwardedPrankDto.prototype, "rarity", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ description: 'Description du prank' }),
+    (0, class_validator_1.IsString)(),
+    __metadata("design:type", String)
+], AwardedPrankDto.prototype, "description", void 0);
+__decorate([
+    (0, swagger_1.ApiPropertyOptional)({ description: "URL de l'image du prank" }),
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsString)(),
+    __metadata("design:type", String)
+], AwardedPrankDto.prototype, "image_url", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ description: 'Quantité attribuée' }),
+    (0, class_validator_1.IsNumber)(),
+    __metadata("design:type", Number)
+], AwardedPrankDto.prototype, "quantity_awarded", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ description: "Indique si c'est un nouveau prank pour l'utilisateur" }),
+    (0, class_validator_1.IsBoolean)(),
+    __metadata("design:type", Boolean)
+], AwardedPrankDto.prototype, "is_new", void 0);
+class BoosterOpeningResultDto {
+    booster_id;
+    booster_name;
+    awarded_pranks;
+}
+exports.BoosterOpeningResultDto = BoosterOpeningResultDto;
+__decorate([
+    (0, swagger_1.ApiProperty)({ description: 'ID du booster' }),
+    (0, class_validator_1.IsNumber)(),
+    __metadata("design:type", Number)
+], BoosterOpeningResultDto.prototype, "booster_id", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ description: 'Nom du booster' }),
+    (0, class_validator_1.IsString)(),
+    __metadata("design:type", String)
+], BoosterOpeningResultDto.prototype, "booster_name", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ description: 'Pranks attribués dans ce booster', type: [AwardedPrankDto] }),
+    (0, class_validator_1.IsArray)(),
+    (0, class_validator_1.ValidateNested)({ each: true }),
+    (0, class_transformer_1.Type)(() => AwardedPrankDto),
+    __metadata("design:type", Array)
+], BoosterOpeningResultDto.prototype, "awarded_pranks", void 0);
+class PackInfoDto {
+    pack_id;
+    name;
+    cost_amount;
+    cost_currency_type;
+}
+exports.PackInfoDto = PackInfoDto;
+__decorate([
+    (0, swagger_1.ApiProperty)({ description: 'ID du pack' }),
+    (0, class_validator_1.IsNumber)(),
+    __metadata("design:type", Number)
+], PackInfoDto.prototype, "pack_id", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ description: 'Nom du pack' }),
+    (0, class_validator_1.IsString)(),
+    __metadata("design:type", String)
+], PackInfoDto.prototype, "name", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ description: 'Coût du pack' }),
+    (0, class_validator_1.IsNumber)(),
+    __metadata("design:type", Number)
+], PackInfoDto.prototype, "cost_amount", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ description: 'Type de devise', enum: client_1.currency_type_enum }),
+    (0, class_validator_1.IsEnum)(client_1.currency_type_enum),
+    __metadata("design:type", typeof (_f = typeof client_1.currency_type_enum !== "undefined" && client_1.currency_type_enum) === "function" ? _f : Object)
+], PackInfoDto.prototype, "cost_currency_type", void 0);
+class RemainingCurrencyDto {
+    game_coins;
+}
+exports.RemainingCurrencyDto = RemainingCurrencyDto;
+__decorate([
+    (0, swagger_1.ApiProperty)({ description: 'Coins de jeu restants' }),
+    (0, class_validator_1.IsNumber)(),
+    __metadata("design:type", Number)
+], RemainingCurrencyDto.prototype, "game_coins", void 0);
+class PackOpeningResultDto {
+    success;
+    boosters;
+    remaining_currency;
+    pack_info;
+}
+exports.PackOpeningResultDto = PackOpeningResultDto;
+__decorate([
+    (0, swagger_1.ApiProperty)({ description: "Indique si l'ouverture a réussi" }),
+    (0, class_validator_1.IsBoolean)(),
+    __metadata("design:type", Boolean)
+], PackOpeningResultDto.prototype, "success", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({
+        description: 'Boosters obtenus (groupés par booster)',
+        type: [BoosterOpeningResultDto],
+    }),
+    (0, class_validator_1.IsArray)(),
+    (0, class_validator_1.ValidateNested)({ each: true }),
+    (0, class_transformer_1.Type)(() => BoosterOpeningResultDto),
+    __metadata("design:type", Array)
+], PackOpeningResultDto.prototype, "boosters", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ description: 'Devise restante après achat', type: RemainingCurrencyDto }),
+    (0, class_validator_1.ValidateNested)(),
+    (0, class_transformer_1.Type)(() => RemainingCurrencyDto),
+    __metadata("design:type", RemainingCurrencyDto)
+], PackOpeningResultDto.prototype, "remaining_currency", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ description: 'Informations sur le pack ouvert', type: PackInfoDto }),
+    (0, class_validator_1.ValidateNested)(),
+    (0, class_transformer_1.Type)(() => PackInfoDto),
+    __metadata("design:type", PackInfoDto)
+], PackOpeningResultDto.prototype, "pack_info", void 0);
+class MultiplePackOpeningResultDto {
+    success;
+    total_packs_opened;
+    all_boosters;
+    remaining_currency;
+    pack_info;
+}
+exports.MultiplePackOpeningResultDto = MultiplePackOpeningResultDto;
+__decorate([
+    (0, swagger_1.ApiProperty)({ description: "Indique si l'ouverture a réussi" }),
+    (0, class_validator_1.IsBoolean)(),
+    __metadata("design:type", Boolean)
+], MultiplePackOpeningResultDto.prototype, "success", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ description: 'Nombre total de packs ouverts' }),
+    (0, class_validator_1.IsNumber)(),
+    __metadata("design:type", Number)
+], MultiplePackOpeningResultDto.prototype, "total_packs_opened", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({
+        description: 'Tous les boosters obtenus de tous les packs',
+        type: [BoosterOpeningResultDto],
+    }),
+    (0, class_validator_1.IsArray)(),
+    (0, class_validator_1.ValidateNested)({ each: true }),
+    (0, class_transformer_1.Type)(() => BoosterOpeningResultDto),
+    __metadata("design:type", Array)
+], MultiplePackOpeningResultDto.prototype, "all_boosters", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ description: 'Devise restante après achat', type: RemainingCurrencyDto }),
+    (0, class_validator_1.ValidateNested)(),
+    (0, class_transformer_1.Type)(() => RemainingCurrencyDto),
+    __metadata("design:type", RemainingCurrencyDto)
+], MultiplePackOpeningResultDto.prototype, "remaining_currency", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ description: 'Informations sur le pack ouvert', type: PackInfoDto }),
+    (0, class_validator_1.ValidateNested)(),
+    (0, class_transformer_1.Type)(() => PackInfoDto),
+    __metadata("design:type", PackInfoDto)
+], MultiplePackOpeningResultDto.prototype, "pack_info", void 0);
+class PackAvailablePranksDto {
+    pack_id;
+    pack_name;
+    available_pranks_by_rarity;
+}
+exports.PackAvailablePranksDto = PackAvailablePranksDto;
+__decorate([
+    (0, swagger_1.ApiProperty)({ description: 'ID du pack' }),
+    (0, class_validator_1.IsNumber)(),
+    __metadata("design:type", Number)
+], PackAvailablePranksDto.prototype, "pack_id", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ description: 'Nom du pack' }),
+    (0, class_validator_1.IsString)(),
+    __metadata("design:type", String)
+], PackAvailablePranksDto.prototype, "pack_name", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({
+        description: 'Pranks disponibles groupés par rareté',
+        type: 'object',
+        properties: {
+            common: { type: 'array', items: { $ref: '#/components/schemas/AwardedPrankDto' } },
+            rare: { type: 'array', items: { $ref: '#/components/schemas/AwardedPrankDto' } },
+            extreme: { type: 'array', items: { $ref: '#/components/schemas/AwardedPrankDto' } },
+        },
+    }),
+    (0, class_validator_1.IsObject)(),
+    __metadata("design:type", Object)
+], PackAvailablePranksDto.prototype, "available_pranks_by_rarity", void 0);
+class PackOpeningErrorDto {
+    success;
+    error_code;
+    error_message;
+}
+exports.PackOpeningErrorDto = PackOpeningErrorDto;
+__decorate([
+    (0, swagger_1.ApiProperty)({ description: "Indique que l'ouverture a échoué", default: false }),
+    (0, class_validator_1.IsBoolean)(),
+    __metadata("design:type", Boolean)
+], PackOpeningErrorDto.prototype, "success", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({
+        description: "Code d'erreur",
+        enum: [
+            'PACK_NOT_FOUND',
+            'PACK_NOT_AVAILABLE',
+            'INSUFFICIENT_LEVEL',
+            'INSUFFICIENT_CURRENCY',
+            'NO_ACTIVE_PRANKS',
+            'INSUFFICIENT_PACKS',
+        ],
+    }),
+    (0, class_validator_1.IsString)(),
+    __metadata("design:type", String)
+], PackOpeningErrorDto.prototype, "error_code", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ description: "Message d'erreur descriptif" }),
+    (0, class_validator_1.IsString)(),
+    __metadata("design:type", String)
+], PackOpeningErrorDto.prototype, "error_message", void 0);
+class OpenMultiplePacksDto {
+    quantity;
+}
+exports.OpenMultiplePacksDto = OpenMultiplePacksDto;
+__decorate([
+    (0, swagger_1.ApiProperty)({ description: 'Nombre de packs à ouvrir', minimum: 1, maximum: 50 }),
+    (0, class_validator_1.IsNumber)(),
+    (0, class_validator_1.Min)(1),
+    (0, class_validator_1.Max)(50),
+    __metadata("design:type", Number)
+], OpenMultiplePacksDto.prototype, "quantity", void 0);
+
+
+/***/ }),
+
+/***/ "./libs/contracts/src/PrankPack/interfaces/prank-pack.interface.ts":
+/*!*************************************************************************!*\
+  !*** ./libs/contracts/src/PrankPack/interfaces/prank-pack.interface.ts ***!
+  \*************************************************************************/
+/***/ ((__unused_webpack_module, exports) => {
+
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.PackType = void 0;
+var PackType;
+(function (PackType) {
+    PackType["basic"] = "basic";
+    PackType["event"] = "event";
+    PackType["limited"] = "limited";
+    PackType["gift"] = "gift";
+    PackType["promotional"] = "promotional";
+})(PackType || (exports.PackType = PackType = {}));
+
+
+/***/ }),
+
 /***/ "./libs/contracts/src/Service/dtos/service.dto.ts":
 /*!********************************************************!*\
   !*** ./libs/contracts/src/Service/dtos/service.dto.ts ***!
@@ -3374,6 +5342,700 @@ __decorate([
 
 /***/ }),
 
+/***/ "./libs/contracts/src/User/dtos/user-inventory.dto.ts":
+/*!************************************************************!*\
+  !*** ./libs/contracts/src/User/dtos/user-inventory.dto.ts ***!
+  \************************************************************/
+/***/ (function(__unused_webpack_module, exports, __webpack_require__) {
+
+
+var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
+    var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
+    if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
+    else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+    return c > 3 && r && Object.defineProperty(target, key, r), r;
+};
+var __metadata = (this && this.__metadata) || function (k, v) {
+    if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
+};
+var _a, _b, _c;
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.RemovePackFromInventoryResultDto = exports.RemovePackFromInventoryDto = exports.AddPackToInventoryResultDto = exports.AddPackToInventoryDto = exports.UserPackInventoryStatsDto = exports.UserPackInventoryDto = exports.PackTypeStatsDto = exports.UserPackInventoryItemDto = exports.PackDetailsDto = void 0;
+const swagger_1 = __webpack_require__(/*! @nestjs/swagger */ "@nestjs/swagger");
+const class_validator_1 = __webpack_require__(/*! class-validator */ "class-validator");
+const class_transformer_1 = __webpack_require__(/*! class-transformer */ "class-transformer");
+const client_1 = __webpack_require__(/*! @prisma/client */ "@prisma/client");
+class PackDetailsDto {
+    packId;
+    name;
+    description;
+    imageUrl;
+    costCurrencyType;
+    costAmount;
+    numberOfPranksAwarded;
+    packType;
+    isAvailable;
+    requiredUserLevel;
+}
+exports.PackDetailsDto = PackDetailsDto;
+__decorate([
+    (0, swagger_1.ApiProperty)({ description: 'ID du pack' }),
+    (0, class_validator_1.IsNumber)(),
+    __metadata("design:type", Number)
+], PackDetailsDto.prototype, "packId", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ description: 'Nom du pack' }),
+    (0, class_validator_1.IsString)(),
+    __metadata("design:type", String)
+], PackDetailsDto.prototype, "name", void 0);
+__decorate([
+    (0, swagger_1.ApiPropertyOptional)({ description: 'Description du pack' }),
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsString)(),
+    __metadata("design:type", String)
+], PackDetailsDto.prototype, "description", void 0);
+__decorate([
+    (0, swagger_1.ApiPropertyOptional)({ description: "URL de l'image du pack" }),
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsString)(),
+    __metadata("design:type", String)
+], PackDetailsDto.prototype, "imageUrl", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ description: 'Type de devise', enum: client_1.currency_type_enum }),
+    (0, class_validator_1.IsEnum)(client_1.currency_type_enum),
+    __metadata("design:type", typeof (_a = typeof client_1.currency_type_enum !== "undefined" && client_1.currency_type_enum) === "function" ? _a : Object)
+], PackDetailsDto.prototype, "costCurrencyType", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ description: 'Coût du pack' }),
+    (0, class_validator_1.IsNumber)(),
+    __metadata("design:type", Number)
+], PackDetailsDto.prototype, "costAmount", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ description: 'Nombre de pranks attribués' }),
+    (0, class_validator_1.IsNumber)(),
+    __metadata("design:type", Number)
+], PackDetailsDto.prototype, "numberOfPranksAwarded", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ description: 'Type du pack', enum: client_1.pack_type_enum }),
+    (0, class_validator_1.IsEnum)(client_1.pack_type_enum),
+    __metadata("design:type", typeof (_b = typeof client_1.pack_type_enum !== "undefined" && client_1.pack_type_enum) === "function" ? _b : Object)
+], PackDetailsDto.prototype, "packType", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ description: 'Disponibilité du pack' }),
+    (0, class_validator_1.IsBoolean)(),
+    __metadata("design:type", Boolean)
+], PackDetailsDto.prototype, "isAvailable", void 0);
+__decorate([
+    (0, swagger_1.ApiPropertyOptional)({ description: 'Niveau utilisateur requis' }),
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsNumber)(),
+    __metadata("design:type", Number)
+], PackDetailsDto.prototype, "requiredUserLevel", void 0);
+class UserPackInventoryItemDto {
+    userPackInventoryId;
+    userId;
+    packId;
+    quantity;
+    acquiredAt;
+    pack;
+}
+exports.UserPackInventoryItemDto = UserPackInventoryItemDto;
+__decorate([
+    (0, swagger_1.ApiProperty)({ description: "ID de l'élément d'inventaire" }),
+    (0, class_validator_1.IsNumber)(),
+    __metadata("design:type", Number)
+], UserPackInventoryItemDto.prototype, "userPackInventoryId", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ description: "ID de l'utilisateur" }),
+    (0, class_validator_1.IsNumber)(),
+    __metadata("design:type", Number)
+], UserPackInventoryItemDto.prototype, "userId", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ description: 'ID du pack' }),
+    (0, class_validator_1.IsNumber)(),
+    __metadata("design:type", Number)
+], UserPackInventoryItemDto.prototype, "packId", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ description: 'Quantité possédée' }),
+    (0, class_validator_1.IsNumber)(),
+    (0, class_validator_1.Min)(0),
+    __metadata("design:type", Number)
+], UserPackInventoryItemDto.prototype, "quantity", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ description: "Date d'acquisition" }),
+    (0, class_validator_1.IsDateString)(),
+    __metadata("design:type", typeof (_c = typeof Date !== "undefined" && Date) === "function" ? _c : Object)
+], UserPackInventoryItemDto.prototype, "acquiredAt", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ description: 'Détails du pack', type: PackDetailsDto }),
+    (0, class_validator_1.ValidateNested)(),
+    (0, class_transformer_1.Type)(() => PackDetailsDto),
+    __metadata("design:type", PackDetailsDto)
+], UserPackInventoryItemDto.prototype, "pack", void 0);
+class PackTypeStatsDto {
+    count;
+    totalQuantity;
+}
+exports.PackTypeStatsDto = PackTypeStatsDto;
+__decorate([
+    (0, swagger_1.ApiProperty)({ description: 'Nombre de types de packs différents' }),
+    (0, class_validator_1.IsNumber)(),
+    __metadata("design:type", Number)
+], PackTypeStatsDto.prototype, "count", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ description: 'Quantité totale de packs de ce type' }),
+    (0, class_validator_1.IsNumber)(),
+    __metadata("design:type", Number)
+], PackTypeStatsDto.prototype, "totalQuantity", void 0);
+class UserPackInventoryDto {
+    totalPacks;
+    packsByType;
+    allPacks;
+}
+exports.UserPackInventoryDto = UserPackInventoryDto;
+__decorate([
+    (0, swagger_1.ApiProperty)({ description: 'Nombre total de packs' }),
+    (0, class_validator_1.IsNumber)(),
+    __metadata("design:type", Number)
+], UserPackInventoryDto.prototype, "totalPacks", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({
+        description: 'Packs groupés par type',
+        type: 'object',
+        additionalProperties: {
+            type: 'array',
+            items: { $ref: '#/components/schemas/UserPackInventoryItemDto' },
+        },
+    }),
+    __metadata("design:type", Object)
+], UserPackInventoryDto.prototype, "packsByType", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ description: 'Tous les packs', type: [UserPackInventoryItemDto] }),
+    (0, class_validator_1.IsArray)(),
+    (0, class_validator_1.ValidateNested)({ each: true }),
+    (0, class_transformer_1.Type)(() => UserPackInventoryItemDto),
+    __metadata("design:type", Array)
+], UserPackInventoryDto.prototype, "allPacks", void 0);
+class UserPackInventoryStatsDto {
+    totalPacks;
+    totalValue;
+    packsByType;
+}
+exports.UserPackInventoryStatsDto = UserPackInventoryStatsDto;
+__decorate([
+    (0, swagger_1.ApiProperty)({ description: 'Nombre total de packs' }),
+    (0, class_validator_1.IsNumber)(),
+    __metadata("design:type", Number)
+], UserPackInventoryStatsDto.prototype, "totalPacks", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ description: 'Valeur totale des packs' }),
+    (0, class_validator_1.IsNumber)(),
+    __metadata("design:type", Number)
+], UserPackInventoryStatsDto.prototype, "totalValue", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({
+        description: 'Statistiques par type de pack',
+        type: 'object',
+        additionalProperties: { $ref: '#/components/schemas/PackTypeStatsDto' },
+    }),
+    __metadata("design:type", Object)
+], UserPackInventoryStatsDto.prototype, "packsByType", void 0);
+class AddPackToInventoryDto {
+    packId;
+    quantity = 1;
+}
+exports.AddPackToInventoryDto = AddPackToInventoryDto;
+__decorate([
+    (0, swagger_1.ApiProperty)({ description: 'ID du pack à ajouter' }),
+    (0, class_validator_1.IsNumber)(),
+    __metadata("design:type", Number)
+], AddPackToInventoryDto.prototype, "packId", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ description: 'Quantité à ajouter', default: 1 }),
+    (0, class_validator_1.IsNumber)(),
+    (0, class_validator_1.Min)(1),
+    __metadata("design:type", Number)
+], AddPackToInventoryDto.prototype, "quantity", void 0);
+class AddPackToInventoryResultDto {
+    success;
+    item;
+    error;
+}
+exports.AddPackToInventoryResultDto = AddPackToInventoryResultDto;
+__decorate([
+    (0, swagger_1.ApiProperty)({ description: 'Succès de la opération' }),
+    (0, class_validator_1.IsBoolean)(),
+    __metadata("design:type", Boolean)
+], AddPackToInventoryResultDto.prototype, "success", void 0);
+__decorate([
+    (0, swagger_1.ApiPropertyOptional)({ description: 'Élément ajouté', type: UserPackInventoryItemDto }),
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.ValidateNested)(),
+    (0, class_transformer_1.Type)(() => UserPackInventoryItemDto),
+    __metadata("design:type", UserPackInventoryItemDto)
+], AddPackToInventoryResultDto.prototype, "item", void 0);
+__decorate([
+    (0, swagger_1.ApiPropertyOptional)({ description: "Message d'erreur" }),
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsString)(),
+    __metadata("design:type", String)
+], AddPackToInventoryResultDto.prototype, "error", void 0);
+class RemovePackFromInventoryDto {
+    packId;
+    quantity = 1;
+}
+exports.RemovePackFromInventoryDto = RemovePackFromInventoryDto;
+__decorate([
+    (0, swagger_1.ApiProperty)({ description: 'ID du pack à retirer' }),
+    (0, class_validator_1.IsNumber)(),
+    __metadata("design:type", Number)
+], RemovePackFromInventoryDto.prototype, "packId", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ description: 'Quantité à retirer', default: 1 }),
+    (0, class_validator_1.IsNumber)(),
+    (0, class_validator_1.Min)(1),
+    __metadata("design:type", Number)
+], RemovePackFromInventoryDto.prototype, "quantity", void 0);
+class RemovePackFromInventoryResultDto {
+    success;
+    remainingQuantity;
+    error;
+}
+exports.RemovePackFromInventoryResultDto = RemovePackFromInventoryResultDto;
+__decorate([
+    (0, swagger_1.ApiProperty)({ description: 'Succès de la opération' }),
+    (0, class_validator_1.IsBoolean)(),
+    __metadata("design:type", Boolean)
+], RemovePackFromInventoryResultDto.prototype, "success", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ description: 'Quantité restante' }),
+    (0, class_validator_1.IsNumber)(),
+    __metadata("design:type", Number)
+], RemovePackFromInventoryResultDto.prototype, "remainingQuantity", void 0);
+__decorate([
+    (0, swagger_1.ApiPropertyOptional)({ description: "Message d'erreur" }),
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsString)(),
+    __metadata("design:type", String)
+], RemovePackFromInventoryResultDto.prototype, "error", void 0);
+
+
+/***/ }),
+
+/***/ "./libs/contracts/src/User/dtos/user-pranks.dto.ts":
+/*!*********************************************************!*\
+  !*** ./libs/contracts/src/User/dtos/user-pranks.dto.ts ***!
+  \*********************************************************/
+/***/ (function(__unused_webpack_module, exports, __webpack_require__) {
+
+
+var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
+    var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
+    if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
+    else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+    return c > 3 && r && Object.defineProperty(target, key, r), r;
+};
+var __metadata = (this && this.__metadata) || function (k, v) {
+    if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
+};
+var _a, _b, _c;
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.RemovePrankFromCollectionResultDto = exports.RemovePrankFromCollectionDto = exports.AddPrankToCollectionResultDto = exports.AddPrankToCollectionDto = exports.UserPrankFiltersDto = exports.UserPranksStatsDto = exports.UserPranksCollectionDto = exports.PrankTypeStatsDto = exports.PrankRarityStatsDto = exports.UserPrankItemDto = exports.PrankDetailsDto = void 0;
+const swagger_1 = __webpack_require__(/*! @nestjs/swagger */ "@nestjs/swagger");
+const class_validator_1 = __webpack_require__(/*! class-validator */ "class-validator");
+const class_transformer_1 = __webpack_require__(/*! class-transformer */ "class-transformer");
+const client_1 = __webpack_require__(/*! @prisma/client */ "@prisma/client");
+class PrankDetailsDto {
+    prankId;
+    name;
+    description;
+    imageUrl;
+    type;
+    rarity;
+    defaultJetonCostEquivalent;
+    xpRewardExecutor;
+    xpRewardTarget;
+    coinsRewardExecutor;
+    coinsRewardTarget;
+    requiresProof;
+    isActive;
+}
+exports.PrankDetailsDto = PrankDetailsDto;
+__decorate([
+    (0, swagger_1.ApiProperty)({ description: 'ID du prank' }),
+    (0, class_validator_1.IsNumber)(),
+    __metadata("design:type", Number)
+], PrankDetailsDto.prototype, "prankId", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ description: 'Nom du prank' }),
+    (0, class_validator_1.IsString)(),
+    __metadata("design:type", String)
+], PrankDetailsDto.prototype, "name", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ description: 'Description du prank' }),
+    (0, class_validator_1.IsString)(),
+    __metadata("design:type", String)
+], PrankDetailsDto.prototype, "description", void 0);
+__decorate([
+    (0, swagger_1.ApiPropertyOptional)({ description: "URL de l'image du prank" }),
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsString)(),
+    __metadata("design:type", String)
+], PrankDetailsDto.prototype, "imageUrl", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ description: 'Type du prank', enum: client_1.prank_type_enum }),
+    (0, class_validator_1.IsEnum)(client_1.prank_type_enum),
+    __metadata("design:type", typeof (_a = typeof client_1.prank_type_enum !== "undefined" && client_1.prank_type_enum) === "function" ? _a : Object)
+], PrankDetailsDto.prototype, "type", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ description: 'Rareté du prank', enum: client_1.prank_rarity_enum }),
+    (0, class_validator_1.IsEnum)(client_1.prank_rarity_enum),
+    __metadata("design:type", typeof (_b = typeof client_1.prank_rarity_enum !== "undefined" && client_1.prank_rarity_enum) === "function" ? _b : Object)
+], PrankDetailsDto.prototype, "rarity", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ description: 'Coût équivalent en jetons' }),
+    (0, class_validator_1.IsNumber)(),
+    __metadata("design:type", Number)
+], PrankDetailsDto.prototype, "defaultJetonCostEquivalent", void 0);
+__decorate([
+    (0, swagger_1.ApiPropertyOptional)({ description: "XP pour l'exécuteur" }),
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsNumber)(),
+    __metadata("design:type", Number)
+], PrankDetailsDto.prototype, "xpRewardExecutor", void 0);
+__decorate([
+    (0, swagger_1.ApiPropertyOptional)({ description: 'XP pour la cible' }),
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsNumber)(),
+    __metadata("design:type", Number)
+], PrankDetailsDto.prototype, "xpRewardTarget", void 0);
+__decorate([
+    (0, swagger_1.ApiPropertyOptional)({ description: "Coins pour l'exécuteur" }),
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsNumber)(),
+    __metadata("design:type", Number)
+], PrankDetailsDto.prototype, "coinsRewardExecutor", void 0);
+__decorate([
+    (0, swagger_1.ApiPropertyOptional)({ description: 'Coins pour la cible' }),
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsNumber)(),
+    __metadata("design:type", Number)
+], PrankDetailsDto.prototype, "coinsRewardTarget", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ description: 'Nécessite une preuve' }),
+    (0, class_validator_1.IsBoolean)(),
+    __metadata("design:type", Boolean)
+], PrankDetailsDto.prototype, "requiresProof", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ description: 'Actif ou non' }),
+    (0, class_validator_1.IsBoolean)(),
+    __metadata("design:type", Boolean)
+], PrankDetailsDto.prototype, "isActive", void 0);
+class UserPrankItemDto {
+    userPrankId;
+    userId;
+    prankId;
+    quantity;
+    obtainedAt;
+    prank;
+}
+exports.UserPrankItemDto = UserPrankItemDto;
+__decorate([
+    (0, swagger_1.ApiProperty)({ description: "ID de l'élément prank utilisateur" }),
+    (0, class_validator_1.IsNumber)(),
+    __metadata("design:type", Number)
+], UserPrankItemDto.prototype, "userPrankId", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ description: "ID de l'utilisateur" }),
+    (0, class_validator_1.IsNumber)(),
+    __metadata("design:type", Number)
+], UserPrankItemDto.prototype, "userId", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ description: 'ID du prank' }),
+    (0, class_validator_1.IsNumber)(),
+    __metadata("design:type", Number)
+], UserPrankItemDto.prototype, "prankId", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ description: 'Quantité possédée' }),
+    (0, class_validator_1.IsNumber)(),
+    (0, class_validator_1.Min)(0),
+    __metadata("design:type", Number)
+], UserPrankItemDto.prototype, "quantity", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ description: "Date d'obtention" }),
+    (0, class_validator_1.IsDateString)(),
+    __metadata("design:type", typeof (_c = typeof Date !== "undefined" && Date) === "function" ? _c : Object)
+], UserPrankItemDto.prototype, "obtainedAt", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ description: 'Détails du prank', type: PrankDetailsDto }),
+    (0, class_validator_1.ValidateNested)(),
+    (0, class_transformer_1.Type)(() => PrankDetailsDto),
+    __metadata("design:type", PrankDetailsDto)
+], UserPrankItemDto.prototype, "prank", void 0);
+class PrankRarityStatsDto {
+    count;
+    totalQuantity;
+}
+exports.PrankRarityStatsDto = PrankRarityStatsDto;
+__decorate([
+    (0, swagger_1.ApiProperty)({ description: 'Nombre de pranks différents de cette rareté' }),
+    (0, class_validator_1.IsNumber)(),
+    __metadata("design:type", Number)
+], PrankRarityStatsDto.prototype, "count", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ description: 'Quantité totale de pranks de cette rareté' }),
+    (0, class_validator_1.IsNumber)(),
+    __metadata("design:type", Number)
+], PrankRarityStatsDto.prototype, "totalQuantity", void 0);
+class PrankTypeStatsDto {
+    count;
+    totalQuantity;
+}
+exports.PrankTypeStatsDto = PrankTypeStatsDto;
+__decorate([
+    (0, swagger_1.ApiProperty)({ description: 'Nombre de pranks différents de ce type' }),
+    (0, class_validator_1.IsNumber)(),
+    __metadata("design:type", Number)
+], PrankTypeStatsDto.prototype, "count", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ description: 'Quantité totale de pranks de ce type' }),
+    (0, class_validator_1.IsNumber)(),
+    __metadata("design:type", Number)
+], PrankTypeStatsDto.prototype, "totalQuantity", void 0);
+class UserPranksCollectionDto {
+    totalPranks;
+    pranksByRarity;
+    pranksByType;
+    allPranks;
+}
+exports.UserPranksCollectionDto = UserPranksCollectionDto;
+__decorate([
+    (0, swagger_1.ApiProperty)({ description: 'Nombre total de pranks différents' }),
+    (0, class_validator_1.IsNumber)(),
+    __metadata("design:type", Number)
+], UserPranksCollectionDto.prototype, "totalPranks", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({
+        description: 'Pranks groupés par rareté',
+        type: 'object',
+        additionalProperties: {
+            type: 'array',
+            items: { $ref: '#/components/schemas/UserPrankItemDto' },
+        },
+    }),
+    __metadata("design:type", Object)
+], UserPranksCollectionDto.prototype, "pranksByRarity", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({
+        description: 'Pranks groupés par type',
+        type: 'object',
+        additionalProperties: {
+            type: 'array',
+            items: { $ref: '#/components/schemas/UserPrankItemDto' },
+        },
+    }),
+    __metadata("design:type", Object)
+], UserPranksCollectionDto.prototype, "pranksByType", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ description: 'Tous les pranks', type: [UserPrankItemDto] }),
+    (0, class_validator_1.IsArray)(),
+    (0, class_validator_1.ValidateNested)({ each: true }),
+    (0, class_transformer_1.Type)(() => UserPrankItemDto),
+    __metadata("design:type", Array)
+], UserPranksCollectionDto.prototype, "allPranks", void 0);
+class UserPranksStatsDto {
+    totalPranks;
+    totalQuantity;
+    totalValue;
+    pranksByRarity;
+    pranksByType;
+    completionPercentage;
+}
+exports.UserPranksStatsDto = UserPranksStatsDto;
+__decorate([
+    (0, swagger_1.ApiProperty)({ description: 'Nombre total de pranks différents' }),
+    (0, class_validator_1.IsNumber)(),
+    __metadata("design:type", Number)
+], UserPranksStatsDto.prototype, "totalPranks", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ description: 'Quantité totale de pranks' }),
+    (0, class_validator_1.IsNumber)(),
+    __metadata("design:type", Number)
+], UserPranksStatsDto.prototype, "totalQuantity", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ description: 'Valeur totale en jetons' }),
+    (0, class_validator_1.IsNumber)(),
+    __metadata("design:type", Number)
+], UserPranksStatsDto.prototype, "totalValue", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({
+        description: 'Statistiques par rareté',
+        type: 'object',
+        additionalProperties: { $ref: '#/components/schemas/PrankRarityStatsDto' },
+    }),
+    __metadata("design:type", Object)
+], UserPranksStatsDto.prototype, "pranksByRarity", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({
+        description: 'Statistiques par type',
+        type: 'object',
+        additionalProperties: { $ref: '#/components/schemas/PrankTypeStatsDto' },
+    }),
+    __metadata("design:type", Object)
+], UserPranksStatsDto.prototype, "pranksByType", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ description: 'Pourcentage de collection complète' }),
+    (0, class_validator_1.IsNumber)(),
+    (0, class_validator_1.Min)(0),
+    (0, class_validator_1.Max)(100),
+    __metadata("design:type", Number)
+], UserPranksStatsDto.prototype, "completionPercentage", void 0);
+class UserPrankFiltersDto {
+    rarity;
+    type;
+    sortBy;
+    sortOrder;
+    limit;
+    offset;
+}
+exports.UserPrankFiltersDto = UserPrankFiltersDto;
+__decorate([
+    (0, swagger_1.ApiPropertyOptional)({
+        description: 'Filtrer par rareté',
+        enum: client_1.prank_rarity_enum,
+        isArray: true,
+    }),
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsArray)(),
+    (0, class_validator_1.IsEnum)(client_1.prank_rarity_enum, { each: true }),
+    __metadata("design:type", Array)
+], UserPrankFiltersDto.prototype, "rarity", void 0);
+__decorate([
+    (0, swagger_1.ApiPropertyOptional)({ description: 'Filtrer par type', enum: client_1.prank_type_enum, isArray: true }),
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsArray)(),
+    (0, class_validator_1.IsEnum)(client_1.prank_type_enum, { each: true }),
+    __metadata("design:type", Array)
+], UserPrankFiltersDto.prototype, "type", void 0);
+__decorate([
+    (0, swagger_1.ApiPropertyOptional)({
+        description: 'Trier par',
+        enum: ['rarity', 'type', 'quantity', 'obtainedAt', 'name'],
+        default: 'obtainedAt',
+    }),
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsEnum)(['rarity', 'type', 'quantity', 'obtainedAt', 'name']),
+    __metadata("design:type", String)
+], UserPrankFiltersDto.prototype, "sortBy", void 0);
+__decorate([
+    (0, swagger_1.ApiPropertyOptional)({ description: 'Ordre de tri', enum: ['asc', 'desc'], default: 'desc' }),
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsEnum)(['asc', 'desc']),
+    __metadata("design:type", String)
+], UserPrankFiltersDto.prototype, "sortOrder", void 0);
+__decorate([
+    (0, swagger_1.ApiPropertyOptional)({ description: 'Limite de résultats', default: 50 }),
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsNumber)(),
+    (0, class_validator_1.Min)(1),
+    (0, class_validator_1.Max)(100),
+    __metadata("design:type", Number)
+], UserPrankFiltersDto.prototype, "limit", void 0);
+__decorate([
+    (0, swagger_1.ApiPropertyOptional)({ description: 'Décalage pour pagination', default: 0 }),
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsNumber)(),
+    (0, class_validator_1.Min)(0),
+    __metadata("design:type", Number)
+], UserPrankFiltersDto.prototype, "offset", void 0);
+class AddPrankToCollectionDto {
+    prankId;
+    quantity = 1;
+}
+exports.AddPrankToCollectionDto = AddPrankToCollectionDto;
+__decorate([
+    (0, swagger_1.ApiProperty)({ description: 'ID du prank à ajouter' }),
+    (0, class_validator_1.IsNumber)(),
+    __metadata("design:type", Number)
+], AddPrankToCollectionDto.prototype, "prankId", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ description: 'Quantité à ajouter', default: 1 }),
+    (0, class_validator_1.IsNumber)(),
+    (0, class_validator_1.Min)(1),
+    __metadata("design:type", Number)
+], AddPrankToCollectionDto.prototype, "quantity", void 0);
+class AddPrankToCollectionResultDto {
+    success;
+    item;
+    isNew;
+    error;
+}
+exports.AddPrankToCollectionResultDto = AddPrankToCollectionResultDto;
+__decorate([
+    (0, swagger_1.ApiProperty)({ description: 'Succès de la opération' }),
+    (0, class_validator_1.IsBoolean)(),
+    __metadata("design:type", Boolean)
+], AddPrankToCollectionResultDto.prototype, "success", void 0);
+__decorate([
+    (0, swagger_1.ApiPropertyOptional)({ description: 'Élément ajouté', type: UserPrankItemDto }),
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.ValidateNested)(),
+    (0, class_transformer_1.Type)(() => UserPrankItemDto),
+    __metadata("design:type", UserPrankItemDto)
+], AddPrankToCollectionResultDto.prototype, "item", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ description: "Premier prank de ce type pour l'utilisateur" }),
+    (0, class_validator_1.IsBoolean)(),
+    __metadata("design:type", Boolean)
+], AddPrankToCollectionResultDto.prototype, "isNew", void 0);
+__decorate([
+    (0, swagger_1.ApiPropertyOptional)({ description: "Message d'erreur" }),
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsString)(),
+    __metadata("design:type", String)
+], AddPrankToCollectionResultDto.prototype, "error", void 0);
+class RemovePrankFromCollectionDto {
+    prankId;
+    quantity = 1;
+}
+exports.RemovePrankFromCollectionDto = RemovePrankFromCollectionDto;
+__decorate([
+    (0, swagger_1.ApiProperty)({ description: 'ID du prank à retirer' }),
+    (0, class_validator_1.IsNumber)(),
+    __metadata("design:type", Number)
+], RemovePrankFromCollectionDto.prototype, "prankId", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ description: 'Quantité à retirer', default: 1 }),
+    (0, class_validator_1.IsNumber)(),
+    (0, class_validator_1.Min)(1),
+    __metadata("design:type", Number)
+], RemovePrankFromCollectionDto.prototype, "quantity", void 0);
+class RemovePrankFromCollectionResultDto {
+    success;
+    remainingQuantity;
+    error;
+}
+exports.RemovePrankFromCollectionResultDto = RemovePrankFromCollectionResultDto;
+__decorate([
+    (0, swagger_1.ApiProperty)({ description: 'Succès de la opération' }),
+    (0, class_validator_1.IsBoolean)(),
+    __metadata("design:type", Boolean)
+], RemovePrankFromCollectionResultDto.prototype, "success", void 0);
+__decorate([
+    (0, swagger_1.ApiProperty)({ description: 'Quantité restante' }),
+    (0, class_validator_1.IsNumber)(),
+    __metadata("design:type", Number)
+], RemovePrankFromCollectionResultDto.prototype, "remainingQuantity", void 0);
+__decorate([
+    (0, swagger_1.ApiPropertyOptional)({ description: "Message d'erreur" }),
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsString)(),
+    __metadata("design:type", String)
+], RemovePrankFromCollectionResultDto.prototype, "error", void 0);
+
+
+/***/ }),
+
 /***/ "./libs/contracts/src/User/dtos/user.dto.ts":
 /*!**************************************************!*\
   !*** ./libs/contracts/src/User/dtos/user.dto.ts ***!
@@ -3607,6 +6269,60 @@ __decorate([
 
 /***/ }),
 
+/***/ "./libs/contracts/src/User/index.ts":
+/*!******************************************!*\
+  !*** ./libs/contracts/src/User/index.ts ***!
+  \******************************************/
+/***/ (function(__unused_webpack_module, exports, __webpack_require__) {
+
+
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __exportStar = (this && this.__exportStar) || function(m, exports) {
+    for (var p in m) if (p !== "default" && !Object.prototype.hasOwnProperty.call(exports, p)) __createBinding(exports, m, p);
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+__exportStar(__webpack_require__(/*! ./interfaces/user-inventory.interface */ "./libs/contracts/src/User/interfaces/user-inventory.interface.ts"), exports);
+__exportStar(__webpack_require__(/*! ./interfaces/user-pranks.interface */ "./libs/contracts/src/User/interfaces/user-pranks.interface.ts"), exports);
+__exportStar(__webpack_require__(/*! ./dtos/user-inventory.dto */ "./libs/contracts/src/User/dtos/user-inventory.dto.ts"), exports);
+__exportStar(__webpack_require__(/*! ./dtos/user-pranks.dto */ "./libs/contracts/src/User/dtos/user-pranks.dto.ts"), exports);
+
+
+/***/ }),
+
+/***/ "./libs/contracts/src/User/interfaces/user-inventory.interface.ts":
+/*!************************************************************************!*\
+  !*** ./libs/contracts/src/User/interfaces/user-inventory.interface.ts ***!
+  \************************************************************************/
+/***/ ((__unused_webpack_module, exports) => {
+
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+
+
+/***/ }),
+
+/***/ "./libs/contracts/src/User/interfaces/user-pranks.interface.ts":
+/*!*********************************************************************!*\
+  !*** ./libs/contracts/src/User/interfaces/user-pranks.interface.ts ***!
+  \*********************************************************************/
+/***/ ((__unused_webpack_module, exports) => {
+
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+
+
+/***/ }),
+
 /***/ "./libs/contracts/src/types/common.types.ts":
 /*!**************************************************!*\
   !*** ./libs/contracts/src/types/common.types.ts ***!
@@ -3615,7 +6331,7 @@ __decorate([
 
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.UserMissionStatusEnum = exports.ServiceTypeEnum = exports.ServiceStatusEnum = exports.PrankTypeEnum = exports.MissionTypeEnum = exports.FriendshipStatusEnum = exports.ExecutedPrankStatusEnum = void 0;
+exports.UserMissionStatusEnum = exports.ServiceTypeEnum = exports.ServiceStatusEnum = exports.PrankRarityEnum = exports.PrankTypeEnum = exports.MissionTypeEnum = exports.FriendshipStatusEnum = exports.ExecutedPrankStatusEnum = void 0;
 var ExecutedPrankStatusEnum;
 (function (ExecutedPrankStatusEnum) {
     ExecutedPrankStatusEnum["PROPOSED_BY_DEBTOR"] = "proposed_by_debtor";
@@ -3651,6 +6367,12 @@ var PrankTypeEnum;
     PrankTypeEnum["NOTIFICATION_SPAM"] = "notification_spam";
     PrankTypeEnum["EXTERNAL_ACTION"] = "external_action";
 })(PrankTypeEnum || (exports.PrankTypeEnum = PrankTypeEnum = {}));
+var PrankRarityEnum;
+(function (PrankRarityEnum) {
+    PrankRarityEnum["COMMON"] = "common";
+    PrankRarityEnum["RARE"] = "rare";
+    PrankRarityEnum["EXTREME"] = "extreme";
+})(PrankRarityEnum || (exports.PrankRarityEnum = PrankRarityEnum = {}));
 var ServiceStatusEnum;
 (function (ServiceStatusEnum) {
     ServiceStatusEnum["PENDING_CONFIRMATION"] = "pending_confirmation";
@@ -3695,6 +6417,9 @@ exports.EXCEPTION_CODES = {
     AUTH_USER_NOT_FOUND: 'AUTH_USER_NOT_FOUND',
     AUTH_EMAIL_ALREADY_EXISTS: 'AUTH_EMAIL_ALREADY_EXISTS',
     AUTH_GOOGLE_TOKEN_INVALID: 'AUTH_GOOGLE_TOKEN_INVALID',
+    APP_PACK_NOT_FOUND: 'APP_PACK_NOT_FOUND',
+    APP_INSUFFICIENT_QUANTITY: 'APP_INSUFFICIENT_QUANTITY',
+    APP_PRANK_NOT_FOUND: 'APP_PRANK_NOT_FOUND',
     DB_CONNECTION_ERROR: 'DB_CONNECTION_ERROR',
     DB_QUERY_ERROR: 'DB_QUERY_ERROR',
     DB_RECORD_NOT_FOUND: 'DB_RECORD_NOT_FOUND',
@@ -3875,7 +6600,7 @@ exports.BaseException = BaseException;
 
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.ResourceNotAvailableException = exports.InsufficientPermissionsException = exports.BusinessException = void 0;
+exports.PrankNotFoundException = exports.InsufficientQuantityException = exports.PackNotFoundException = exports.ResourceNotAvailableException = exports.InsufficientPermissionsException = exports.BusinessException = void 0;
 const base_exception_1 = __webpack_require__(/*! ./base.exception */ "./libs/exceptions/src/exceptions/base.exception.ts");
 const exception_constants_1 = __webpack_require__(/*! ../constants/exception.constants */ "./libs/exceptions/src/constants/exception.constants.ts");
 class BusinessException extends base_exception_1.BaseException {
@@ -3900,6 +6625,24 @@ class ResourceNotAvailableException extends base_exception_1.BaseException {
     }
 }
 exports.ResourceNotAvailableException = ResourceNotAvailableException;
+class PackNotFoundException extends base_exception_1.BaseException {
+    constructor(details, path) {
+        super('Pack introuvable', exception_constants_1.HTTP_STATUS_CODES.NOT_FOUND, exception_constants_1.EXCEPTION_CODES.APP_PACK_NOT_FOUND, details, path);
+    }
+}
+exports.PackNotFoundException = PackNotFoundException;
+class InsufficientQuantityException extends base_exception_1.BaseException {
+    constructor(details, path) {
+        super('Quantité insuffisante', exception_constants_1.HTTP_STATUS_CODES.NOT_FOUND, exception_constants_1.EXCEPTION_CODES.APP_INSUFFICIENT_QUANTITY, details, path);
+    }
+}
+exports.InsufficientQuantityException = InsufficientQuantityException;
+class PrankNotFoundException extends base_exception_1.BaseException {
+    constructor(details, path) {
+        super('Prank introuvable', exception_constants_1.HTTP_STATUS_CODES.NOT_FOUND, exception_constants_1.EXCEPTION_CODES.APP_PRANK_NOT_FOUND, details, path);
+    }
+}
+exports.PrankNotFoundException = PrankNotFoundException;
 
 
 /***/ }),
@@ -4802,6 +7545,26 @@ module.exports = require("@nestjs/passport");
 /***/ ((module) => {
 
 module.exports = require("@nestjs/swagger");
+
+/***/ }),
+
+/***/ "@prisma/client":
+/*!*********************************!*\
+  !*** external "@prisma/client" ***!
+  \*********************************/
+/***/ ((module) => {
+
+module.exports = require("@prisma/client");
+
+/***/ }),
+
+/***/ "class-transformer":
+/*!************************************!*\
+  !*** external "class-transformer" ***!
+  \************************************/
+/***/ ((module) => {
+
+module.exports = require("class-transformer");
 
 /***/ }),
 
